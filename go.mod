@@ -6,11 +6,13 @@ require (
 	github.com/bldsoft/gost v0.0.0-20220905144246-4a8c51ac7163
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/oschwald/geoip2-golang v1.8.0
+	github.com/urfave/cli/v2 v2.17.1
 	google.golang.org/grpc v1.38.0
 	google.golang.org/protobuf v1.28.0
 )
 
 require (
+	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
@@ -24,12 +26,14 @@ require (
 	github.com/oschwald/maxminddb-golang v1.10.0 // indirect
 	github.com/pelletier/go-toml v1.9.3 // indirect
 	github.com/rs/zerolog v1.21.0 // indirect
+	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/spf13/afero v1.6.0 // indirect
 	github.com/spf13/cast v1.4.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.8.1 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
+	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	golang.org/x/exp v0.0.0-20220209042442-160e291fcf24 // indirect
 	golang.org/x/net v0.0.0-20220425223048-2871e0cb64e4 // indirect
 	golang.org/x/sys v0.0.0-20220804214406-8e32c043e418 // indirect

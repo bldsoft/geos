@@ -15,6 +15,10 @@ type Config struct {
 	GeoDbPath string `mapstructure:"GEO_DB_PATH" description:"Path to GeoLite2 or GeoIP2 databases"`
 }
 
+func (c *Config) GrpcAddr() string {
+	return fmt.Sprintf("%s:%d", c.Server.Host, c.GrpcPort)
+}
+
 // SetDefaults ...
 func (c *Config) SetDefaults() {
 	c.GeoDbPath = "../../GeoLite2-City.mmdb"

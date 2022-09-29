@@ -1,8 +1,6 @@
 package microservice
 
 import (
-	"fmt"
-
 	"github.com/bldsoft/geos/pkg/config"
 	"github.com/bldsoft/geos/pkg/controller"
 	"github.com/bldsoft/geos/pkg/controller/grpc"
@@ -33,8 +31,7 @@ func (m *Microservice) initServices() {
 	rep := repository.NewGeoIpRepository(m.config.GeoDbPath)
 	m.geoService = service.NewGeoService(rep)
 
-	grpcAddr := fmt.Sprintf("%s:%d", m.config.Server.Host, m.config.GrpcPort)
-	m.grpcMicroservice = grpc.NewServer(grpcAddr, m.geoService)
+	m.grpcMicroservice = grpc.NewServer(m.config.GrpcAddr(), m.geoService)
 }
 
 func (m *Microservice) BuildRoutes(router chi.Router) {
