@@ -15,10 +15,10 @@ import (
 type Server struct {
 	address      string
 	grpcServer   *grpc.Server
-	geoIpService controller.GeoService
+	geoIpService controller.GeoIpService
 }
 
-func NewServer(address string, geoIpService controller.GeoService) *Server {
+func NewServer(address string, geoIpService controller.GeoIpService) *Server {
 	return &Server{
 		address:      address,
 		geoIpService: geoIpService,
@@ -26,6 +26,8 @@ func NewServer(address string, geoIpService controller.GeoService) *Server {
 }
 
 func (s *Server) registerServices() {
+	geoIpController := NewGeoIpController(s.geoIpService)
+	pb.RegisterGeoIpServiceServer(s.grpcServer, geoIpController)
 }
 
 func (s *Server) Run() error {
@@ -37,8 +39,6 @@ func (s *Server) Run() error {
 
 	s.grpcServer = grpc.NewServer(opts...)
 	s.registerServices()
-	geoIpController := NewGeoController(s.geoIpService)
-	pb.RegisterGeoServiceServer(s.grpcServer, geoIpController)
 
 	log.Infof("Grpc server started. Listening on %s", s.address)
 	defer log.Infof("Grpc server stopped")

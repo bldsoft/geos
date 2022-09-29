@@ -11,16 +11,16 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type GeoController struct {
+type GeoIpController struct {
 	gost.BaseController
-	service controller.GeoService
+	service controller.GeoIpService
 }
 
-func NewGeoGeoController(service controller.GeoService) (c *GeoController) {
-	return &GeoController{service: service}
+func NewGeoIpController(service controller.GeoIpService) (c *GeoIpController) {
+	return &GeoIpController{service: service}
 }
 
-func (c *GeoController) ip(r *http.Request) net.IP {
+func (c *GeoIpController) ip(r *http.Request) net.IP {
 	ipStr := chi.URLParam(r, "ip")
 	if ipStr == "me" {
 		return net.ParseIP(strings.Split(r.RemoteAddr, ":")[0])
@@ -28,7 +28,7 @@ func (c *GeoController) ip(r *http.Request) net.IP {
 	return net.ParseIP(ipStr)
 }
 
-func (c *GeoController) GetCityHandler(w http.ResponseWriter, r *http.Request) {
+func (c *GeoIpController) GetCityHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	city, err := c.service.City(ctx, c.ip(r))
 	if err != nil {
@@ -39,7 +39,7 @@ func (c *GeoController) GetCityHandler(w http.ResponseWriter, r *http.Request) {
 	c.ResponseJson(w, r, city)
 }
 
-func (c *GeoController) GetCountryHandler(w http.ResponseWriter, r *http.Request) {
+func (c *GeoIpController) GetCountryHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	country, err := c.service.Country(ctx, c.ip(r))
 	if err != nil {

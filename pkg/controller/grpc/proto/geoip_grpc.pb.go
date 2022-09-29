@@ -18,122 +18,122 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// GeoServiceClient is the client API for GeoService service.
+// GeoIpServiceClient is the client API for GeoIpService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type GeoServiceClient interface {
+type GeoIpServiceClient interface {
 	Country(ctx context.Context, in *IpRequest, opts ...grpc.CallOption) (*CountryResponse, error)
 	City(ctx context.Context, in *IpRequest, opts ...grpc.CallOption) (*CityResponse, error)
 }
 
-type geoServiceClient struct {
+type geoIpServiceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewGeoServiceClient(cc grpc.ClientConnInterface) GeoServiceClient {
-	return &geoServiceClient{cc}
+func NewGeoIpServiceClient(cc grpc.ClientConnInterface) GeoIpServiceClient {
+	return &geoIpServiceClient{cc}
 }
 
-func (c *geoServiceClient) Country(ctx context.Context, in *IpRequest, opts ...grpc.CallOption) (*CountryResponse, error) {
+func (c *geoIpServiceClient) Country(ctx context.Context, in *IpRequest, opts ...grpc.CallOption) (*CountryResponse, error) {
 	out := new(CountryResponse)
-	err := c.cc.Invoke(ctx, "/geoip.GeoService/Country", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/geoip.GeoIpService/Country", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *geoServiceClient) City(ctx context.Context, in *IpRequest, opts ...grpc.CallOption) (*CityResponse, error) {
+func (c *geoIpServiceClient) City(ctx context.Context, in *IpRequest, opts ...grpc.CallOption) (*CityResponse, error) {
 	out := new(CityResponse)
-	err := c.cc.Invoke(ctx, "/geoip.GeoService/City", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/geoip.GeoIpService/City", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// GeoServiceServer is the server API for GeoService service.
-// All implementations must embed UnimplementedGeoServiceServer
+// GeoIpServiceServer is the server API for GeoIpService service.
+// All implementations must embed UnimplementedGeoIpServiceServer
 // for forward compatibility
-type GeoServiceServer interface {
+type GeoIpServiceServer interface {
 	Country(context.Context, *IpRequest) (*CountryResponse, error)
 	City(context.Context, *IpRequest) (*CityResponse, error)
-	mustEmbedUnimplementedGeoServiceServer()
+	mustEmbedUnimplementedGeoIpServiceServer()
 }
 
-// UnimplementedGeoServiceServer must be embedded to have forward compatible implementations.
-type UnimplementedGeoServiceServer struct {
+// UnimplementedGeoIpServiceServer must be embedded to have forward compatible implementations.
+type UnimplementedGeoIpServiceServer struct {
 }
 
-func (UnimplementedGeoServiceServer) Country(context.Context, *IpRequest) (*CountryResponse, error) {
+func (UnimplementedGeoIpServiceServer) Country(context.Context, *IpRequest) (*CountryResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Country not implemented")
 }
-func (UnimplementedGeoServiceServer) City(context.Context, *IpRequest) (*CityResponse, error) {
+func (UnimplementedGeoIpServiceServer) City(context.Context, *IpRequest) (*CityResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method City not implemented")
 }
-func (UnimplementedGeoServiceServer) mustEmbedUnimplementedGeoServiceServer() {}
+func (UnimplementedGeoIpServiceServer) mustEmbedUnimplementedGeoIpServiceServer() {}
 
-// UnsafeGeoServiceServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to GeoServiceServer will
+// UnsafeGeoIpServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to GeoIpServiceServer will
 // result in compilation errors.
-type UnsafeGeoServiceServer interface {
-	mustEmbedUnimplementedGeoServiceServer()
+type UnsafeGeoIpServiceServer interface {
+	mustEmbedUnimplementedGeoIpServiceServer()
 }
 
-func RegisterGeoServiceServer(s grpc.ServiceRegistrar, srv GeoServiceServer) {
-	s.RegisterService(&GeoService_ServiceDesc, srv)
+func RegisterGeoIpServiceServer(s grpc.ServiceRegistrar, srv GeoIpServiceServer) {
+	s.RegisterService(&GeoIpService_ServiceDesc, srv)
 }
 
-func _GeoService_Country_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _GeoIpService_Country_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(IpRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GeoServiceServer).Country(ctx, in)
+		return srv.(GeoIpServiceServer).Country(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/geoip.GeoService/Country",
+		FullMethod: "/geoip.GeoIpService/Country",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GeoServiceServer).Country(ctx, req.(*IpRequest))
+		return srv.(GeoIpServiceServer).Country(ctx, req.(*IpRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _GeoService_City_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _GeoIpService_City_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(IpRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GeoServiceServer).City(ctx, in)
+		return srv.(GeoIpServiceServer).City(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/geoip.GeoService/City",
+		FullMethod: "/geoip.GeoIpService/City",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GeoServiceServer).City(ctx, req.(*IpRequest))
+		return srv.(GeoIpServiceServer).City(ctx, req.(*IpRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// GeoService_ServiceDesc is the grpc.ServiceDesc for GeoService service.
+// GeoIpService_ServiceDesc is the grpc.ServiceDesc for GeoIpService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var GeoService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "geoip.GeoService",
-	HandlerType: (*GeoServiceServer)(nil),
+var GeoIpService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "geoip.GeoIpService",
+	HandlerType: (*GeoIpServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "Country",
-			Handler:    _GeoService_Country_Handler,
+			Handler:    _GeoIpService_Country_Handler,
 		},
 		{
 			MethodName: "City",
-			Handler:    _GeoService_City_Handler,
+			Handler:    _GeoIpService_City_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

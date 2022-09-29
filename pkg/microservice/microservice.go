@@ -16,7 +16,7 @@ import (
 type Microservice struct {
 	config *config.Config
 
-	geoService controller.GeoService
+	geoService controller.GeoIpService
 
 	grpcMicroservice *grpc.Server
 }
@@ -30,7 +30,7 @@ func NewMicroservice(config config.Config) *Microservice {
 }
 
 func (m *Microservice) initServices() {
-	rep := repository.NewGeoRepository(m.config.GeoDbPath)
+	rep := repository.NewGeoIpRepository(m.config.GeoDbPath)
 	m.geoService = service.NewGeoService(rep)
 
 	grpcAddr := fmt.Sprintf("%s:%d", m.config.Server.Host, m.config.GrpcPort)
@@ -39,7 +39,7 @@ func (m *Microservice) initServices() {
 
 func (m *Microservice) BuildRoutes(router chi.Router) {
 	router.Route("/geoip/v2.1", func(r chi.Router) {
-		controller := rest.NewGeoGeoController(m.geoService)
+		controller := rest.NewGeoIpController(m.geoService)
 		r.Get("/country/{ip}", controller.GetCityHandler)
 		r.Get("/city/{ip}", controller.GetCityHandler)
 	})

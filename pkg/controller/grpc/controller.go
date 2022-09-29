@@ -5,20 +5,20 @@ import (
 	"net"
 
 	"github.com/bldsoft/geos/pkg/controller"
-	proto "github.com/bldsoft/geos/pkg/controller/grpc/proto"
+	pb "github.com/bldsoft/geos/pkg/controller/grpc/proto"
 	"github.com/bldsoft/gost/log"
 )
 
-type GeoController struct {
-	proto.UnimplementedGeoServiceServer
-	service controller.GeoService
+type GeoIpController struct {
+	pb.UnimplementedGeoIpServiceServer
+	service controller.GeoIpService
 }
 
-func NewGeoController(geoService controller.GeoService) *GeoController {
-	return &GeoController{service: geoService}
+func NewGeoIpController(geoService controller.GeoIpService) *GeoIpController {
+	return &GeoIpController{service: geoService}
 }
 
-func (c *GeoController) Country(ctx context.Context, req *proto.IpRequest) (*proto.CountryResponse, error) {
+func (c *GeoIpController) Country(ctx context.Context, req *pb.IpRequest) (*pb.CountryResponse, error) {
 	country, err := c.service.Country(ctx, net.ParseIP(req.GetIp()))
 	if err != nil {
 		log.FromContext(ctx).Error(err.Error())
@@ -27,7 +27,7 @@ func (c *GeoController) Country(ctx context.Context, req *proto.IpRequest) (*pro
 	return CountryToPb(country), nil
 }
 
-func (c *GeoController) City(ctx context.Context, req *proto.IpRequest) (*proto.CityResponse, error) {
+func (c *GeoIpController) City(ctx context.Context, req *pb.IpRequest) (*pb.CityResponse, error) {
 	city, err := c.service.City(ctx, net.ParseIP(req.GetIp()))
 	if err != nil {
 		log.FromContext(ctx).Error(err.Error())

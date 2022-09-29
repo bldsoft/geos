@@ -12,18 +12,18 @@ type GeoRepository interface {
 	City(ctx context.Context, ip net.IP) (*geoip2.City, error)
 }
 
-type GeoService struct {
+type GeoIpService struct {
 	rep GeoRepository
 }
 
-func NewGeoService(rep GeoRepository) *GeoService {
-	return &GeoService{rep: rep}
+func NewGeoService(rep GeoRepository) *GeoIpService {
+	return &GeoIpService{rep: rep}
 }
 
-func (s *GeoService) Country(ctx context.Context, ip net.IP) (*geoip2.Country, error) {
+func (s *GeoIpService) Country(ctx context.Context, ip net.IP) (*geoip2.Country, error) {
 	return s.rep.Country(ctx, ip)
 }
 
-func (s *GeoService) City(ctx context.Context, ip net.IP) (*geoip2.City, error) {
+func (s *GeoIpService) City(ctx context.Context, ip net.IP) (*geoip2.City, error) {
 	return s.rep.City(ctx, ip)
 }

@@ -7,7 +7,7 @@ message IpRequest {
     string ip = 1;
 }
 
-service GeoService {
+service GeoIpService {
     rpc Country(IpRequest) returns (CountryResponse);
     rpc City(IpRequest) returns (CityResponse);
 }

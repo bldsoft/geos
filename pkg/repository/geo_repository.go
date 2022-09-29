@@ -8,22 +8,22 @@ import (
 	"github.com/oschwald/geoip2-golang"
 )
 
-type GeoRepository struct {
+type GeoIpRepository struct {
 	db *geoip2.Reader
 }
 
-func NewGeoRepository(file string) *GeoRepository {
+func NewGeoIpRepository(file string) *GeoIpRepository {
 	db, err := geoip2.Open(file)
 	if err != nil {
 		log.Fatalf("Failed to open db: %s", err)
 	}
-	return &GeoRepository{db: db}
+	return &GeoIpRepository{db: db}
 }
 
-func (r *GeoRepository) Country(ctx context.Context, ip net.IP) (*geoip2.Country, error) {
+func (r *GeoIpRepository) Country(ctx context.Context, ip net.IP) (*geoip2.Country, error) {
 	return r.db.Country(ip)
 }
 
-func (r *GeoRepository) City(ctx context.Context, ip net.IP) (*geoip2.City, error) {
+func (r *GeoIpRepository) City(ctx context.Context, ip net.IP) (*geoip2.City, error) {
 	return r.db.City(ip)
 }

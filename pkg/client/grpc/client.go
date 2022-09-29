@@ -12,7 +12,7 @@ import (
 
 type Client struct {
 	conn   *grpc.ClientConn
-	client pb.GeoServiceClient
+	client pb.GeoIpServiceClient
 }
 
 func NewClient(addr string) (*Client, error) {
@@ -24,7 +24,7 @@ func NewClient(addr string) (*Client, error) {
 	}
 	return &Client{
 		conn:   conn,
-		client: pb.NewGeoServiceClient(conn),
+		client: pb.NewGeoIpServiceClient(conn),
 	}, nil
 }
 
