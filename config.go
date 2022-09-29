@@ -9,15 +9,16 @@ import (
 )
 
 type Config struct {
-	Server server.Config
-	Log    log.Config
-
+	Server    server.Config
+	Log       log.Config
+	GrpcPort  int    `mapstructure:"GRPC SERVICE_PORT" description:"gRPC service port"`
 	GeoDbPath string `mapstructure:"GEO_DB_PATH" description:"Path to GeoLite2 or GeoIP2 databases"`
 }
 
 // SetDefaults ...
 func (c *Config) SetDefaults() {
 	c.GeoDbPath = "GeoLite2-City.mmdb"
+	c.GrpcPort = 3001
 }
 
 // Validate ...
