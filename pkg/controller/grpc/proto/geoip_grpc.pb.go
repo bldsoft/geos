@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.15.8
-// source: geoip.proto
+// source: api/grpc/geoip.proto
 
-package __
+package proto
 
 import (
 	context "context"
@@ -137,5 +137,5 @@ var GeoService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "geoip.proto",
+	Metadata: "api/grpc/geoip.proto",
 }

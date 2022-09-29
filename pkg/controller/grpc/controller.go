@@ -9,8 +9,6 @@ import (
 	"github.com/bldsoft/gost/log"
 )
 
-//go:generate protoc --go_out=. --go-grpc_out=. proto/geoip.proto
-
 type GeoController struct {
 	proto.UnimplementedGeoServiceServer
 	service controller.GeoService

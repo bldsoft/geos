@@ -1,7 +1,7 @@
 syntax = "proto3";
 package geoip;
 
-option go_package = "./";
+option go_package = "./;proto";
 
 message IpRequest {
     string ip = 1;

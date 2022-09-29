@@ -10,6 +10,8 @@ import (
 	grpc "google.golang.org/grpc"
 )
 
+//go:generate protoc -I=../../.. --go_out=proto --go-grpc_out=proto api/grpc/geoip.proto
+
 type Server struct {
 	address      string
 	grpcServer   *grpc.Server
