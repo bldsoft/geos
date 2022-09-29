@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"fmt"
@@ -17,7 +17,7 @@ type Config struct {
 
 // SetDefaults ...
 func (c *Config) SetDefaults() {
-	c.GeoDbPath = "GeoLite2-City.mmdb"
+	c.GeoDbPath = "../../GeoLite2-City.mmdb"
 	c.GrpcPort = 3001
 }
 

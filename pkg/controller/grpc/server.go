@@ -4,8 +4,8 @@ import (
 	context "context"
 	"net"
 
-	"github.com/bldsoft/geos/controller"
-	pb "github.com/bldsoft/geos/controller/grpc/proto"
+	"github.com/bldsoft/geos/pkg/controller"
+	pb "github.com/bldsoft/geos/pkg/controller/grpc/proto"
 	"github.com/bldsoft/gost/log"
 	grpc "google.golang.org/grpc"
 )

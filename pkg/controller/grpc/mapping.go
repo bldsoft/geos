@@ -1,7 +1,7 @@
 package grpc
 
 import (
-	pb "github.com/bldsoft/geos/controller/grpc/proto"
+	pb "github.com/bldsoft/geos/pkg/controller/grpc/proto"
 	"github.com/oschwald/geoip2-golang"
 )
 

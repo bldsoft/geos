@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/bldsoft/geos/controller"
+	"github.com/bldsoft/geos/pkg/controller"
 	gost "github.com/bldsoft/gost/controller"
 	"github.com/bldsoft/gost/log"
 	"github.com/go-chi/chi/v5"

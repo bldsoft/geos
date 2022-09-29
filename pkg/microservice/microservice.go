@@ -1,26 +1,27 @@
-package main
+package microservice
 
 import (
 	"fmt"
 
-	"github.com/bldsoft/geos/controller"
-	"github.com/bldsoft/geos/controller/grpc"
-	"github.com/bldsoft/geos/controller/rest"
-	"github.com/bldsoft/geos/repository"
-	"github.com/bldsoft/geos/service"
+	"github.com/bldsoft/geos/pkg/config"
+	"github.com/bldsoft/geos/pkg/controller"
+	"github.com/bldsoft/geos/pkg/controller/grpc"
+	"github.com/bldsoft/geos/pkg/controller/rest"
+	"github.com/bldsoft/geos/pkg/repository"
+	"github.com/bldsoft/geos/pkg/service"
 	"github.com/bldsoft/gost/server"
 	"github.com/go-chi/chi/v5"
 )
 
 type Microservice struct {
-	config *Config
+	config *config.Config
 
 	geoService controller.GeoService
 
 	grpcMicroservice *grpc.Server
 }
 
-func NewMicroservice(config Config) *Microservice {
+func NewMicroservice(config config.Config) *Microservice {
 	srv := &Microservice{
 		config: &config,
 	}

@@ -3,10 +3,10 @@ package client
 import (
 	"context"
 
-	mapping "github.com/bldsoft/geos/controller/grpc"
+	mapping "github.com/bldsoft/geos/pkg/controller/grpc"
 	"google.golang.org/grpc"
 
-	pb "github.com/bldsoft/geos/controller/grpc/proto"
+	pb "github.com/bldsoft/geos/pkg/controller/grpc/proto"
 	"github.com/oschwald/geoip2-golang"
 )
 
