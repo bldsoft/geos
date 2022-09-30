@@ -7,6 +7,7 @@ import (
 	"github.com/bldsoft/geos/pkg/repository"
 	"github.com/bldsoft/geos/pkg/service"
 	gost "github.com/bldsoft/gost/controller"
+	"github.com/bldsoft/gost/log"
 	"github.com/bldsoft/gost/server"
 	"github.com/go-chi/chi/v5"
 )
@@ -16,7 +17,7 @@ type Microservice struct {
 
 	geoService controller.GeoIpService
 
-	grpcMicroservice *GrpcMicroservice
+	asyncRunners []server.AsyncRunner
 }
 
 func NewMicroservice(config config.Config) *Microservice {
@@ -31,7 +32,12 @@ func (m *Microservice) initServices() {
 	rep := repository.NewGeoIpRepository(m.config.GeoDbPath)
 	m.geoService = service.NewGeoService(rep)
 
-	m.grpcMicroservice = NewGrpcMicroservice(m.config.GrpcAddr(), m.geoService)
+	if m.config.NeedGrpc() {
+		grpcService := NewGrpcMicroservice(m.config.GrpcAddr(), m.geoService)
+		m.asyncRunners = append(m.asyncRunners, grpcService)
+	} else {
+		log.Info("gRPC is off")
+	}
 }
 
 func (m *Microservice) BuildRoutes(router chi.Router) {
@@ -48,5 +54,5 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 }
 
 func (m *Microservice) GetAsyncRunners() []server.AsyncRunner {
-	return []server.AsyncRunner{m.grpcMicroservice}
+	return m.asyncRunners
 }

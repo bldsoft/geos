@@ -6,6 +6,7 @@ require (
 	github.com/bldsoft/gost v0.0.0-20220905144246-4a8c51ac7163
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/oschwald/geoip2-golang v1.8.0
+	github.com/oschwald/maxminddb-golang v1.10.0
 	github.com/urfave/cli/v2 v2.17.1
 	google.golang.org/grpc v1.49.0
 	google.golang.org/protobuf v1.28.1
@@ -23,7 +24,6 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
-	github.com/oschwald/maxminddb-golang v1.10.0 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.5 // indirect
 	github.com/rs/zerolog v1.28.0 // indirect
