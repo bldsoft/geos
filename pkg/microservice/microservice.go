@@ -3,7 +3,6 @@ package microservice
 import (
 	"github.com/bldsoft/geos/pkg/config"
 	"github.com/bldsoft/geos/pkg/controller"
-	"github.com/bldsoft/geos/pkg/controller/grpc"
 	"github.com/bldsoft/geos/pkg/controller/rest"
 	"github.com/bldsoft/geos/pkg/repository"
 	"github.com/bldsoft/geos/pkg/service"
@@ -17,7 +16,7 @@ type Microservice struct {
 
 	geoService controller.GeoIpService
 
-	grpcMicroservice *grpc.Server
+	grpcMicroservice *GrpcMicroservice
 }
 
 func NewMicroservice(config config.Config) *Microservice {
@@ -32,7 +31,7 @@ func (m *Microservice) initServices() {
 	rep := repository.NewGeoIpRepository(m.config.GeoDbPath)
 	m.geoService = service.NewGeoService(rep)
 
-	m.grpcMicroservice = grpc.NewServer(m.config.GrpcAddr(), m.geoService)
+	m.grpcMicroservice = NewGrpcMicroservice(m.config.GrpcAddr(), m.geoService)
 }
 
 func (m *Microservice) BuildRoutes(router chi.Router) {

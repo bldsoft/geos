@@ -1,36 +1,35 @@
-package grpc
+package microservice
 
 import (
 	context "context"
 	"net"
 
 	"github.com/bldsoft/geos/pkg/controller"
+	grpc_controller "github.com/bldsoft/geos/pkg/controller/grpc"
 	pb "github.com/bldsoft/geos/pkg/controller/grpc/proto"
 	"github.com/bldsoft/gost/log"
 	grpc "google.golang.org/grpc"
 )
 
-//go:generate protoc -I=../../.. --go_out=proto --go-grpc_out=proto api/grpc/geoip.proto
-
-type Server struct {
+type GrpcMicroservice struct {
 	address      string
 	grpcServer   *grpc.Server
 	geoIpService controller.GeoIpService
 }
 
-func NewServer(address string, geoIpService controller.GeoIpService) *Server {
-	return &Server{
+func NewGrpcMicroservice(address string, geoIpService controller.GeoIpService) *GrpcMicroservice {
+	return &GrpcMicroservice{
 		address:      address,
 		geoIpService: geoIpService,
 	}
 }
 
-func (s *Server) registerServices() {
-	geoIpController := NewGeoIpController(s.geoIpService)
+func (s *GrpcMicroservice) registerServices() {
+	geoIpController := grpc_controller.NewGeoIpController(s.geoIpService)
 	pb.RegisterGeoIpServiceServer(s.grpcServer, geoIpController)
 }
 
-func (s *Server) Run() error {
+func (s *GrpcMicroservice) Run() error {
 	lis, err := net.Listen("tcp", s.address)
 	if err != nil {
 		return err
@@ -45,10 +44,10 @@ func (s *Server) Run() error {
 	return s.grpcServer.Serve(lis)
 }
 
-func (s *Server) Stop(ctx context.Context) error {
+func (s *GrpcMicroservice) Stop(ctx context.Context) error {
 	stopped := make(chan struct{})
 	go func() {
-		close(stopped)
+		defer close(stopped)
 		s.grpcServer.GracefulStop()
 	}()
 	select {
