@@ -7,6 +7,7 @@ import (
 	"github.com/bldsoft/geos/pkg/controller/rest"
 	"github.com/bldsoft/geos/pkg/repository"
 	"github.com/bldsoft/geos/pkg/service"
+	gost "github.com/bldsoft/gost/controller"
 	"github.com/bldsoft/gost/server"
 	"github.com/go-chi/chi/v5"
 )
@@ -36,6 +37,9 @@ func (m *Microservice) initServices() {
 
 func (m *Microservice) BuildRoutes(router chi.Router) {
 	router.Route("/geoip/v2.1", func(r chi.Router) {
+		r.Get("/env", gost.GetEnvHandler(m.config, nil))
+		r.Get("/version", gost.GetVersionHandler)
+
 		controller := rest.NewGeoIpController(m.geoService)
 		r.Get("/country/{ip}", controller.GetCityHandler)
 		r.Get("/city/{ip}", controller.GetCityHandler)
