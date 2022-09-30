@@ -36,5 +36,9 @@ func (r *GeoIpRepository) City(ctx context.Context, ip net.IP) (*geoip2.City, er
 }
 
 func (r *GeoIpRepository) CityLite(ctx context.Context, ip net.IP, lang string) (*entity.CityLite, error) {
-	return lookup[entity.CityLite](r.db, ip)
+	cityLiteDb, err := lookup[entity.CityLiteDb](r.db, ip)
+	if err != nil {
+		return nil, err
+	}
+	return entity.DbToCityLite(cityLiteDb, lang), nil
 }
