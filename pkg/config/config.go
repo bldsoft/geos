@@ -12,7 +12,7 @@ type Config struct {
 	Server    server.Config
 	Log       log.Config
 	GrpcPort  int    `mapstructure:"GRPC SERVICE_PORT" description:"gRPC service port"`
-	GeoDbPath string `mapstructure:"GEO_DB_PATH" description:"Path to GeoLite2 or GeoIP2 databases"`
+	GeoDbPath string `mapstructure:"GEOIP_DB_PATH" description:"Path to GeoLite2 or GeoIP2 databases"`
 }
 
 func (c *Config) GrpcAddr() string {
