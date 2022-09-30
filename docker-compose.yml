@@ -1,0 +1,17 @@
+version: '3.9'
+
+services:
+  geos:
+    build:
+      context: .
+    image: geos
+    container_name: geos
+    ports:
+      - 0.0.0.0:3000:3000
+      - 0.0.0.0:3001:3001
+    environment:
+      - LOG_LEVEL=debug
+      - GEO_DB_PATH=/var/GeoLite2-City.mmdb
+    volumes:
+      - ./GeoLite2-City.mmdb:/var/GeoLite2-City.mmdb
+    restart: always
