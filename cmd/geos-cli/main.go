@@ -9,13 +9,12 @@ import (
 
 	grpc "github.com/bldsoft/geos/pkg/client/grpc"
 	"github.com/bldsoft/geos/pkg/config"
-	gost "github.com/bldsoft/gost/config"
 	"github.com/urfave/cli/v2"
 )
 
 func client(ctx *cli.Context) *grpc.Client {
 	var defaults config.Config
-	gost.ReadConfig(&defaults, "")
+	defaults.SetDefaults()
 	if port := ctx.Int("port"); port != 0 {
 		defaults.GrpcPort = port
 	}
