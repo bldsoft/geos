@@ -2,11 +2,11 @@ package grpc
 
 import (
 	pb "github.com/bldsoft/geos/pkg/controller/grpc/proto"
-	"github.com/oschwald/geoip2-golang"
+	"github.com/bldsoft/geos/pkg/entity"
 )
 
-func PbToCountry(countryPb *pb.CountryResponse) *geoip2.Country {
-	var country geoip2.Country
+func PbToCountry(countryPb *pb.CountryResponse) *entity.Country {
+	var country entity.Country
 	country.Continent.Code = countryPb.Continent.Code
 	country.Continent.GeoNameID = uint(countryPb.Continent.GeoNameId)
 	country.Continent.Names = countryPb.Continent.Names
@@ -33,7 +33,7 @@ func PbToCountry(countryPb *pb.CountryResponse) *geoip2.Country {
 	return &country
 }
 
-func CountryToPb(country *geoip2.Country) *pb.CountryResponse {
+func CountryToPb(country *entity.Country) *pb.CountryResponse {
 	return &pb.CountryResponse{
 		Continent: &pb.Continent{
 			Code:      country.Continent.Code,
@@ -66,8 +66,8 @@ func CountryToPb(country *geoip2.Country) *pb.CountryResponse {
 	}
 }
 
-func PbToCity(cityPb *pb.CityResponse) *geoip2.City {
-	var city geoip2.City
+func PbToCity(cityPb *pb.CityResponse) *entity.City {
+	var city entity.City
 
 	city.City.GeoNameID = uint(cityPb.City.GeoNameId)
 	city.City.Names = cityPb.City.Names
@@ -117,7 +117,7 @@ func PbToCity(cityPb *pb.CityResponse) *geoip2.City {
 	return &city
 }
 
-func CityToPb(city *geoip2.City) *pb.CityResponse {
+func CityToPb(city *entity.City) *pb.CityResponse {
 	subdivisions := make([]*pb.Subdivision, 0, len(city.Subdivisions))
 	for _, subdivision := range city.Subdivisions {
 		subdivisions = append(subdivisions, &pb.Subdivision{
@@ -171,4 +171,35 @@ func CityToPb(city *geoip2.City) *pb.CityResponse {
 			IsSatelliteProvider: city.Traits.IsSatelliteProvider,
 		},
 	}
+}
+
+func CityLiteToPb(cityLite *entity.CityLite) *pb.CityLiteResponse {
+	return &pb.CityLiteResponse{
+		City: &pb.CityLiteResponse_City{
+			Name: cityLite.City.Name,
+		},
+		Country: &pb.CityLiteResponse_Country{
+			IsoCode: cityLite.Country.ISOCode,
+			Name:    cityLite.Country.Name,
+		},
+		Location: &pb.CityLiteResponse_Location{
+			Latitude:  cityLite.Location.Latitude,
+			Longitude: cityLite.Location.Longitude,
+			TimeZone:  cityLite.Location.TimeZone,
+		},
+	}
+}
+
+func PbToCityLite(cityLitePb *pb.CityLiteResponse) *entity.CityLite {
+	var cityLite entity.CityLite
+	cityLite.City.Name = cityLitePb.City.Name
+
+	cityLite.Country.ISOCode = cityLitePb.Country.IsoCode
+	cityLite.Country.Name = cityLitePb.Country.Name
+
+	cityLite.Location.Latitude = cityLitePb.Location.Latitude
+	cityLite.Location.Longitude = cityLitePb.Location.Longitude
+	cityLite.Location.TimeZone = cityLitePb.Location.TimeZone
+
+	return &cityLite
 }

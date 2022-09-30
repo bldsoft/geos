@@ -52,7 +52,7 @@ func (c *GeoIpController) GetCountryHandler(w http.ResponseWriter, r *http.Reque
 
 func (c *GeoIpController) GetCityLiteHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	lang, _ := gost.GetQueryOption(r, "lang", "en")
+	lang, _ := gost.GetQueryOption[string](r, "lang")
 	city, err := c.service.CityLite(ctx, c.ip(r), lang)
 	if err != nil {
 		log.FromContext(ctx).Error(err.Error())

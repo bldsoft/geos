@@ -30,5 +30,8 @@ func (s *GeoIpService) City(ctx context.Context, ip net.IP) (*entity.City, error
 }
 
 func (s *GeoIpService) CityLite(ctx context.Context, ip net.IP, lang string) (*entity.CityLite, error) {
+	if len(lang) == 0 {
+		lang = "en"
+	}
 	return s.rep.CityLite(ctx, ip, lang)
 }

@@ -7,9 +7,15 @@ message IpRequest {
     string ip = 1;
 }
 
+message CityLiteRequest {
+    string ip = 1;
+    string lang = 2;
+}
+
 service GeoIpService {
     rpc Country(IpRequest) returns (CountryResponse);
     rpc City(IpRequest) returns (CityResponse);
+    rpc CityLite(CityLiteRequest) returns (CityLiteResponse);
 }
 
 message CountryResponse {
@@ -30,6 +36,24 @@ message CityResponse {
     RepresentedCountry represented_country = 7;
     repeated Subdivision subdivisions = 8;
     Traits traits = 9;
+}
+
+message CityLiteResponse {
+    message City {
+		string name = 1;
+	}
+	message Country {
+		string iso_code = 3;
+		string name = 5;
+	}
+    message Location{    
+        double latitude = 2;
+        double longitude = 3;
+        string time_zone = 5;
+    }
+    City city = 1;
+    Country country = 2;
+    Location location = 3;
 }
 
 message Continent {

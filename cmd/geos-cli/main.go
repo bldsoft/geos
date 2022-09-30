@@ -71,6 +71,26 @@ func main() {
 					return nil
 				},
 			},
+			{
+				Name: "city-lite",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:    "lang",
+						Aliases: []string{"l"}},
+				},
+				Action: func(ctx *cli.Context) error {
+					cityLite, err := client(ctx).CityLite(context.Background(), ip(ctx), ctx.String("lang"))
+					if err != nil {
+						return err
+					}
+					data, err := json.MarshalIndent(cityLite, "", "	")
+					if err != nil {
+						return err
+					}
+					fmt.Printf("%s", data)
+					return nil
+				},
+			},
 		},
 	}
 

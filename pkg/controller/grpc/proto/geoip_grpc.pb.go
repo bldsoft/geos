@@ -24,6 +24,7 @@ const _ = grpc.SupportPackageIsVersion7
 type GeoIpServiceClient interface {
 	Country(ctx context.Context, in *IpRequest, opts ...grpc.CallOption) (*CountryResponse, error)
 	City(ctx context.Context, in *IpRequest, opts ...grpc.CallOption) (*CityResponse, error)
+	CityLite(ctx context.Context, in *CityLiteRequest, opts ...grpc.CallOption) (*CityLiteResponse, error)
 }
 
 type geoIpServiceClient struct {
@@ -52,12 +53,22 @@ func (c *geoIpServiceClient) City(ctx context.Context, in *IpRequest, opts ...gr
 	return out, nil
 }
 
+func (c *geoIpServiceClient) CityLite(ctx context.Context, in *CityLiteRequest, opts ...grpc.CallOption) (*CityLiteResponse, error) {
+	out := new(CityLiteResponse)
+	err := c.cc.Invoke(ctx, "/geoip.GeoIpService/CityLite", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GeoIpServiceServer is the server API for GeoIpService service.
 // All implementations must embed UnimplementedGeoIpServiceServer
 // for forward compatibility
 type GeoIpServiceServer interface {
 	Country(context.Context, *IpRequest) (*CountryResponse, error)
 	City(context.Context, *IpRequest) (*CityResponse, error)
+	CityLite(context.Context, *CityLiteRequest) (*CityLiteResponse, error)
 	mustEmbedUnimplementedGeoIpServiceServer()
 }
 
@@ -70,6 +81,9 @@ func (UnimplementedGeoIpServiceServer) Country(context.Context, *IpRequest) (*Co
 }
 func (UnimplementedGeoIpServiceServer) City(context.Context, *IpRequest) (*CityResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method City not implemented")
+}
+func (UnimplementedGeoIpServiceServer) CityLite(context.Context, *CityLiteRequest) (*CityLiteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CityLite not implemented")
 }
 func (UnimplementedGeoIpServiceServer) mustEmbedUnimplementedGeoIpServiceServer() {}
 
@@ -120,6 +134,24 @@ func _GeoIpService_City_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GeoIpService_CityLite_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CityLiteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GeoIpServiceServer).CityLite(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/geoip.GeoIpService/CityLite",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GeoIpServiceServer).CityLite(ctx, req.(*CityLiteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GeoIpService_ServiceDesc is the grpc.ServiceDesc for GeoIpService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -134,6 +166,10 @@ var GeoIpService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "City",
 			Handler:    _GeoIpService_City_Handler,
+		},
+		{
+			MethodName: "CityLite",
+			Handler:    _GeoIpService_CityLite_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
