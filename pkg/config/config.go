@@ -21,7 +21,7 @@ func (c *Config) GrpcAddr() string {
 
 // SetDefaults ...
 func (c *Config) SetDefaults() {
-	c.GeoDbPath = "../../GeoLite2-City.mmdb"
+	c.GeoDbPath = "../../db.mmdb"
 	c.GrpcPort = 3001
 }
 
