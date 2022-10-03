@@ -2,7 +2,6 @@ package grpc
 
 import (
 	context "context"
-	"net"
 	"strings"
 
 	"github.com/bldsoft/geos/pkg/controller"
@@ -22,16 +21,16 @@ func NewGeoIpController(geoService controller.GeoIpService) *GeoIpController {
 	return &GeoIpController{service: geoService}
 }
 
-func (c *GeoIpController) ip(ctx context.Context, ip string) net.IP {
-	if ip == "me" {
+func (c *GeoIpController) address(ctx context.Context, address string) string {
+	if address == "me" {
 		p, _ := peer.FromContext(ctx)
-		return net.ParseIP(strings.Split(p.Addr.String(), ":")[0])
+		return strings.Split(p.Addr.String(), ":")[0]
 	}
-	return net.ParseIP(ip)
+	return address
 }
 
-func (c *GeoIpController) Country(ctx context.Context, req *pb.IpRequest) (*pb.CountryResponse, error) {
-	country, err := c.service.Country(ctx, c.ip(ctx, req.Ip))
+func (c *GeoIpController) Country(ctx context.Context, req *pb.AddrRequest) (*pb.CountryResponse, error) {
+	country, err := c.service.Country(ctx, c.address(ctx, req.Address))
 	if err != nil {
 		log.FromContext(ctx).Error(err.Error())
 		return nil, err
@@ -39,8 +38,8 @@ func (c *GeoIpController) Country(ctx context.Context, req *pb.IpRequest) (*pb.C
 	return CountryToPb(country), nil
 }
 
-func (c *GeoIpController) City(ctx context.Context, req *pb.IpRequest) (*pb.CityResponse, error) {
-	city, err := c.service.City(ctx, c.ip(ctx, req.Ip))
+func (c *GeoIpController) City(ctx context.Context, req *pb.AddrRequest) (*pb.CityResponse, error) {
+	city, err := c.service.City(ctx, c.address(ctx, req.Address))
 	if err != nil {
 		log.FromContext(ctx).Error(err.Error())
 		return nil, err
@@ -49,7 +48,7 @@ func (c *GeoIpController) City(ctx context.Context, req *pb.IpRequest) (*pb.City
 }
 
 func (c *GeoIpController) CityLite(ctx context.Context, req *pb.CityLiteRequest) (*pb.CityLiteResponse, error) {
-	cityLite, err := c.service.CityLite(ctx, c.ip(ctx, req.Ip), req.Lang)
+	cityLite, err := c.service.CityLite(ctx, c.address(ctx, req.Address), req.Lang)
 	if err != nil {
 		log.FromContext(ctx).Error(err.Error())
 		return nil, err

@@ -28,12 +28,12 @@ func client(ctx *cli.Context) *grpc.Client {
 	return client
 }
 
-func ip(ctx *cli.Context) string {
-	ip := ctx.Args().Get(0)
-	if len(ip) == 0 {
+func addr(ctx *cli.Context) string {
+	addr := ctx.Args().Get(0)
+	if len(addr) == 0 {
 		return "me"
 	}
-	return ip
+	return addr
 }
 
 func commonFlags() []cli.Flag {
@@ -77,7 +77,7 @@ func main() {
 				Name:  "city",
 				Flags: flags,
 				Action: func(ctx *cli.Context) error {
-					city, err := client(ctx).City(context.Background(), ip(ctx))
+					city, err := client(ctx).City(context.Background(), addr(ctx))
 					if err != nil {
 						return err
 					}
@@ -88,7 +88,7 @@ func main() {
 				Name:  "country",
 				Flags: flags,
 				Action: func(ctx *cli.Context) error {
-					country, err := client(ctx).Country(context.Background(), ip(ctx))
+					country, err := client(ctx).Country(context.Background(), addr(ctx))
 					if err != nil {
 						return err
 					}
@@ -101,11 +101,11 @@ func main() {
 					&cli.StringFlag{
 						Name:    "lang",
 						Value:   "en",
-						Usage:   "Language for country and city name",
+						Usage:   "Language for country 1and city name",
 						Aliases: []string{"l"}},
 				),
 				Action: func(ctx *cli.Context) error {
-					cityLite, err := client(ctx).CityLite(context.Background(), ip(ctx), ctx.String("lang"))
+					cityLite, err := client(ctx).CityLite(context.Background(), addr(ctx), ctx.String("lang"))
 					if err != nil {
 						return err
 					}

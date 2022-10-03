@@ -3,18 +3,18 @@ package geoip;
 
 option go_package = "./;proto";
 
-message IpRequest {
-    string ip = 1;
+message AddrRequest {
+    string address = 1;
 }
 
 message CityLiteRequest {
-    string ip = 1;
+    string address = 1;
     string lang = 2;
 }
 
 service GeoIpService {
-    rpc Country(IpRequest) returns (CountryResponse);
-    rpc City(IpRequest) returns (CityResponse);
+    rpc Country(AddrRequest) returns (CountryResponse);
+    rpc City(AddrRequest) returns (CityResponse);
     rpc CityLite(CityLiteRequest) returns (CityLiteResponse);
 }
 

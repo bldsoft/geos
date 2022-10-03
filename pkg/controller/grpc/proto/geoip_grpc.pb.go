@@ -22,8 +22,8 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type GeoIpServiceClient interface {
-	Country(ctx context.Context, in *IpRequest, opts ...grpc.CallOption) (*CountryResponse, error)
-	City(ctx context.Context, in *IpRequest, opts ...grpc.CallOption) (*CityResponse, error)
+	Country(ctx context.Context, in *AddrRequest, opts ...grpc.CallOption) (*CountryResponse, error)
+	City(ctx context.Context, in *AddrRequest, opts ...grpc.CallOption) (*CityResponse, error)
 	CityLite(ctx context.Context, in *CityLiteRequest, opts ...grpc.CallOption) (*CityLiteResponse, error)
 }
 
@@ -35,7 +35,7 @@ func NewGeoIpServiceClient(cc grpc.ClientConnInterface) GeoIpServiceClient {
 	return &geoIpServiceClient{cc}
 }
 
-func (c *geoIpServiceClient) Country(ctx context.Context, in *IpRequest, opts ...grpc.CallOption) (*CountryResponse, error) {
+func (c *geoIpServiceClient) Country(ctx context.Context, in *AddrRequest, opts ...grpc.CallOption) (*CountryResponse, error) {
 	out := new(CountryResponse)
 	err := c.cc.Invoke(ctx, "/geoip.GeoIpService/Country", in, out, opts...)
 	if err != nil {
@@ -44,7 +44,7 @@ func (c *geoIpServiceClient) Country(ctx context.Context, in *IpRequest, opts ..
 	return out, nil
 }
 
-func (c *geoIpServiceClient) City(ctx context.Context, in *IpRequest, opts ...grpc.CallOption) (*CityResponse, error) {
+func (c *geoIpServiceClient) City(ctx context.Context, in *AddrRequest, opts ...grpc.CallOption) (*CityResponse, error) {
 	out := new(CityResponse)
 	err := c.cc.Invoke(ctx, "/geoip.GeoIpService/City", in, out, opts...)
 	if err != nil {
@@ -66,8 +66,8 @@ func (c *geoIpServiceClient) CityLite(ctx context.Context, in *CityLiteRequest, 
 // All implementations must embed UnimplementedGeoIpServiceServer
 // for forward compatibility
 type GeoIpServiceServer interface {
-	Country(context.Context, *IpRequest) (*CountryResponse, error)
-	City(context.Context, *IpRequest) (*CityResponse, error)
+	Country(context.Context, *AddrRequest) (*CountryResponse, error)
+	City(context.Context, *AddrRequest) (*CityResponse, error)
 	CityLite(context.Context, *CityLiteRequest) (*CityLiteResponse, error)
 	mustEmbedUnimplementedGeoIpServiceServer()
 }
@@ -76,10 +76,10 @@ type GeoIpServiceServer interface {
 type UnimplementedGeoIpServiceServer struct {
 }
 
-func (UnimplementedGeoIpServiceServer) Country(context.Context, *IpRequest) (*CountryResponse, error) {
+func (UnimplementedGeoIpServiceServer) Country(context.Context, *AddrRequest) (*CountryResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Country not implemented")
 }
-func (UnimplementedGeoIpServiceServer) City(context.Context, *IpRequest) (*CityResponse, error) {
+func (UnimplementedGeoIpServiceServer) City(context.Context, *AddrRequest) (*CityResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method City not implemented")
 }
 func (UnimplementedGeoIpServiceServer) CityLite(context.Context, *CityLiteRequest) (*CityLiteResponse, error) {
@@ -99,7 +99,7 @@ func RegisterGeoIpServiceServer(s grpc.ServiceRegistrar, srv GeoIpServiceServer)
 }
 
 func _GeoIpService_Country_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(IpRequest)
+	in := new(AddrRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -111,13 +111,13 @@ func _GeoIpService_Country_Handler(srv interface{}, ctx context.Context, dec fun
 		FullMethod: "/geoip.GeoIpService/Country",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GeoIpServiceServer).Country(ctx, req.(*IpRequest))
+		return srv.(GeoIpServiceServer).Country(ctx, req.(*AddrRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _GeoIpService_City_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(IpRequest)
+	in := new(AddrRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -129,7 +129,7 @@ func _GeoIpService_City_Handler(srv interface{}, ctx context.Context, dec func(i
 		FullMethod: "/geoip.GeoIpService/City",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GeoIpServiceServer).City(ctx, req.(*IpRequest))
+		return srv.(GeoIpServiceServer).City(ctx, req.(*AddrRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
