@@ -7,8 +7,11 @@ import (
 	"github.com/bldsoft/geos/pkg/controller"
 	grpc_controller "github.com/bldsoft/geos/pkg/controller/grpc"
 	pb "github.com/bldsoft/geos/pkg/controller/grpc/proto"
+	"github.com/bldsoft/geos/pkg/microservice/middleware"
 	"github.com/bldsoft/gost/log"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc "google.golang.org/grpc"
+	"google.golang.org/grpc/grpclog"
 )
 
 type GrpcMicroservice struct {
@@ -30,13 +33,18 @@ func (s *GrpcMicroservice) registerServices() {
 }
 
 func (s *GrpcMicroservice) Run() error {
+	grpclog.SetLoggerV2(middleware.Logger)
+
 	lis, err := net.Listen("tcp", s.address)
 	if err != nil {
 		return err
 	}
-	var opts []grpc.ServerOption
 
-	s.grpcServer = grpc.NewServer(opts...)
+	s.grpcServer = grpc.NewServer(grpc.UnaryInterceptor(
+		grpc_middleware.ChainUnaryServer(
+			middleware.LoggerMiddleware(),
+		),
+	))
 	s.registerServices()
 
 	log.Infof("Grpc server started. Listening on %s", s.address)
