@@ -44,6 +44,7 @@ func (s *GrpcMicroservice) Run() error {
 		grpc_middleware.ChainUnaryServer(
 			middleware.RequestIDMiddleware,
 			middleware.LoggerMiddleware(),
+			middleware.RecoveryMiddleware,
 		),
 	))
 	s.registerServices()
