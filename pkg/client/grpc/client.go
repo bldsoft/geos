@@ -34,6 +34,9 @@ func (c *Client) prepareContext(ctx context.Context) context.Context {
 	if reqID := middleware.GetReqID(ctx); reqID != "" {
 		ctx = metadata.AppendToOutgoingContext(ctx, middleware.RequestIDHeader, reqID)
 	}
+	if realIP := middleware.GetRealIP(ctx); realIP != "" {
+		ctx = metadata.AppendToOutgoingContext(ctx, middleware.RealIPHeader, realIP)
+	}
 	return ctx
 }
 

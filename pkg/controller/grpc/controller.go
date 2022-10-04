@@ -2,12 +2,11 @@ package grpc
 
 import (
 	context "context"
-	"strings"
 
 	"github.com/bldsoft/geos/pkg/controller"
 	pb "github.com/bldsoft/geos/pkg/controller/grpc/proto"
+	"github.com/bldsoft/geos/pkg/microservice/middleware"
 	"github.com/bldsoft/gost/log"
-	"google.golang.org/grpc/peer"
 )
 
 //go:generate protoc -I=../../.. --go_out=proto --go-grpc_out=proto api/grpc/geoip.proto
@@ -23,8 +22,7 @@ func NewGeoIpController(geoService controller.GeoIpService) *GeoIpController {
 
 func (c *GeoIpController) address(ctx context.Context, address string) string {
 	if address == "me" {
-		p, _ := peer.FromContext(ctx)
-		return strings.Split(p.Addr.String(), ":")[0]
+		return middleware.GetRealIP(ctx)
 	}
 	return address
 }

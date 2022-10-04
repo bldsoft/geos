@@ -39,8 +39,10 @@ dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/toml v1.1.0 h1:ksErzDEI1khOiGPgpwuI7x2ebx/uXQNw7xJpn9Eq1+I=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
-github.com/bldsoft/gost v0.0.0-20220905144246-4a8c51ac7163 h1:ruUIQFHEfqAX3FCKsRu/idnmprszXg1iLfTMTopi5LI=
-github.com/bldsoft/gost v0.0.0-20220905144246-4a8c51ac7163/go.mod h1:WfrqhR0iJKhsFhjxOZWZle3O67ZPArXU5EVjWA2AnMM=
+github.com/bldsoft/gost v0.0.0-20221004141520-ad018c754f00 h1:A1dNS0rSjd3Bvp45OX9fOVuC4JpwBbD/k3k8UkzS6f8=
+github.com/bldsoft/gost v0.0.0-20221004141520-ad018c754f00/go.mod h1:WfrqhR0iJKhsFhjxOZWZle3O67ZPArXU5EVjWA2AnMM=
+github.com/bldsoft/gost v0.0.0-20221004142559-9c2ce4751478 h1:O1afIOv7pIiFuVqs35cwqG8orbIRN7IfMg1vL0IhnaY=
+github.com/bldsoft/gost v0.0.0-20221004142559-9c2ce4751478/go.mod h1:gu42XGkA4P/HjLpvPaVex+2eqsf+bOgcAzMYfEQW9+k=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e/go.mod h1:nSuG5e5PlCu98SY8svDHJxuZscDgtXS6KTTbou5AhLI=

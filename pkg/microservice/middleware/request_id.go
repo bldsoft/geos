@@ -26,23 +26,23 @@ func RequestIDMiddleware(ctx context.Context, req interface{}, info *grpc.UnaryS
 	return handler(WithReqID(ctx, reqID), req)
 }
 
-func requestID(ctx context.Context) string {
+func getHeader(ctx context.Context, header string) (value string) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return newRequestID()
+		return ""
 	}
-
-	header, ok := md[RequestIDHeader]
-	if !ok || len(header) == 0 {
-		return newRequestID()
+	values, ok := md[header]
+	if !ok || len(values) == 0 {
+		return ""
 	}
+	return values[0]
+}
 
-	requestID := header[0]
-	if len(requestID) == 0 {
-		return newRequestID()
+func requestID(ctx context.Context) string {
+	if reqID := getHeader(ctx, RequestIDHeader); reqID != "" {
+		return reqID
 	}
-
-	return requestID
+	return newRequestID()
 }
 
 func newRequestID() string {
