@@ -1,7 +1,6 @@
 package rest
 
 import (
-	"net"
 	"net/http"
 	"strings"
 
@@ -20,17 +19,17 @@ func NewGeoIpController(service controller.GeoIpService) (c *GeoIpController) {
 	return &GeoIpController{service: service}
 }
 
-func (c *GeoIpController) ip(r *http.Request) net.IP {
-	ipStr := chi.URLParam(r, "ip")
+func (c *GeoIpController) address(r *http.Request) string {
+	ipStr := chi.URLParam(r, "addr")
 	if ipStr == "me" {
-		return net.ParseIP(strings.Split(r.RemoteAddr, ":")[0])
+		return strings.Split(r.RemoteAddr, ":")[0]
 	}
-	return net.ParseIP(ipStr)
+	return ipStr
 }
 
 func (c *GeoIpController) GetCityHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	city, err := c.service.City(ctx, c.ip(r))
+	city, err := c.service.City(ctx, c.address(r))
 	if err != nil {
 		log.FromContext(ctx).Error(err.Error())
 		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
@@ -41,7 +40,7 @@ func (c *GeoIpController) GetCityHandler(w http.ResponseWriter, r *http.Request)
 
 func (c *GeoIpController) GetCountryHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	country, err := c.service.Country(ctx, c.ip(r))
+	country, err := c.service.Country(ctx, c.address(r))
 	if err != nil {
 		log.FromContext(ctx).Error(err.Error())
 		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
@@ -53,7 +52,7 @@ func (c *GeoIpController) GetCountryHandler(w http.ResponseWriter, r *http.Reque
 func (c *GeoIpController) GetCityLiteHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	lang, _ := gost.GetQueryOption[string](r, "lang")
-	city, err := c.service.CityLite(ctx, c.ip(r), lang)
+	city, err := c.service.CityLite(ctx, c.address(r), lang)
 	if err != nil {
 		log.FromContext(ctx).Error(err.Error())
 		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)

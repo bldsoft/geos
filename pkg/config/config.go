@@ -11,7 +11,7 @@ import (
 type Config struct {
 	Server    server.Config
 	Log       log.Config
-	GrpcPort  int    `mapstructure:"GRPC_SERVICE_PORT" description:"gRPC service port"`
+	GrpcPort  int    `mapstructure:"GRPC_SERVICE_PORT" description:"gRPC service port (0 - disabled)"`
 	GeoDbPath string `mapstructure:"GEOIP_DB_PATH" description:"Path to GeoLite2 or GeoIP2 databases"`
 }
 
@@ -25,6 +25,7 @@ func (c *Config) GrpcAddr() string {
 
 // SetDefaults ...
 func (c *Config) SetDefaults() {
+	c.Server.Port = 8505
 	c.GeoDbPath = "../../db.mmdb"
 }
 

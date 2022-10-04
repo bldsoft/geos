@@ -28,24 +28,24 @@ func NewClient(addr string) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) Country(ctx context.Context, ip string) (*entity.Country, error) {
-	country, err := c.client.Country(ctx, &pb.IpRequest{Ip: ip})
+func (c *Client) Country(ctx context.Context, address string) (*entity.Country, error) {
+	country, err := c.client.Country(ctx, &pb.AddrRequest{Address: address})
 	if err != nil {
 		return nil, err
 	}
 	return mapping.PbToCountry(country), nil
 }
 
-func (c *Client) City(ctx context.Context, ip string) (*entity.City, error) {
-	city, err := c.client.City(ctx, &pb.IpRequest{Ip: ip})
+func (c *Client) City(ctx context.Context, address string) (*entity.City, error) {
+	city, err := c.client.City(ctx, &pb.AddrRequest{Address: address})
 	if err != nil {
 		return nil, err
 	}
 	return mapping.PbToCity(city), nil
 }
 
-func (c *Client) CityLite(ctx context.Context, ip, lang string) (*entity.CityLite, error) {
-	cityLite, err := c.client.CityLite(ctx, &pb.CityLiteRequest{Ip: ip, Lang: lang})
+func (c *Client) CityLite(ctx context.Context, address, lang string) (*entity.CityLite, error) {
+	cityLite, err := c.client.CityLite(ctx, &pb.CityLiteRequest{Address: address, Lang: lang})
 	if err != nil {
 		return nil, err
 	}

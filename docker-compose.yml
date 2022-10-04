@@ -7,11 +7,12 @@ services:
     image: geos
     container_name: geos
     ports:
-      - 0.0.0.0:3000:3000
-      - 0.0.0.0:3001:3001
+      - 0.0.0.0:8505:8505
+      - 0.0.0.0:8506:${GRPC_SERVICE_PORT}
     environment:
       - LOG_LEVEL=debug
       - GEOIP_DB_PATH=/var/db.mmdb
+      - GRPC_SERVICE_PORT=${GRPC_SERVICE_PORT} # 0 - disable gRPC
     volumes:
-      - ./db.mmdb:/var/db.mmdb
+      - ${LOCAL_GEOIP_DB_PATH}:/var/db.mmdb
     restart: always

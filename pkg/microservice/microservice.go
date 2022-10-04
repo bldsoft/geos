@@ -46,10 +46,10 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 		r.Get("/version", gost.GetVersionHandler)
 
 		controller := rest.NewGeoIpController(m.geoService)
-		r.Get("/country/{ip}", controller.GetCountryHandler)
-		r.Get("/city/{ip}", controller.GetCityHandler)
+		r.Get("/country/{addr}", controller.GetCountryHandler)
+		r.Get("/city/{addr}", controller.GetCityHandler)
 
-		r.Get("/city-lite/{ip}", controller.GetCityLiteHandler)
+		r.Get("/city-lite/{addr}", controller.GetCityLiteHandler)
 	})
 }
 
