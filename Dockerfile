@@ -20,6 +20,6 @@ RUN go build -o geos -ldflags="\
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates
 COPY --from=builder /go/src/${SRC_DIR}/geos /geos
-EXPOSE 3000
-EXPOSE 3001
+EXPOSE 8505
+EXPOSE 8506
 ENTRYPOINT /geos
