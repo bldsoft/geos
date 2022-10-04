@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/bldsoft/geos/pkg/entity"
+	"github.com/bldsoft/geos/pkg/microservice/middleware"
 )
 
 type GeoRepository interface {
@@ -22,6 +23,10 @@ func NewGeoService(rep GeoRepository) *GeoIpService {
 }
 
 func (s *GeoIpService) ip(ctx context.Context, address string) (net.IP, error) {
+	if address == "me" {
+		address = middleware.GetRealIP(ctx)
+	}
+
 	if ip := net.ParseIP(address); ip != nil {
 		return ip, nil
 	}
