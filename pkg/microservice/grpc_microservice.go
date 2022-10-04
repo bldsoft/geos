@@ -42,6 +42,7 @@ func (s *GrpcMicroservice) Run() error {
 
 	s.grpcServer = grpc.NewServer(grpc.UnaryInterceptor(
 		grpc_middleware.ChainUnaryServer(
+			middleware.RequestIDMiddleware,
 			middleware.LoggerMiddleware(),
 		),
 	))
