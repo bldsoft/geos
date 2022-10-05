@@ -45,8 +45,8 @@ github.com/PuerkitoBio/purell v1.1.1 h1:WEQqlqaGbrPkxLJWfBwQmfEAE1Z7ONdDLqrN38tN
 github.com/PuerkitoBio/purell v1.1.1/go.mod h1:c11w/QuzBsJSee3cPx9rAFu61PvFxuPbtSwDGJws/X0=
 github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 h1:d+Bc7a5rLufV/sSk/8dngufqelfh6jnri85riMAaF/M=
 github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578/go.mod h1:uGdkoq3SwY9Y+13GIhn11/XLaGBb4BfwItxLd5jeuXE=
-github.com/bldsoft/gost v0.0.0-20221005081303-1fbdb06ff1bd h1:z2Gnv1XP2+Zfrf0inLG+mNtvNkKgJfHwEH8ZfFykuew=
-github.com/bldsoft/gost v0.0.0-20221005081303-1fbdb06ff1bd/go.mod h1:gu42XGkA4P/HjLpvPaVex+2eqsf+bOgcAzMYfEQW9+k=
+github.com/bldsoft/gost v0.0.0-20221005154021-e3807b942079 h1:oqvJ8eUpyhExa00mrrSyf2L4/dd5Jbv8zLvElLHXz1M=
+github.com/bldsoft/gost v0.0.0-20221005154021-e3807b942079/go.mod h1:gu42XGkA4P/HjLpvPaVex+2eqsf+bOgcAzMYfEQW9+k=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e/go.mod h1:nSuG5e5PlCu98SY8svDHJxuZscDgtXS6KTTbou5AhLI=

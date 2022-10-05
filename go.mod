@@ -3,7 +3,7 @@ module github.com/bldsoft/geos
 go 1.19
 
 require (
-	github.com/bldsoft/gost v0.0.0-20221005081303-1fbdb06ff1bd
+	github.com/bldsoft/gost v0.0.0-20221005154021-e3807b942079
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
