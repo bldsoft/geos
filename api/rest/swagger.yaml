@@ -1,0 +1,328 @@
+basePath: /geoip
+definitions:
+  Version:
+    properties:
+      branch:
+        type: string
+      commit:
+        type: string
+      version:
+        type: string
+    type: object
+  entity.City:
+    properties:
+      city:
+        properties:
+          geoNameID:
+            type: integer
+          names:
+            additionalProperties:
+              type: string
+            type: object
+        type: object
+      continent:
+        properties:
+          code:
+            type: string
+          geoNameID:
+            type: integer
+          names:
+            additionalProperties:
+              type: string
+            type: object
+        type: object
+      country:
+        properties:
+          geoNameID:
+            type: integer
+          isInEuropeanUnion:
+            type: boolean
+          isoCode:
+            type: string
+          names:
+            additionalProperties:
+              type: string
+            type: object
+        type: object
+      location:
+        properties:
+          accuracyRadius:
+            type: integer
+          latitude:
+            type: number
+          longitude:
+            type: number
+          metroCode:
+            type: integer
+          timeZone:
+            type: string
+        type: object
+      postal:
+        properties:
+          code:
+            type: string
+        type: object
+      registeredCountry:
+        properties:
+          geoNameID:
+            type: integer
+          isInEuropeanUnion:
+            type: boolean
+          isoCode:
+            type: string
+          names:
+            additionalProperties:
+              type: string
+            type: object
+        type: object
+      representedCountry:
+        properties:
+          geoNameID:
+            type: integer
+          isInEuropeanUnion:
+            type: boolean
+          isoCode:
+            type: string
+          names:
+            additionalProperties:
+              type: string
+            type: object
+          type:
+            type: string
+        type: object
+      subdivisions:
+        items:
+          properties:
+            geoNameID:
+              type: integer
+            isoCode:
+              type: string
+            names:
+              additionalProperties:
+                type: string
+              type: object
+          type: object
+        type: array
+      traits:
+        properties:
+          isAnonymousProxy:
+            type: boolean
+          isSatelliteProvider:
+            type: boolean
+        type: object
+    type: object
+  entity.CityLite:
+    properties:
+      city:
+        properties:
+          name:
+            type: string
+        type: object
+      country:
+        properties:
+          isocode:
+            type: string
+          name:
+            type: string
+        type: object
+      location:
+        $ref: '#/definitions/entity.LocationLite'
+    type: object
+  entity.Country:
+    properties:
+      continent:
+        properties:
+          code:
+            type: string
+          geoNameID:
+            type: integer
+          names:
+            additionalProperties:
+              type: string
+            type: object
+        type: object
+      country:
+        properties:
+          geoNameID:
+            type: integer
+          isInEuropeanUnion:
+            type: boolean
+          isoCode:
+            type: string
+          names:
+            additionalProperties:
+              type: string
+            type: object
+        type: object
+      registeredCountry:
+        properties:
+          geoNameID:
+            type: integer
+          isInEuropeanUnion:
+            type: boolean
+          isoCode:
+            type: string
+          names:
+            additionalProperties:
+              type: string
+            type: object
+        type: object
+      representedCountry:
+        properties:
+          geoNameID:
+            type: integer
+          isInEuropeanUnion:
+            type: boolean
+          isoCode:
+            type: string
+          names:
+            additionalProperties:
+              type: string
+            type: object
+          type:
+            type: string
+        type: object
+      traits:
+        properties:
+          isAnonymousProxy:
+            type: boolean
+          isSatelliteProvider:
+            type: boolean
+        type: object
+    type: object
+  entity.LocationLite:
+    properties:
+      latitude:
+        type: number
+      longitude:
+        type: number
+      timeZone:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: Content delivery service
+  license:
+    name: ᅠ
+  title: Geos API
+  version: "1.0"
+paths:
+  /city-lite/{addr}:
+    get:
+      parameters:
+      - description: ip or hostname
+        in: path
+        name: addr
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.CityLite'
+        "400":
+          description: error
+          schema:
+            type: string
+        "500":
+          description: error
+          schema:
+            type: string
+      summary: city lite
+      tags:
+      - geo IP
+  /city/{addr}:
+    get:
+      parameters:
+      - description: ip or hostname
+        in: path
+        name: addr
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.City'
+        "400":
+          description: error
+          schema:
+            type: string
+        "500":
+          description: error
+          schema:
+            type: string
+      summary: city
+      tags:
+      - geo IP
+  /country/{addr}:
+    get:
+      parameters:
+      - description: ip or hostname
+        in: path
+        name: addr
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Country'
+        "400":
+          description: error
+          schema:
+            type: string
+        "500":
+          description: error
+          schema:
+            type: string
+      summary: country
+      tags:
+      - geo IP
+  /env:
+    get:
+      produces:
+      - text/yaml
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: get current environment
+      tags:
+      - admin
+  /ping:
+    get:
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: ping request
+      tags:
+      - public
+  /version:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/Version'
+      summary: get service version
+      tags:
+      - public
+schemes:
+- http
+swagger: "2.0"

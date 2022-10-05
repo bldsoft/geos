@@ -12,6 +12,8 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+const BaseApiPath = "/geoip"
+
 type Microservice struct {
 	config *config.Config
 
@@ -41,7 +43,8 @@ func (m *Microservice) initServices() {
 }
 
 func (m *Microservice) BuildRoutes(router chi.Router) {
-	router.Route("/geoip/v2.1", func(r chi.Router) {
+	router.Route(BaseApiPath, func(r chi.Router) {
+		r.Get("/ping", gost.GetPingHandler)
 		r.Get("/env", gost.GetEnvHandler(m.config, nil))
 		r.Get("/version", gost.GetVersionHandler)
 

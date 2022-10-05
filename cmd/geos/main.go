@@ -9,6 +9,15 @@ import (
 	"github.com/bldsoft/gost/version"
 )
 
+//go:generate swag init -d ../.. --parseDependency -g cmd/geos/main.go -o ../../api/rest
+
+// @title Geos API
+// @version 1.0
+// @description Content delivery service
+// @schemes http
+// @license.name ᅠ
+// @BasePath /geoip
+
 func main() {
 	var cfg config.Config
 	gost.ReadConfig(&cfg, "")
