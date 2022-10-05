@@ -2,7 +2,6 @@ package rest
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/bldsoft/geos/pkg/controller"
 	gost "github.com/bldsoft/gost/controller"
@@ -20,11 +19,7 @@ func NewGeoIpController(service controller.GeoIpService) (c *GeoIpController) {
 }
 
 func (c *GeoIpController) address(r *http.Request) string {
-	ipStr := chi.URLParam(r, "addr")
-	if ipStr == "me" {
-		return strings.Split(r.RemoteAddr, ":")[0]
-	}
-	return ipStr
+	return chi.URLParam(r, "addr")
 }
 
 func (c *GeoIpController) GetCityHandler(w http.ResponseWriter, r *http.Request) {

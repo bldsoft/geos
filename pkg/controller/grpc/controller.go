@@ -2,12 +2,10 @@ package grpc
 
 import (
 	context "context"
-	"strings"
 
 	"github.com/bldsoft/geos/pkg/controller"
 	pb "github.com/bldsoft/geos/pkg/controller/grpc/proto"
 	"github.com/bldsoft/gost/log"
-	"google.golang.org/grpc/peer"
 )
 
 //go:generate protoc -I=../../.. --go_out=proto --go-grpc_out=proto api/grpc/geoip.proto
@@ -21,16 +19,8 @@ func NewGeoIpController(geoService controller.GeoIpService) *GeoIpController {
 	return &GeoIpController{service: geoService}
 }
 
-func (c *GeoIpController) address(ctx context.Context, address string) string {
-	if address == "me" {
-		p, _ := peer.FromContext(ctx)
-		return strings.Split(p.Addr.String(), ":")[0]
-	}
-	return address
-}
-
 func (c *GeoIpController) Country(ctx context.Context, req *pb.AddrRequest) (*pb.CountryResponse, error) {
-	country, err := c.service.Country(ctx, c.address(ctx, req.Address))
+	country, err := c.service.Country(ctx, req.Address)
 	if err != nil {
 		log.FromContext(ctx).Error(err.Error())
 		return nil, err
@@ -39,7 +29,7 @@ func (c *GeoIpController) Country(ctx context.Context, req *pb.AddrRequest) (*pb
 }
 
 func (c *GeoIpController) City(ctx context.Context, req *pb.AddrRequest) (*pb.CityResponse, error) {
-	city, err := c.service.City(ctx, c.address(ctx, req.Address))
+	city, err := c.service.City(ctx, req.Address)
 	if err != nil {
 		log.FromContext(ctx).Error(err.Error())
 		return nil, err
@@ -48,7 +38,7 @@ func (c *GeoIpController) City(ctx context.Context, req *pb.AddrRequest) (*pb.Ci
 }
 
 func (c *GeoIpController) CityLite(ctx context.Context, req *pb.CityLiteRequest) (*pb.CityLiteResponse, error) {
-	cityLite, err := c.service.CityLite(ctx, c.address(ctx, req.Address), req.Lang)
+	cityLite, err := c.service.CityLite(ctx, req.Address, req.Lang)
 	if err != nil {
 		log.FromContext(ctx).Error(err.Error())
 		return nil, err
