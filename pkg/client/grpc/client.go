@@ -7,6 +7,7 @@ import (
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/microservice/middleware"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 
 	pb "github.com/bldsoft/geos/pkg/controller/grpc/proto"
@@ -19,7 +20,7 @@ type Client struct {
 
 func NewClient(addr string) (*Client, error) {
 	var opts []grpc.DialOption
-	opts = append(opts, grpc.WithInsecure())
+	opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	conn, err := grpc.Dial(addr, opts...)
 	if err != nil {
 		return nil, err
