@@ -43,6 +43,8 @@ github.com/bldsoft/gost v0.0.0-20221004141520-ad018c754f00 h1:A1dNS0rSjd3Bvp45OX
 github.com/bldsoft/gost v0.0.0-20221004141520-ad018c754f00/go.mod h1:WfrqhR0iJKhsFhjxOZWZle3O67ZPArXU5EVjWA2AnMM=
 github.com/bldsoft/gost v0.0.0-20221004142559-9c2ce4751478 h1:O1afIOv7pIiFuVqs35cwqG8orbIRN7IfMg1vL0IhnaY=
 github.com/bldsoft/gost v0.0.0-20221004142559-9c2ce4751478/go.mod h1:gu42XGkA4P/HjLpvPaVex+2eqsf+bOgcAzMYfEQW9+k=
+github.com/bldsoft/gost v0.0.0-20221005081303-1fbdb06ff1bd h1:z2Gnv1XP2+Zfrf0inLG+mNtvNkKgJfHwEH8ZfFykuew=
+github.com/bldsoft/gost v0.0.0-20221005081303-1fbdb06ff1bd/go.mod h1:gu42XGkA4P/HjLpvPaVex+2eqsf+bOgcAzMYfEQW9+k=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e/go.mod h1:nSuG5e5PlCu98SY8svDHJxuZscDgtXS6KTTbou5AhLI=
