@@ -10,9 +10,9 @@
         "license": {
             "name": "ᅠ"
         },
-        "version": "2.1"
+        "version": "1.0"
     },
-    "basePath": "/geoip/v2.1",
+    "basePath": "/geoip",
     "paths": {
         "/city-lite/{addr}": {
             "get": {

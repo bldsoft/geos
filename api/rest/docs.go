@@ -517,9 +517,9 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "2.1",
+	Version:          "1.0",
 	Host:             "",
-	BasePath:         "/geoip/v2.1",
+	BasePath:         "/geoip",
 	Schemes:          []string{"http"},
 	Title:            "Geos API",
 	Description:      "Content delivery service",

@@ -1,4 +1,4 @@
-basePath: /geoip/v2.1
+basePath: /geoip
 definitions:
   Version:
     properties:
@@ -205,7 +205,7 @@ info:
   license:
     name: ᅠ
   title: Geos API
-  version: "2.1"
+  version: "1.0"
 paths:
   /city-lite/{addr}:
     get:

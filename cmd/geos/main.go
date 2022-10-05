@@ -12,11 +12,11 @@ import (
 //go:generate swag init -d ../.. --parseDependency -g cmd/geos/main.go -o ../../api/rest
 
 // @title Geos API
-// @version 2.1
+// @version 1.0
 // @description Content delivery service
 // @schemes http
 // @license.name ᅠ
-// @BasePath /geoip/v2.1
+// @BasePath /geoip
 
 func main() {
 	var cfg config.Config

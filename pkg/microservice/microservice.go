@@ -12,7 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-const BaseApiPath = "/geoip/v2.1"
+const BaseApiPath = "/geoip"
 
 type Microservice struct {
 	config *config.Config
