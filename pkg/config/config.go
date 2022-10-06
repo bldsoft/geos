@@ -26,6 +26,7 @@ func (c *Config) GrpcAddr() string {
 // SetDefaults ...
 func (c *Config) SetDefaults() {
 	c.Server.Port = 8505
+	c.Log.Color = false
 	c.GeoDbPath = "../../db.mmdb"
 }
 
