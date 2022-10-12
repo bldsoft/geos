@@ -102,9 +102,9 @@ func PbToCity(cityPb *pb.CityResponse) *entity.City {
 
 	for _, subdivision := range cityPb.Subdivisions {
 		city.Subdivisions = append(city.Subdivisions, struct {
-			GeoNameID uint              `maxminddb:"geoname_id"`
-			IsoCode   string            `maxminddb:"iso_code"`
-			Names     map[string]string `maxminddb:"names"`
+			GeoNameID uint              `maxminddb:"geoname_id" json:"geoNameID,omitempty"`
+			IsoCode   string            `maxminddb:"iso_code" json:"isoCode,omitempty"`
+			Names     map[string]string `maxminddb:"names" json:"names,omitempty"`
 		}{
 			GeoNameID: uint(subdivision.GeoNameId),
 			IsoCode:   subdivision.IsoCode,

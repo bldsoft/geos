@@ -2,29 +2,29 @@ package entity
 
 type CityLite struct {
 	City struct {
-		Name string
-	}
+		Name string `json:"name,omitempty"`
+	} `json:"city,omitempty"`
 	Country struct {
-		ISOCode string
-		Name    string
-	}
-	Location LocationLite
+		ISOCode string `json:"isoCode,omitempty"`
+		Name    string `json:"name,omitempty"`
+	} `json:"country,omitempty"`
+	Location LocationLite `json:"location,omitempty"`
 }
 type CityLiteDb struct {
 	City struct {
-		Names map[string]string `maxminddb:"names"`
-	} `maxminddb:"city"`
+		Names map[string]string `maxminddb:"names" json:"names,omitempty"`
+	} `maxminddb:"city" json:"city,omitempty"`
 	Country struct {
-		ISOCode string            `maxminddb:"iso_code"`
-		Names   map[string]string `maxminddb:"names"`
-	} `maxminddb:"country"`
-	Location LocationLite `maxminddb:"location"`
+		ISOCode string            `maxminddb:"iso_code" json:"isoCode,omitempty"`
+		Names   map[string]string `maxminddb:"names" json:"names,omitempty"`
+	} `maxminddb:"country" json:"country,omitempty"`
+	Location LocationLite `maxminddb:"location" json:"location,omitempty"`
 }
 
 type LocationLite struct {
-	Latitude  float64 `maxminddb:"latitude"`
-	Longitude float64 `maxminddb:"longitude"`
-	TimeZone  string  `maxminddb:"time_zone"`
+	Latitude  float64 `maxminddb:"latitude" json:"latitude,omitempty"`
+	Longitude float64 `maxminddb:"longitude" json:"longitude,omitempty"`
+	TimeZone  string  `maxminddb:"time_zone" json:"timeZone,omitempty"`
 }
 
 func DbToCityLite(cityLiteDb *CityLiteDb, lang string) *CityLite {
