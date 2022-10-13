@@ -27,6 +27,11 @@ func (s *GeoIpService) ip(ctx context.Context, address string) (net.IP, error) {
 		address = middleware.GetRealIP(ctx)
 	}
 
+	// cut the port
+	if host, _, err := net.SplitHostPort(address); err == nil {
+		address = host
+	}
+
 	if ip := net.ParseIP(address); ip != nil {
 		return ip, nil
 	}
