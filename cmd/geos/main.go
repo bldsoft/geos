@@ -13,7 +13,7 @@ import (
 
 // @title Geos API
 // @version 1.0
-// @description Content delivery service
+// @description Service for geo location by IP based on GeoLite2 database
 // @schemes http
 // @license.name ᅠ
 // @BasePath /geoip

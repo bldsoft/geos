@@ -4,7 +4,7 @@
     ],
     "swagger": "2.0",
     "info": {
-        "description": "Content delivery service",
+        "description": "Service for geo location by IP based on GeoLite2 database",
         "title": "Geos API",
         "contact": {},
         "license": {
@@ -384,7 +384,7 @@
                 "country": {
                     "type": "object",
                     "properties": {
-                        "isocode": {
+                        "isoCode": {
                             "type": "string"
                         },
                         "name": {

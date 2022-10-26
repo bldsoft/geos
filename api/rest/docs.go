@@ -389,7 +389,7 @@ const docTemplate = `{
                 "country": {
                     "type": "object",
                     "properties": {
-                        "isocode": {
+                        "isoCode": {
                             "type": "string"
                         },
                         "name": {
@@ -522,7 +522,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/geoip",
 	Schemes:          []string{"http"},
 	Title:            "Geos API",
-	Description:      "Content delivery service",
+	Description:      "Service for geo location by IP based on GeoLite2 database",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 }

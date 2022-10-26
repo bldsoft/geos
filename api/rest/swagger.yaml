@@ -120,7 +120,7 @@ definitions:
         type: object
       country:
         properties:
-          isocode:
+          isoCode:
             type: string
           name:
             type: string
@@ -201,7 +201,7 @@ definitions:
     type: object
 info:
   contact: {}
-  description: Content delivery service
+  description: Service for geo location by IP based on GeoLite2 database
   license:
     name: ᅠ
   title: Geos API
