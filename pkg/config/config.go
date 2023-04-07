@@ -4,8 +4,15 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/bldsoft/gost/consul"
 	"github.com/bldsoft/gost/log"
 	"github.com/bldsoft/gost/server"
+)
+
+const (
+	ServiceName           = "geos"
+	ConsulGrpcClusterName = "grpc_" + ServiceName
+	ConsulRestClusterName = "rest_" + ServiceName
 )
 
 type Config struct {
@@ -13,6 +20,28 @@ type Config struct {
 	Log       log.Config
 	GrpcPort  int    `mapstructure:"GRPC_SERVICE_PORT" description:"gRPC service port (0 - disabled)"`
 	GeoDbPath string `mapstructure:"GEOIP_DB_PATH" description:"Path to GeoLite2 or GeoIP2 databases"`
+
+	Consul     consul.ConsulConfig  `mapstructure:"CONSUL"`
+	GrpcConsul consul.ServiceConfig `mapstructure:"CONSUL_GRPC"`
+	RestConsul consul.ServiceConfig `mapstructure:"CONSUL_REST"`
+}
+
+func (c *Config) ConsulEnabled() bool {
+	return c.Consul.ConsulAddr != ""
+}
+
+func (c *Config) GrpcConsulConfig() consul.Config {
+	return consul.Config{
+		ConsulConfig:  c.Consul,
+		ServiceConfig: c.GrpcConsul,
+	}
+}
+
+func (c *Config) RestConsulConfig() consul.Config {
+	return consul.Config{
+		ConsulConfig:  c.Consul,
+		ServiceConfig: c.RestConsul,
+	}
 }
 
 func (c *Config) NeedGrpc() bool {
@@ -28,6 +57,10 @@ func (c *Config) SetDefaults() {
 	c.Server.Port = 8505
 	c.Log.Color = false
 	c.GeoDbPath = "../../db.mmdb"
+
+	c.Consul.ConsulAddr = ""
+	c.GrpcConsul.Cluster = ConsulGrpcClusterName
+	c.RestConsul.Cluster = ConsulRestClusterName
 }
 
 // Validate ...

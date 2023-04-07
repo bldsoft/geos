@@ -18,8 +18,7 @@ type Client struct {
 	client pb.GeoIpServiceClient
 }
 
-func NewClient(addr string) (*Client, error) {
-	var opts []grpc.DialOption
+func NewClient(addr string, opts ...grpc.DialOption) (*Client, error) {
 	opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	conn, err := grpc.Dial(addr, opts...)
 	if err != nil {
