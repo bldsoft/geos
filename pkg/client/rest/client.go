@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -16,6 +17,10 @@ type Client struct {
 }
 
 func NewClient(addr string) (*Client, error) {
+	return NewWithClient(addr, http.DefaultClient)
+}
+
+func NewWithClient(addr string, client *http.Client) (*Client, error) {
 	if !strings.HasPrefix(addr, "http://") && !strings.HasPrefix(addr, "https://") {
 		addr = "http://" + addr
 	}
@@ -24,7 +29,7 @@ func NewClient(addr string) (*Client, error) {
 		return nil, err
 	}
 	return &Client{
-		resty.New().SetBaseURL(baseURL),
+		resty.NewWithClient(client).SetBaseURL(baseURL),
 	}, nil
 }
 

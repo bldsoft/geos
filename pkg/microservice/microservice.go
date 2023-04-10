@@ -6,6 +6,7 @@ import (
 	"github.com/bldsoft/geos/pkg/controller/rest"
 	"github.com/bldsoft/geos/pkg/repository"
 	"github.com/bldsoft/geos/pkg/service"
+	"github.com/bldsoft/gost/consul"
 	gost "github.com/bldsoft/gost/controller"
 	"github.com/bldsoft/gost/log"
 	"github.com/bldsoft/gost/server"
@@ -37,8 +38,18 @@ func (m *Microservice) initServices() {
 	if m.config.NeedGrpc() {
 		grpcService := NewGrpcMicroservice(m.config.GrpcAddr(), m.geoService)
 		m.asyncRunners = append(m.asyncRunners, grpcService)
+
+		if m.config.ConsulEnabled() {
+			discovery := consul.NewDiscovery(m.config.GrpcConsulConfig())
+			m.asyncRunners = append(m.asyncRunners, discovery)
+		}
 	} else {
 		log.Info("gRPC is off")
+	}
+
+	if m.config.ConsulEnabled() {
+		discovery := consul.NewDiscovery(m.config.RestConsulConfig())
+		m.asyncRunners = append(m.asyncRunners, discovery)
 	}
 }
 
