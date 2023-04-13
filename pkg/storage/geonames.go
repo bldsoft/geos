@@ -27,8 +27,8 @@ func NewGeoNamesStorage(dir string) *GeoNameStorage {
 		}),
 		subdivisions: newGeonameEntityStorage(dir, func(parser geonames.Parser) ([]*entity.AdminSubdivision, geoNameIndex, error) {
 			subdivisions, index := []*entity.AdminSubdivision{}, newGeoNameIndex()
-			err := parser.GetAdminSubdivisions(func(sub *models.AdminSubdivision) error {
-				res := (*entity.AdminSubdivision)(sub)
+			err := parser.GetAdminDivisions(func(division *models.AdminDivision) error {
+				res := (*entity.AdminSubdivision)(division)
 				subdivisions = append(subdivisions, res)
 				index.put(res.CountryCode())
 				return nil
