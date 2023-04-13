@@ -65,16 +65,16 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 		r.Get("/env", gost.GetEnvHandler(m.config, nil))
 		r.Get("/version", gost.GetVersionHandler)
 
-		controller := rest.NewGeoIpController(m.geoIpService, m.geoNameService)
-		r.Get("/country/{addr}", controller.GetCountryHandler)
-		r.Get("/city/{addr}", controller.GetCityHandler)
+		geoIpController := rest.NewGeoIpController(m.geoIpService)
+		r.Get("/country/{addr}", geoIpController.GetCountryHandler)
+		r.Get("/city/{addr}", geoIpController.GetCityHandler)
+		r.Get("/city-lite/{addr}", geoIpController.GetCityLiteHandler)
 
-		r.Get("/city-lite/{addr}", controller.GetCityLiteHandler)
-
+		geoNameController := rest.NewGeoNameController(m.geoNameService)
 		r.Route("/geoname", func(r chi.Router) {
-			r.Get("/country", controller.GetGeoNameCountriesHandler)
-			r.Get("/subdivision", controller.GetGeoNameSubdivisionsHandler)
-			r.Get("/city", controller.GetGeoNameCitiesHandler)
+			r.Get("/country", geoNameController.GetGeoNameCountriesHandler)
+			r.Get("/subdivision", geoNameController.GetGeoNameSubdivisionsHandler)
+			r.Get("/city", geoNameController.GetGeoNameCitiesHandler)
 		})
 	})
 }
