@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -67,17 +66,15 @@ func print(obj interface{}) error {
 }
 
 func main() {
-	flags := commonFlags()
-
 	app := &cli.App{
 		Name:  "geos-cli",
 		Usage: "Geos gRPC client",
+		Flags: commonFlags(),
 		Commands: []*cli.Command{
 			{
-				Name:  "city",
-				Flags: flags,
+				Name: "city",
 				Action: func(ctx *cli.Context) error {
-					city, err := client(ctx).City(context.Background(), addr(ctx))
+					city, err := client(ctx).City(ctx.Context, addr(ctx))
 					if err != nil {
 						return err
 					}
@@ -85,10 +82,9 @@ func main() {
 				},
 			},
 			{
-				Name:  "country",
-				Flags: flags,
+				Name: "country",
 				Action: func(ctx *cli.Context) error {
-					country, err := client(ctx).Country(context.Background(), addr(ctx))
+					country, err := client(ctx).Country(ctx.Context, addr(ctx))
 					if err != nil {
 						return err
 					}
@@ -97,19 +93,49 @@ func main() {
 			},
 			{
 				Name: "city-lite",
-				Flags: append(flags,
+				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:    "lang",
 						Value:   "en",
 						Usage:   "Language for country 1and city name",
 						Aliases: []string{"l"}},
-				),
+				},
 				Action: func(ctx *cli.Context) error {
-					cityLite, err := client(ctx).CityLite(context.Background(), addr(ctx), ctx.String("lang"))
+					cityLite, err := client(ctx).CityLite(ctx.Context, addr(ctx), ctx.String("lang"))
 					if err != nil {
 						return err
 					}
 					return print(cityLite)
+				},
+			},
+			{
+				Name: "geoname-country",
+				Action: func(ctx *cli.Context) error {
+					countries, err := client(ctx).GeoNameCountries(ctx.Context)
+					if err != nil {
+						return err
+					}
+					return print(countries)
+				},
+			},
+			{
+				Name: "geoname-subdivision",
+				Action: func(ctx *cli.Context) error {
+					subdivisions, err := client(ctx).GeoNameSubdivisions(ctx.Context)
+					if err != nil {
+						return err
+					}
+					return print(subdivisions)
+				},
+			},
+			{
+				Name: "geoname-city",
+				Action: func(ctx *cli.Context) error {
+					cities, err := client(ctx).GeoNameCities(ctx.Context)
+					if err != nil {
+						return err
+					}
+					return print(cities)
 				},
 			},
 		},

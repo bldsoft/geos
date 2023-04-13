@@ -2,6 +2,8 @@ package client
 
 import (
 	"context"
+	"errors"
+	"io"
 
 	mapping "github.com/bldsoft/geos/pkg/controller/grpc"
 	"github.com/bldsoft/geos/pkg/entity"
@@ -14,8 +16,9 @@ import (
 )
 
 type Client struct {
-	conn   *grpc.ClientConn
-	client pb.GeoIpServiceClient
+	conn          *grpc.ClientConn
+	geoIpClient   pb.GeoIpServiceClient
+	geoNameClient pb.GeoNameServiceClient
 }
 
 func NewClient(addr string, opts ...grpc.DialOption) (*Client, error) {
@@ -25,8 +28,9 @@ func NewClient(addr string, opts ...grpc.DialOption) (*Client, error) {
 		return nil, err
 	}
 	return &Client{
-		conn:   conn,
-		client: pb.NewGeoIpServiceClient(conn),
+		conn:          conn,
+		geoIpClient:   pb.NewGeoIpServiceClient(conn),
+		geoNameClient: pb.NewGeoNameServiceClient(conn),
 	}, nil
 }
 
@@ -42,7 +46,7 @@ func (c *Client) prepareContext(ctx context.Context) context.Context {
 
 func (c *Client) Country(ctx context.Context, address string) (*entity.Country, error) {
 	ctx = c.prepareContext(ctx)
-	country, err := c.client.Country(ctx, &pb.AddrRequest{Address: address})
+	country, err := c.geoIpClient.Country(ctx, &pb.AddrRequest{Address: address})
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +55,7 @@ func (c *Client) Country(ctx context.Context, address string) (*entity.Country, 
 
 func (c *Client) City(ctx context.Context, address string) (*entity.City, error) {
 	ctx = c.prepareContext(ctx)
-	city, err := c.client.City(ctx, &pb.AddrRequest{Address: address})
+	city, err := c.geoIpClient.City(ctx, &pb.AddrRequest{Address: address})
 	if err != nil {
 		return nil, err
 	}
@@ -60,11 +64,55 @@ func (c *Client) City(ctx context.Context, address string) (*entity.City, error)
 
 func (c *Client) CityLite(ctx context.Context, address, lang string) (*entity.CityLite, error) {
 	ctx = c.prepareContext(ctx)
-	cityLite, err := c.client.CityLite(ctx, &pb.CityLiteRequest{Address: address, Lang: lang})
+	cityLite, err := c.geoIpClient.CityLite(ctx, &pb.CityLiteRequest{Address: address, Lang: lang})
 	if err != nil {
 		return nil, err
 	}
 	return mapping.PbToCityLite(cityLite), nil
+}
+
+func recvAll[R, T any](stream interface {
+	Recv() (*R, error)
+}, convert func(*R) *T) ([]*T, error) {
+	var res []*T
+	for {
+		resp, err := stream.Recv()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return nil, err
+		}
+		res = append(res, convert(resp))
+	}
+	return res, nil
+}
+
+func (c *Client) GeoNameCountries(ctx context.Context) ([]*entity.GeoNameCountry, error) {
+	ctx = c.prepareContext(ctx)
+	countryClient, err := c.geoNameClient.Country(ctx, &pb.GeoNameRequest{})
+	if err != nil {
+		return nil, err
+	}
+	return recvAll[pb.GeoNameCountryResponse](countryClient, mapping.PbToGeoNameCountry)
+}
+
+func (c *Client) GeoNameSubdivisions(ctx context.Context) ([]*entity.AdminSubdivision, error) {
+	ctx = c.prepareContext(ctx)
+	subdivisionClient, err := c.geoNameClient.Subdivision(ctx, &pb.GeoNameRequest{})
+	if err != nil {
+		return nil, err
+	}
+	return recvAll[pb.GeoNameSubdivisionResponse](subdivisionClient, mapping.PbToGeoNameSubdivision)
+}
+
+func (c *Client) GeoNameCities(ctx context.Context) ([]*entity.Geoname, error) {
+	ctx = c.prepareContext(ctx)
+	cityClient, err := c.geoNameClient.City(ctx, &pb.GeoNameRequest{})
+	if err != nil {
+		return nil, err
+	}
+	return recvAll[pb.GeoNameCityResponse](cityClient, mapping.PbToGeoNameCity)
 }
 
 func (c *Client) Close() {
