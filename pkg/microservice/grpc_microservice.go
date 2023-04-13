@@ -15,21 +15,25 @@ import (
 )
 
 type GrpcMicroservice struct {
-	address      string
-	grpcServer   *grpc.Server
-	geoIpService controller.GeoIpService
+	address        string
+	grpcServer     *grpc.Server
+	geoIpService   controller.GeoIpService
+	geoNameService controller.GeoNameService
 }
 
-func NewGrpcMicroservice(address string, geoIpService controller.GeoIpService) *GrpcMicroservice {
+func NewGrpcMicroservice(address string, geoIpService controller.GeoIpService, geoNameService controller.GeoNameService) *GrpcMicroservice {
 	return &GrpcMicroservice{
-		address:      address,
-		geoIpService: geoIpService,
+		address:        address,
+		geoIpService:   geoIpService,
+		geoNameService: geoNameService,
 	}
 }
 
 func (s *GrpcMicroservice) registerServices() {
 	geoIpController := grpc_controller.NewGeoIpController(s.geoIpService)
 	pb.RegisterGeoIpServiceServer(s.grpcServer, geoIpController)
+	geoNameController := grpc_controller.NewGeoNameController(s.geoNameService)
+	pb.RegisterGeoNameServiceServer(s.grpcServer, geoNameController)
 }
 
 func (s *GrpcMicroservice) Run() error {

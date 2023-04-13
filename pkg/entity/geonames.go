@@ -21,7 +21,7 @@ type GeoNameCountry struct {
 	PostalCodeFormat   string  `csv:"Postal Code Format" json:"postalCodeFormat"`
 	PostalCodeRegex    string  `csv:"Postal Code Regex" json:"postalCodeRegex"`
 	Languages          string  `csv:"Languages" json:"languages"`
-	GeonameID          int     `csv:"geonameid" valid:"required" json:"geonameID"`
+	GeonameID          int     `csv:"geonameid" valid:"required" json:"geoNameID"`
 	Neighbours         string  `csv:"neighbours" json:"neighbours"`
 	EquivalentFipsCode string  `csv:"EquivalentFipsCode" json:"equivalentFipsCode"`
 }
@@ -30,11 +30,11 @@ type AdminSubdivision struct {
 	Code      string `csv:"concatenated codes" valid:"required" json:"code"`
 	Name      string `csv:"name" valid:"required" json:"name"`
 	AsciiName string `csv:"asciiname" valid:"required" json:"asciiName"`
-	GeonameId int    `csv:"geonameId" valid:"required" json:"geonameId"`
+	GeonameId int    `csv:"geonameId" valid:"required" json:"geoNameID"`
 }
 
 type Geoname struct {
-	Id                    int         `csv:"geonameid" valid:"required" json:"id"`
+	Id                    int         `csv:"geonameid" valid:"required" json:"geoNameID"`
 	Name                  string      `csv:"name" valid:"required" json:"name"`
 	AsciiName             string      `csv:"asciiname" json:"asciiName"`
 	AlternateNames        string      `csv:"alternatenames" json:"alternateNames"`
@@ -52,5 +52,5 @@ type Geoname struct {
 	Elevation             int         `csv:"elevation,omitempty" json:"elevation,omitempty"`
 	DigitalElevationModel int         `csv:"dem,omitempty" json:"dem,omitempty"`
 	Timezone              string      `csv:"timezone" json:"timezone"`
-	ModificationDate      models.Time `csv:"modification date" valid:"required" json:"modificationDate"`
+	ModificationDate      models.Time `csv:"modification date" valid:"required" json:"-"`
 }

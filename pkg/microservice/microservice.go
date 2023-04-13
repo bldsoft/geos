@@ -40,7 +40,7 @@ func (m *Microservice) initServices() {
 	m.geoNameService = service.NewGeoNameService(geoNameRep)
 
 	if m.config.NeedGrpc() {
-		grpcService := NewGrpcMicroservice(m.config.GrpcAddr(), m.geoIpService)
+		grpcService := NewGrpcMicroservice(m.config.GrpcAddr(), m.geoIpService, m.geoNameService)
 		m.asyncRunners = append(m.asyncRunners, grpcService)
 
 		if m.config.ConsulEnabled() {
