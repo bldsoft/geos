@@ -36,7 +36,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/entity.CityLite"
+                            "$ref": "#/definitions/github_com_bldsoft_geos_pkg_entity.CityLite"
                         }
                     },
                     "400": {
@@ -76,7 +76,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/entity.City"
+                            "$ref": "#/definitions/github_com_bldsoft_geos_pkg_entity.City"
                         }
                     },
                     "400": {
@@ -116,7 +116,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/entity.Country"
+                            "$ref": "#/definitions/github_com_bldsoft_geos_pkg_entity.Country"
                         }
                     },
                     "400": {
@@ -134,63 +134,139 @@
                 }
             }
         },
-        "/env": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "produces": [
-                    "text/yaml"
-                ],
-                "tags": [
-                    "admin"
-                ],
-                "summary": "get current environment",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/ping": {
-            "get": {
-                "produces": [
-                    "text/plain"
-                ],
-                "tags": [
-                    "public"
-                ],
-                "summary": "ping request",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/version": {
+        "/geoname/city": {
             "get": {
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "public"
+                    "geonames"
                 ],
-                "summary": "get service version",
+                "summary": "city",
+                "parameters": [
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "comma separated list of country codes",
+                        "name": "country-codes",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/Version"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_bldsoft_geos_pkg_entity.Geoname"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/geoname/country": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "geonames"
+                ],
+                "summary": "country",
+                "parameters": [
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "comma separated list of country codes",
+                        "name": "country-codes",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_bldsoft_geos_pkg_entity.GeoNameCountry"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/geoname/subdivision": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "geonames"
+                ],
+                "summary": "city lite",
+                "parameters": [
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "comma separated list of country codes",
+                        "name": "country-codes",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_bldsoft_geos_pkg_entity.AdminSubdivision"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -198,21 +274,24 @@
         }
     },
     "definitions": {
-        "Version": {
+        "github_com_bldsoft_geos_pkg_entity.AdminSubdivision": {
             "type": "object",
             "properties": {
-                "branch": {
+                "asciiName": {
                     "type": "string"
                 },
-                "commit": {
+                "code": {
                     "type": "string"
                 },
-                "version": {
+                "geoNameID": {
+                    "type": "integer"
+                },
+                "name": {
                     "type": "string"
                 }
             }
         },
-        "entity.City": {
+        "github_com_bldsoft_geos_pkg_entity.City": {
             "type": "object",
             "properties": {
                 "city": {
@@ -370,7 +449,7 @@
                 }
             }
         },
-        "entity.CityLite": {
+        "github_com_bldsoft_geos_pkg_entity.CityLite": {
             "type": "object",
             "properties": {
                 "city": {
@@ -393,11 +472,11 @@
                     }
                 },
                 "location": {
-                    "$ref": "#/definitions/entity.LocationLite"
+                    "$ref": "#/definitions/github_com_bldsoft_geos_pkg_entity.LocationLite"
                 }
             }
         },
-        "entity.Country": {
+        "github_com_bldsoft_geos_pkg_entity.Country": {
             "type": "object",
             "properties": {
                 "continent": {
@@ -493,7 +572,128 @@
                 }
             }
         },
-        "entity.LocationLite": {
+        "github_com_bldsoft_geos_pkg_entity.GeoNameCountry": {
+            "type": "object",
+            "properties": {
+                "area": {
+                    "type": "number"
+                },
+                "capital": {
+                    "type": "string"
+                },
+                "continent": {
+                    "type": "string"
+                },
+                "currencyCode": {
+                    "type": "string"
+                },
+                "currencyName": {
+                    "type": "string"
+                },
+                "equivalentFipsCode": {
+                    "type": "string"
+                },
+                "fips": {
+                    "type": "string"
+                },
+                "geoNameID": {
+                    "type": "integer"
+                },
+                "iso2Code": {
+                    "type": "string"
+                },
+                "iso3Code": {
+                    "type": "string"
+                },
+                "isoNumeric": {
+                    "type": "string"
+                },
+                "languages": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "neighbours": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "population": {
+                    "type": "integer"
+                },
+                "postalCodeFormat": {
+                    "type": "string"
+                },
+                "postalCodeRegex": {
+                    "type": "string"
+                },
+                "tld": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_bldsoft_geos_pkg_entity.Geoname": {
+            "type": "object",
+            "properties": {
+                "admin1Code": {
+                    "type": "string"
+                },
+                "admin2Code": {
+                    "type": "string"
+                },
+                "admin3Code": {
+                    "type": "string"
+                },
+                "admin4Code": {
+                    "type": "string"
+                },
+                "alternateCountryCodes": {
+                    "type": "string"
+                },
+                "alternateNames": {
+                    "type": "string"
+                },
+                "asciiName": {
+                    "type": "string"
+                },
+                "class": {
+                    "type": "string"
+                },
+                "code": {
+                    "type": "string"
+                },
+                "countryCode": {
+                    "type": "string"
+                },
+                "dem": {
+                    "type": "integer"
+                },
+                "elevation": {
+                    "type": "integer"
+                },
+                "geoNameID": {
+                    "type": "integer"
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "population": {
+                    "type": "integer"
+                },
+                "timezone": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_bldsoft_geos_pkg_entity.LocationLite": {
             "type": "object",
             "properties": {
                 "latitude": {

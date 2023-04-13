@@ -1,15 +1,17 @@
 basePath: /geoip
 definitions:
-  Version:
+  github_com_bldsoft_geos_pkg_entity.AdminSubdivision:
     properties:
-      branch:
+      asciiName:
         type: string
-      commit:
+      code:
         type: string
-      version:
+      geoNameID:
+        type: integer
+      name:
         type: string
     type: object
-  entity.City:
+  github_com_bldsoft_geos_pkg_entity.City:
     properties:
       city:
         properties:
@@ -111,7 +113,7 @@ definitions:
             type: boolean
         type: object
     type: object
-  entity.CityLite:
+  github_com_bldsoft_geos_pkg_entity.CityLite:
     properties:
       city:
         properties:
@@ -126,9 +128,9 @@ definitions:
             type: string
         type: object
       location:
-        $ref: '#/definitions/entity.LocationLite'
+        $ref: '#/definitions/github_com_bldsoft_geos_pkg_entity.LocationLite'
     type: object
-  entity.Country:
+  github_com_bldsoft_geos_pkg_entity.Country:
     properties:
       continent:
         properties:
@@ -190,7 +192,87 @@ definitions:
             type: boolean
         type: object
     type: object
-  entity.LocationLite:
+  github_com_bldsoft_geos_pkg_entity.GeoNameCountry:
+    properties:
+      area:
+        type: number
+      capital:
+        type: string
+      continent:
+        type: string
+      currencyCode:
+        type: string
+      currencyName:
+        type: string
+      equivalentFipsCode:
+        type: string
+      fips:
+        type: string
+      geoNameID:
+        type: integer
+      iso2Code:
+        type: string
+      iso3Code:
+        type: string
+      isoNumeric:
+        type: string
+      languages:
+        type: string
+      name:
+        type: string
+      neighbours:
+        type: string
+      phone:
+        type: string
+      population:
+        type: integer
+      postalCodeFormat:
+        type: string
+      postalCodeRegex:
+        type: string
+      tld:
+        type: string
+    type: object
+  github_com_bldsoft_geos_pkg_entity.Geoname:
+    properties:
+      admin1Code:
+        type: string
+      admin2Code:
+        type: string
+      admin3Code:
+        type: string
+      admin4Code:
+        type: string
+      alternateCountryCodes:
+        type: string
+      alternateNames:
+        type: string
+      asciiName:
+        type: string
+      class:
+        type: string
+      code:
+        type: string
+      countryCode:
+        type: string
+      dem:
+        type: integer
+      elevation:
+        type: integer
+      geoNameID:
+        type: integer
+      latitude:
+        type: number
+      longitude:
+        type: number
+      name:
+        type: string
+      population:
+        type: integer
+      timezone:
+        type: string
+    type: object
+  github_com_bldsoft_geos_pkg_entity.LocationLite:
     properties:
       latitude:
         type: number
@@ -221,7 +303,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/entity.CityLite'
+            $ref: '#/definitions/github_com_bldsoft_geos_pkg_entity.CityLite'
         "400":
           description: error
           schema:
@@ -247,7 +329,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/entity.City'
+            $ref: '#/definitions/github_com_bldsoft_geos_pkg_entity.City'
         "400":
           description: error
           schema:
@@ -273,7 +355,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/entity.Country'
+            $ref: '#/definitions/github_com_bldsoft_geos_pkg_entity.Country'
         "400":
           description: error
           schema:
@@ -285,44 +367,96 @@ paths:
       summary: country
       tags:
       - geo IP
-  /env:
+  /geoname/city:
     get:
-      produces:
-      - text/yaml
-      responses:
-        "200":
-          description: OK
-          schema:
-            type: string
-      security:
-      - ApiKeyAuth: []
-      summary: get current environment
-      tags:
-      - admin
-  /ping:
-    get:
-      produces:
-      - text/plain
-      responses:
-        "200":
-          description: OK
-          schema:
-            type: string
-      summary: ping request
-      tags:
-      - public
-  /version:
-    get:
+      parameters:
+      - collectionFormat: csv
+        description: comma separated list of country codes
+        in: query
+        items:
+          type: string
+        name: country-codes
+        type: array
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/Version'
-      summary: get service version
+            items:
+              $ref: '#/definitions/github_com_bldsoft_geos_pkg_entity.Geoname'
+            type: array
+        "400":
+          description: error
+          schema:
+            type: string
+        "500":
+          description: error
+          schema:
+            type: string
+      summary: city
       tags:
-      - public
+      - geonames
+  /geoname/country:
+    get:
+      parameters:
+      - collectionFormat: csv
+        description: comma separated list of country codes
+        in: query
+        items:
+          type: string
+        name: country-codes
+        type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_bldsoft_geos_pkg_entity.GeoNameCountry'
+            type: array
+        "400":
+          description: error
+          schema:
+            type: string
+        "500":
+          description: error
+          schema:
+            type: string
+      summary: country
+      tags:
+      - geonames
+  /geoname/subdivision:
+    get:
+      parameters:
+      - collectionFormat: csv
+        description: comma separated list of country codes
+        in: query
+        items:
+          type: string
+        name: country-codes
+        type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_bldsoft_geos_pkg_entity.AdminSubdivision'
+            type: array
+        "400":
+          description: error
+          schema:
+            type: string
+        "500":
+          description: error
+          schema:
+            type: string
+      summary: city lite
+      tags:
+      - geonames
 schemes:
 - http
 swagger: "2.0"

@@ -27,8 +27,8 @@ func (c *GeoNameController) getGeoNameFilter(r *http.Request) entity.GeoNameFilt
 
 // @Summary country
 // @Produce json
-// @Tags geo IP
-// @Param addr path string true "ip or hostname"
+// @Tags geonames
+// @Param country-codes query []string false "comma separated list of country codes"
 // @Success 200 {object} []entity.GeoNameCountry
 // @Failure 400 {string} string "error"
 // @Failure 500 {string} string "error"
@@ -47,8 +47,8 @@ func (c *GeoNameController) GetGeoNameCountriesHandler(w http.ResponseWriter, r 
 
 // @Summary city lite
 // @Produce json
-// @Tags geo IP
-// @Param addr path string true "ip or hostname"
+// @Tags geonames
+// @Param country-codes query []string false "comma separated list of country codes"
 // @Success 200 {object} []entity.AdminSubdivision
 // @Failure 400 {string} string "error"
 // @Failure 500 {string} string "error"
@@ -67,8 +67,8 @@ func (c *GeoNameController) GetGeoNameSubdivisionsHandler(w http.ResponseWriter,
 
 // @Summary city
 // @Produce json
-// @Tags geo IP
-// @Param addr path string true "ip or hostname"
+// @Tags geonames
+// @Param country-codes query []string false "comma separated list of country codes"
 // @Success 200 {object} []entity.Geoname
 // @Failure 400 {string} string "error"
 // @Failure 500 {string} string "error"
