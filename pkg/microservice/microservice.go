@@ -18,7 +18,8 @@ const BaseApiPath = "/geoip"
 type Microservice struct {
 	config *config.Config
 
-	geoService controller.GeoIpService
+	geoIpService   controller.GeoIpService
+	geoNameService controller.GeoNameService
 
 	asyncRunners []server.AsyncRunner
 }
@@ -33,10 +34,13 @@ func NewMicroservice(config config.Config) *Microservice {
 
 func (m *Microservice) initServices() {
 	rep := repository.NewGeoIpRepository(m.config.GeoDbPath)
-	m.geoService = service.NewGeoService(rep)
+	m.geoIpService = service.NewGeoIpService(rep)
+
+	geoNameRep := repository.NewGeoNamesRepository()
+	m.geoNameService = service.NewGeoNameService(geoNameRep)
 
 	if m.config.NeedGrpc() {
-		grpcService := NewGrpcMicroservice(m.config.GrpcAddr(), m.geoService)
+		grpcService := NewGrpcMicroservice(m.config.GrpcAddr(), m.geoIpService)
 		m.asyncRunners = append(m.asyncRunners, grpcService)
 
 		if m.config.ConsulEnabled() {
@@ -59,11 +63,17 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 		r.Get("/env", gost.GetEnvHandler(m.config, nil))
 		r.Get("/version", gost.GetVersionHandler)
 
-		controller := rest.NewGeoIpController(m.geoService)
+		controller := rest.NewGeoIpController(m.geoIpService, m.geoNameService)
 		r.Get("/country/{addr}", controller.GetCountryHandler)
 		r.Get("/city/{addr}", controller.GetCityHandler)
 
 		r.Get("/city-lite/{addr}", controller.GetCityLiteHandler)
+
+		r.Route("/geoname", func(r chi.Router) {
+			r.Get("/country", controller.GetGeoNameCountriesHandler)
+			r.Get("/subdivision", controller.GetGeoNameSubdivisionsHandler)
+			r.Get("/city", controller.GetGeoNameCitiesHandler)
+		})
 	})
 }
 

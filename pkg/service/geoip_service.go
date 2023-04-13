@@ -18,7 +18,7 @@ type GeoIpService struct {
 	rep GeoRepository
 }
 
-func NewGeoService(rep GeoRepository) *GeoIpService {
+func NewGeoIpService(rep GeoRepository) *GeoIpService {
 	return &GeoIpService{rep: rep}
 }
 
