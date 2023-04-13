@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/bldsoft/geos/pkg/controller"
+	"github.com/bldsoft/geos/pkg/entity"
 	_ "github.com/bldsoft/geos/pkg/entity"
 	gost "github.com/bldsoft/gost/controller"
 	"github.com/bldsoft/gost/log"
@@ -82,6 +83,13 @@ func (c *GeoIpController) GetCityLiteHandler(w http.ResponseWriter, r *http.Requ
 	c.ResponseJson(w, r, city)
 }
 
+func (c *GeoIpController) getGeoNameFilter(r *http.Request) entity.GeoNameFilter {
+	codes, _ := gost.GetQueryOptionSlice[string](r, "country-codes")
+	return entity.GeoNameFilter{
+		CountryCodes: codes,
+	}
+}
+
 // @Summary country
 // @Produce json
 // @Tags geo IP
@@ -92,7 +100,8 @@ func (c *GeoIpController) GetCityLiteHandler(w http.ResponseWriter, r *http.Requ
 // @Router /geoname/country [get]
 func (c *GeoIpController) GetGeoNameCountriesHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	countries, err := c.geoNameService.Countries(ctx)
+	filter := c.getGeoNameFilter(r)
+	countries, err := c.geoNameService.Countries(ctx, filter)
 	if err != nil {
 		log.FromContext(ctx).Error(err.Error())
 		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
@@ -111,7 +120,8 @@ func (c *GeoIpController) GetGeoNameCountriesHandler(w http.ResponseWriter, r *h
 // @Router /geoname/subdivision [get]
 func (c *GeoIpController) GetGeoNameSubdivisionsHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	subdivisions, err := c.geoNameService.Subdivisions(ctx)
+	filter := c.getGeoNameFilter(r)
+	subdivisions, err := c.geoNameService.Subdivisions(ctx, filter)
 	if err != nil {
 		log.FromContext(ctx).Error(err.Error())
 		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
@@ -130,7 +140,8 @@ func (c *GeoIpController) GetGeoNameSubdivisionsHandler(w http.ResponseWriter, r
 // @Router /geoname/city [get]
 func (c *GeoIpController) GetGeoNameCitiesHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	cities, err := c.geoNameService.Cities(ctx)
+	filter := c.getGeoNameFilter(r)
+	cities, err := c.geoNameService.Cities(ctx, filter)
 	if err != nil {
 		log.FromContext(ctx).Error(err.Error())
 		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)

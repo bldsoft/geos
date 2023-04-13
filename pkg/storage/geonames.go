@@ -22,11 +22,20 @@ type GeoNameStorage struct {
 	countries    []*entity.GeoNameCountry
 	subdivisions []*entity.AdminSubdivision
 	cities       []*entity.Geoname
-	readyC       chan struct{}
+
+	countriesIndex    geoNameIndex
+	subdivisionsIndex geoNameIndex
+	cityIndex         geoNameIndex
+
+	readyC chan struct{}
 }
 
 func NewGeoNamesStorage(dir string) *GeoNameStorage {
-	s := &GeoNameStorage{readyC: make(chan struct{})}
+	s := &GeoNameStorage{readyC: make(chan struct{}),
+		countriesIndex:    newGeoNameIndex(),
+		subdivisionsIndex: newGeoNameIndex(),
+		cityIndex:         newGeoNameIndex(),
+	}
 	go s.init(dir)
 	return s
 }
@@ -63,9 +72,11 @@ func (s *GeoNameStorage) init(dir string) {
 		if s.countries == nil {
 			if err := parser.GetCountries(func(c *models.Country) error {
 				s.countries = append(s.countries, (*entity.GeoNameCountry)(c))
+				s.countriesIndex.put(c.Iso2Code)
 				return nil
 			}); err != nil {
 				s.countries = nil
+				s.countriesIndex = newGeoNameIndex()
 				continue
 			}
 			log.Logger.Info("GeoNames countries loaded")
@@ -73,10 +84,13 @@ func (s *GeoNameStorage) init(dir string) {
 
 		if s.subdivisions == nil {
 			if err := parser.GetAdminSubdivisions(func(sub *models.AdminSubdivision) error {
-				s.subdivisions = append(s.subdivisions, (*entity.AdminSubdivision)(sub))
+				res := (*entity.AdminSubdivision)(sub)
+				s.subdivisions = append(s.subdivisions, res)
+				s.subdivisionsIndex.put(res.CountryCode())
 				return nil
 			}); err != nil {
 				s.subdivisions = nil
+				s.subdivisionsIndex = newGeoNameIndex()
 				continue
 			}
 			log.Logger.Info("GeoNames subdivisions loaded")
@@ -85,9 +99,11 @@ func (s *GeoNameStorage) init(dir string) {
 		if s.cities == nil {
 			if err := parser.GetGeonames(geonames.Cities500, func(c *models.Geoname) error {
 				s.cities = append(s.cities, (*entity.Geoname)(c))
+				s.cityIndex.put(c.CountryCode)
 				return nil
 			}); err != nil {
 				s.cities = nil
+				s.cityIndex = newGeoNameIndex()
 				continue
 			}
 			log.Logger.Info("GeoNames cities loaded")
@@ -97,37 +113,65 @@ func (s *GeoNameStorage) init(dir string) {
 
 }
 
-func (r *GeoNameStorage) Countries(ctx context.Context) ([]*entity.GeoNameCountry, error) {
+func (r *GeoNameStorage) Countries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error) {
 	select {
 	case <-r.readyC:
 		if len(r.countries) == 0 {
 			return nil, ErrGeoNameDisabled
 		}
-		return r.countries, nil
+		if len(filter.CountryCodes) == 0 {
+			return r.countries, nil
+		}
+
+		res := make([]*entity.GeoNameCountry, 0, len(filter.CountryCodes))
+		for _, code := range filter.CountryCodes {
+			idx := r.countriesIndex.indexRange(code)
+			res = append(res, r.countries[idx.begin:idx.end]...)
+		}
+		return res, nil
 	default:
 		return nil, ErrGeoNameNotReady
 	}
 }
 
-func (r *GeoNameStorage) Subdivisions(ctx context.Context) ([]*entity.AdminSubdivision, error) {
+func (r *GeoNameStorage) Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.AdminSubdivision, error) {
 	select {
 	case <-r.readyC:
 		if len(r.subdivisions) == 0 {
 			return nil, ErrGeoNameDisabled
 		}
-		return r.subdivisions, nil
+		if len(filter.CountryCodes) == 0 {
+			return r.subdivisions, nil
+		}
+
+		var res []*entity.AdminSubdivision
+		for _, code := range filter.CountryCodes {
+			idx := r.subdivisionsIndex.indexRange(code)
+			res = append(res, r.subdivisions[idx.begin:idx.end]...)
+		}
+		return res, nil
 	default:
 		return nil, ErrGeoNameNotReady
 	}
 }
 
-func (r *GeoNameStorage) Cities(ctx context.Context) ([]*entity.Geoname, error) {
+func (r *GeoNameStorage) Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.Geoname, error) {
 	select {
 	case <-r.readyC:
 		if len(r.cities) == 0 {
 			return nil, ErrGeoNameDisabled
 		}
-		return r.cities, nil
+
+		if len(filter.CountryCodes) == 0 {
+			return r.cities, nil
+		}
+
+		var res []*entity.Geoname
+		for _, code := range filter.CountryCodes {
+			idx := r.cityIndex.indexRange(code)
+			res = append(res, r.cities[idx.begin:idx.end]...)
+		}
+		return res, nil
 	default:
 		return nil, ErrGeoNameNotReady
 	}

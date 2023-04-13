@@ -3,7 +3,9 @@ package geoname;
 
 option go_package = "./;proto";
 
-message GeoNameRequest {}
+message GeoNameRequest {
+    repeated string country_codes = 1;
+}
 
 service GeoNameService {
     rpc Country(GeoNameRequest) returns (stream GeoNameCountryResponse);

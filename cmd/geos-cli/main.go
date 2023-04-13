@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	grpc "github.com/bldsoft/geos/pkg/client/grpc"
 	"github.com/bldsoft/geos/pkg/config"
+	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/urfave/cli/v2"
 
 	gost "github.com/bldsoft/gost/config"
@@ -33,6 +35,16 @@ func addr(ctx *cli.Context) string {
 		return "me"
 	}
 	return addr
+}
+
+func geoNamesFilter(ctx *cli.Context) entity.GeoNameFilter {
+	var countryCodes []string
+	if codes := ctx.String("countries"); codes != "" {
+		countryCodes = strings.Split(codes, ",")
+	}
+	return entity.GeoNameFilter{
+		CountryCodes: countryCodes,
+	}
 }
 
 func commonFlags() []cli.Flag {
@@ -110,8 +122,14 @@ func main() {
 			},
 			{
 				Name: "geoname-country",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:    "countries",
+						Usage:   "Comma separated list of country codes",
+						Aliases: []string{"cc"}},
+				},
 				Action: func(ctx *cli.Context) error {
-					countries, err := client(ctx).GeoNameCountries(ctx.Context)
+					countries, err := client(ctx).GeoNameCountries(ctx.Context, geoNamesFilter(ctx))
 					if err != nil {
 						return err
 					}
@@ -120,8 +138,14 @@ func main() {
 			},
 			{
 				Name: "geoname-subdivision",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:    "countries",
+						Usage:   "Comma separated list of country codes",
+						Aliases: []string{"cc"}},
+				},
 				Action: func(ctx *cli.Context) error {
-					subdivisions, err := client(ctx).GeoNameSubdivisions(ctx.Context)
+					subdivisions, err := client(ctx).GeoNameSubdivisions(ctx.Context, geoNamesFilter(ctx))
 					if err != nil {
 						return err
 					}
@@ -130,8 +154,16 @@ func main() {
 			},
 			{
 				Name: "geoname-city",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:    "countries",
+						Value:   "",
+						Usage:   "Comma separated list of country codes",
+						Aliases: []string{"cc"}},
+				},
 				Action: func(ctx *cli.Context) error {
-					cities, err := client(ctx).GeoNameCities(ctx.Context)
+
+					cities, err := client(ctx).GeoNameCities(ctx.Context, geoNamesFilter(ctx))
 					if err != nil {
 						return err
 					}

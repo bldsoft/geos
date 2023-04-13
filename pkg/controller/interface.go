@@ -13,7 +13,7 @@ type GeoIpService interface {
 }
 
 type GeoNameService interface {
-	Countries(ctx context.Context) ([]*entity.GeoNameCountry, error)
-	Subdivisions(ctx context.Context) ([]*entity.AdminSubdivision, error)
-	Cities(ctx context.Context) ([]*entity.Geoname, error)
+	Countries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error)
+	Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.AdminSubdivision, error)
+	Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.Geoname, error)
 }

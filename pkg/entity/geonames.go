@@ -33,6 +33,10 @@ type AdminSubdivision struct {
 	GeonameId int    `csv:"geonameId" valid:"required" json:"geoNameID"`
 }
 
+func (s AdminSubdivision) CountryCode() string {
+	return s.Code[:2]
+}
+
 type Geoname struct {
 	Id                    int         `csv:"geonameid" valid:"required" json:"geoNameID"`
 	Name                  string      `csv:"name" valid:"required" json:"name"`
@@ -53,4 +57,8 @@ type Geoname struct {
 	DigitalElevationModel int         `csv:"dem,omitempty" json:"dem,omitempty"`
 	Timezone              string      `csv:"timezone" json:"timezone"`
 	ModificationDate      models.Time `csv:"modification date" valid:"required" json:"-"`
+}
+
+type GeoNameFilter struct {
+	CountryCodes []string `schema:"country-code"`
 }

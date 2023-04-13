@@ -7,9 +7,9 @@ import (
 )
 
 type GeoNameRepository interface {
-	Countries(ctx context.Context) ([]*entity.GeoNameCountry, error)
-	Subdivisions(ctx context.Context) ([]*entity.AdminSubdivision, error)
-	Cities(ctx context.Context) ([]*entity.Geoname, error)
+	Countries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error)
+	Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.AdminSubdivision, error)
+	Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.Geoname, error)
 }
 
 type GeoNameService struct {
@@ -20,14 +20,14 @@ func NewGeoNameService(rep GeoNameRepository) *GeoNameService {
 	return &GeoNameService{rep}
 }
 
-func (r *GeoNameService) Countries(ctx context.Context) ([]*entity.GeoNameCountry, error) {
-	return r.GeoNameRepository.Countries(ctx)
+func (r *GeoNameService) Countries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error) {
+	return r.GeoNameRepository.Countries(ctx, filter)
 }
 
-func (r *GeoNameService) Subdivisions(ctx context.Context) ([]*entity.AdminSubdivision, error) {
-	return r.GeoNameRepository.Subdivisions(ctx)
+func (r *GeoNameService) Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.AdminSubdivision, error) {
+	return r.GeoNameRepository.Subdivisions(ctx, filter)
 }
 
-func (r *GeoNameService) Cities(ctx context.Context) ([]*entity.Geoname, error) {
-	return r.GeoNameRepository.Cities(ctx)
+func (r *GeoNameService) Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.Geoname, error) {
+	return r.GeoNameRepository.Cities(ctx, filter)
 }
