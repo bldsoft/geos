@@ -21,3 +21,4 @@
 |CONSUL_REST_SERVICE_PORT|0|The port of the service|
 |CONSUL_REST_HEALTH_CHECK_TTL|30s|Check TTL|
 |CONSUL_REST_DEREREGISTER_TTL|30s|If a check is in the critical state for more than this configured value,	then the service will automatically be deregistered|
+|GEONAME_DUMP_DIR||The path to the directory where the GeoNames dumps are located (countryInfo.txt, admin2Codes.txt, cities5000.zip). If variable isn't set, GeoNames api will be disabled. The dumps will be loaded when service starts, if something is missing|

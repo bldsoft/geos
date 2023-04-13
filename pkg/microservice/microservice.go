@@ -6,6 +6,7 @@ import (
 	"github.com/bldsoft/geos/pkg/controller/rest"
 	"github.com/bldsoft/geos/pkg/repository"
 	"github.com/bldsoft/geos/pkg/service"
+	"github.com/bldsoft/geos/pkg/storage"
 	"github.com/bldsoft/gost/consul"
 	gost "github.com/bldsoft/gost/controller"
 	"github.com/bldsoft/gost/log"
@@ -36,7 +37,8 @@ func (m *Microservice) initServices() {
 	rep := repository.NewGeoIpRepository(m.config.GeoDbPath)
 	m.geoIpService = service.NewGeoIpService(rep)
 
-	geoNameRep := repository.NewGeoNamesRepository()
+	geoNameStorage := storage.NewGeoNamesStorage(m.config.GeoNameDumpDirPath)
+	geoNameRep := repository.NewGeoNamesRepository(geoNameStorage)
 	m.geoNameService = service.NewGeoNameService(geoNameRep)
 
 	if m.config.NeedGrpc() {
