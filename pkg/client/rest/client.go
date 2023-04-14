@@ -9,6 +9,7 @@ import (
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/microservice"
+	"github.com/bldsoft/gost/utils"
 	"github.com/go-resty/resty/v2"
 )
 
@@ -81,14 +82,14 @@ func getMany[T any](ctx context.Context, client *resty.Client, path string, quer
 	return obj, nil
 }
 
-func (c *Client) GeoNameCountry(ctx context.Context) ([]*entity.GeoNameCountry, error) {
-	return getMany[entity.GeoNameCountry](ctx, c.client, "geoname/country", nil)
+func (c *Client) GeoNameCountries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error) {
+	return getMany[entity.GeoNameCountry](ctx, c.client, "geoname/country", utils.Query(filter))
 }
 
-func (c *Client) GeoNameSubdivision(ctx context.Context) ([]*entity.AdminSubdivision, error) {
-	return getMany[entity.AdminSubdivision](ctx, c.client, "geoname/subdivision", nil)
+func (c *Client) GeoNameSubdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.AdminSubdivision, error) {
+	return getMany[entity.AdminSubdivision](ctx, c.client, "geoname/subdivision", utils.Query(filter))
 }
 
-func (c *Client) GeoNameCity(ctx context.Context) ([]*entity.Geoname, error) {
-	return getMany[entity.Geoname](ctx, c.client, "geoname/city", nil)
+func (c *Client) GeoNameCities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.Geoname, error) {
+	return getMany[entity.Geoname](ctx, c.client, "geoname/city", utils.Query(filter))
 }
