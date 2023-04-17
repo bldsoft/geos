@@ -1,6 +1,15 @@
 basePath: /geoip
 definitions:
-  github_com_bldsoft_geos_pkg_entity.AdminSubdivision:
+  Version:
+    properties:
+      branch:
+        type: string
+      commit:
+        type: string
+      version:
+        type: string
+    type: object
+  entity.AdminSubdivision:
     properties:
       asciiName:
         type: string
@@ -11,7 +20,7 @@ definitions:
       name:
         type: string
     type: object
-  github_com_bldsoft_geos_pkg_entity.City:
+  entity.City:
     properties:
       city:
         properties:
@@ -113,7 +122,7 @@ definitions:
             type: boolean
         type: object
     type: object
-  github_com_bldsoft_geos_pkg_entity.CityLite:
+  entity.CityLite:
     properties:
       city:
         properties:
@@ -128,9 +137,9 @@ definitions:
             type: string
         type: object
       location:
-        $ref: '#/definitions/github_com_bldsoft_geos_pkg_entity.LocationLite'
+        $ref: '#/definitions/entity.LocationLite'
     type: object
-  github_com_bldsoft_geos_pkg_entity.Country:
+  entity.Country:
     properties:
       continent:
         properties:
@@ -192,7 +201,16 @@ definitions:
             type: boolean
         type: object
     type: object
-  github_com_bldsoft_geos_pkg_entity.GeoNameCountry:
+  entity.GeoNameContinent:
+    properties:
+      code:
+        type: string
+      geoNameID:
+        type: integer
+      name:
+        type: string
+    type: object
+  entity.GeoNameCountry:
     properties:
       area:
         type: number
@@ -233,7 +251,7 @@ definitions:
       tld:
         type: string
     type: object
-  github_com_bldsoft_geos_pkg_entity.Geoname:
+  entity.Geoname:
     properties:
       admin1Code:
         type: string
@@ -272,7 +290,7 @@ definitions:
       timezone:
         type: string
     type: object
-  github_com_bldsoft_geos_pkg_entity.LocationLite:
+  entity.LocationLite:
     properties:
       latitude:
         type: number
@@ -303,7 +321,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_bldsoft_geos_pkg_entity.CityLite'
+            $ref: '#/definitions/entity.CityLite'
         "400":
           description: error
           schema:
@@ -329,7 +347,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_bldsoft_geos_pkg_entity.City'
+            $ref: '#/definitions/entity.City'
         "400":
           description: error
           schema:
@@ -355,7 +373,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_bldsoft_geos_pkg_entity.Country'
+            $ref: '#/definitions/entity.Country'
         "400":
           description: error
           schema:
@@ -367,11 +385,24 @@ paths:
       summary: country
       tags:
       - geo IP
+  /env:
+    get:
+      produces:
+      - text/yaml
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: get current environment
+      tags:
+      - admin
   /geoname/city:
     get:
       parameters:
-      - collectionFormat: csv
-        description: comma separated list of country codes
+      - description: comma separated list of country codes
         in: query
         items:
           type: string
@@ -384,7 +415,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/github_com_bldsoft_geos_pkg_entity.Geoname'
+              $ref: '#/definitions/entity.Geoname'
             type: array
         "400":
           description: error
@@ -397,11 +428,24 @@ paths:
       summary: city
       tags:
       - geonames
+  /geoname/continent:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/entity.GeoNameContinent'
+            type: array
+      summary: continent
+      tags:
+      - geonames
   /geoname/country:
     get:
       parameters:
-      - collectionFormat: csv
-        description: comma separated list of country codes
+      - description: comma separated list of country codes
         in: query
         items:
           type: string
@@ -414,7 +458,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/github_com_bldsoft_geos_pkg_entity.GeoNameCountry'
+              $ref: '#/definitions/entity.GeoNameCountry'
             type: array
         "400":
           description: error
@@ -430,8 +474,7 @@ paths:
   /geoname/subdivision:
     get:
       parameters:
-      - collectionFormat: csv
-        description: comma separated list of country codes
+      - description: comma separated list of country codes
         in: query
         items:
           type: string
@@ -444,7 +487,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/github_com_bldsoft_geos_pkg_entity.AdminSubdivision'
+              $ref: '#/definitions/entity.AdminSubdivision'
             type: array
         "400":
           description: error
@@ -457,6 +500,30 @@ paths:
       summary: city lite
       tags:
       - geonames
+  /ping:
+    get:
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: ping request
+      tags:
+      - public
+  /version:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/Version'
+      summary: get service version
+      tags:
+      - public
 schemes:
 - http
 swagger: "2.0"

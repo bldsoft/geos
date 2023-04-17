@@ -121,6 +121,12 @@ func main() {
 				},
 			},
 			{
+				Name: "geoname-continent",
+				Action: func(ctx *cli.Context) error {
+					return print(client(ctx).GeoNameContinents(ctx.Context))
+				},
+			},
+			{
 				Name: "geoname-country",
 				Flags: []cli.Flag{
 					&cli.StringFlag{

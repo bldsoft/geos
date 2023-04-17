@@ -25,6 +25,17 @@ func (c *GeoNameController) getGeoNameFilter(r *http.Request) entity.GeoNameFilt
 	}
 }
 
+// @Summary continent
+// @Produce json
+// @Tags geonames
+// @Success 200 {object} []entity.GeoNameContinent
+// @Router /geoname/continent [get]
+func (c *GeoNameController) GetGeoNameContinentsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	countries := c.geoNameService.Continents(ctx)
+	c.ResponseJson(w, r, countries, false)
+}
+
 // @Summary country
 // @Produce json
 // @Tags geonames

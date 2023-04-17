@@ -8,6 +8,30 @@ import (
 	"github.com/mkrou/geonames/models"
 )
 
+type Continent int
+
+const (
+	AF = 6255146
+	AS = 6255147
+	EU = 6255148
+	NA = 6255149
+	OC = 6255151
+	SA = 6255150
+	AN = 6255152
+)
+
+func GeoNameContinents() []*entity.GeoNameContinent {
+	return []*entity.GeoNameContinent{
+		{GeonameID: AF, Code: "AF", Name: "Africa"},
+		{GeonameID: AS, Code: "AS", Name: "Asia"},
+		{GeonameID: EU, Code: "EU", Name: "Europe"},
+		{GeonameID: NA, Code: "NA", Name: "North America"},
+		{GeonameID: OC, Code: "OC", Name: "Oceania"},
+		{GeonameID: SA, Code: "SA", Name: "South America"},
+		{GeonameID: AN, Code: "AN", Name: "Antarctica"},
+	}
+}
+
 type GeoNameStorage struct {
 	countries    *geonameEntityStorage[entity.GeoNameCountry]
 	subdivisions *geonameEntityStorage[entity.AdminSubdivision]
@@ -46,6 +70,10 @@ func NewGeoNamesStorage(dir string) *GeoNameStorage {
 		}),
 	}
 	return s
+}
+
+func (r *GeoNameStorage) Continents(ctx context.Context) []*entity.GeoNameContinent {
+	return GeoNameContinents()
 }
 
 func (r *GeoNameStorage) Countries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error) {

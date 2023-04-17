@@ -8,6 +8,7 @@ import (
 	mapping "github.com/bldsoft/geos/pkg/controller/grpc"
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/microservice/middleware"
+	"github.com/bldsoft/geos/pkg/storage"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
@@ -86,6 +87,10 @@ func recvAll[R, T any](stream interface {
 		res = append(res, convert(resp))
 	}
 	return res, nil
+}
+
+func (c *Client) GeoNameContinents(ctx context.Context) []*entity.GeoNameContinent {
+	return storage.GeoNameContinents()
 }
 
 func (c *Client) GeoNameCountries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error) {

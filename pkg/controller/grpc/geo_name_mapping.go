@@ -5,6 +5,14 @@ import (
 	"github.com/bldsoft/geos/pkg/entity"
 )
 
+func GeoNameContinentToPb(c *entity.GeoNameContinent) *pb.GeoNameContinentResponse {
+	return &pb.GeoNameContinentResponse{
+		Code:      c.Code,
+		Name:      c.Name,
+		GeoNameId: uint32(c.GeonameID),
+	}
+}
+
 func GeoNameCountryToPb(c *entity.GeoNameCountry) *pb.GeoNameCountryResponse {
 	return &pb.GeoNameCountryResponse{
 		IsoCode:            c.Iso2Code,
@@ -57,6 +65,14 @@ func GeoNameCityToPb(c *entity.Geoname) *pb.GeoNameCityResponse {
 		Elevation:             int64(c.Elevation),
 		DigitalElevationModel: int64(c.DigitalElevationModel),
 		TimeZone:              c.Timezone,
+	}
+}
+
+func PbToGeoNameContinent(c *pb.GeoNameContinentResponse) *entity.GeoNameContinent {
+	return &entity.GeoNameContinent{
+		Code:      c.Code,
+		Name:      c.Name,
+		GeonameID: int(c.GeoNameId),
 	}
 }
 
