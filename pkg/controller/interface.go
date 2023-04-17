@@ -11,3 +11,9 @@ type GeoIpService interface {
 	City(ctx context.Context, address string) (*entity.City, error)
 	CityLite(ctx context.Context, address string, lang string) (*entity.CityLite, error)
 }
+
+type GeoNameService interface {
+	Countries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error)
+	Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.AdminSubdivision, error)
+	Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.Geoname, error)
+}

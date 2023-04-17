@@ -6,6 +6,7 @@ import (
 	"github.com/bldsoft/geos/pkg/controller/rest"
 	"github.com/bldsoft/geos/pkg/repository"
 	"github.com/bldsoft/geos/pkg/service"
+	"github.com/bldsoft/geos/pkg/storage"
 	"github.com/bldsoft/gost/consul"
 	gost "github.com/bldsoft/gost/controller"
 	"github.com/bldsoft/gost/log"
@@ -18,7 +19,8 @@ const BaseApiPath = "/geoip"
 type Microservice struct {
 	config *config.Config
 
-	geoService controller.GeoIpService
+	geoIpService   controller.GeoIpService
+	geoNameService controller.GeoNameService
 
 	asyncRunners []server.AsyncRunner
 }
@@ -33,10 +35,14 @@ func NewMicroservice(config config.Config) *Microservice {
 
 func (m *Microservice) initServices() {
 	rep := repository.NewGeoIpRepository(m.config.GeoDbPath)
-	m.geoService = service.NewGeoService(rep)
+	m.geoIpService = service.NewGeoIpService(rep)
+
+	geoNameStorage := storage.NewGeoNamesStorage(m.config.GeoNameDumpDirPath)
+	geoNameRep := repository.NewGeoNamesRepository(geoNameStorage)
+	m.geoNameService = service.NewGeoNameService(geoNameRep)
 
 	if m.config.NeedGrpc() {
-		grpcService := NewGrpcMicroservice(m.config.GrpcAddr(), m.geoService)
+		grpcService := NewGrpcMicroservice(m.config.GrpcAddr(), m.geoIpService, m.geoNameService)
 		m.asyncRunners = append(m.asyncRunners, grpcService)
 
 		if m.config.ConsulEnabled() {
@@ -59,11 +65,17 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 		r.Get("/env", gost.GetEnvHandler(m.config, nil))
 		r.Get("/version", gost.GetVersionHandler)
 
-		controller := rest.NewGeoIpController(m.geoService)
-		r.Get("/country/{addr}", controller.GetCountryHandler)
-		r.Get("/city/{addr}", controller.GetCityHandler)
+		geoIpController := rest.NewGeoIpController(m.geoIpService)
+		r.Get("/country/{addr}", geoIpController.GetCountryHandler)
+		r.Get("/city/{addr}", geoIpController.GetCityHandler)
+		r.Get("/city-lite/{addr}", geoIpController.GetCityLiteHandler)
 
-		r.Get("/city-lite/{addr}", controller.GetCityLiteHandler)
+		geoNameController := rest.NewGeoNameController(m.geoNameService)
+		r.Route("/geoname", func(r chi.Router) {
+			r.Get("/country", geoNameController.GetGeoNameCountriesHandler)
+			r.Get("/subdivision", geoNameController.GetGeoNameSubdivisionsHandler)
+			r.Get("/city", geoNameController.GetGeoNameCitiesHandler)
+		})
 	})
 }
 

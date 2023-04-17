@@ -24,6 +24,8 @@ type Config struct {
 	Consul     consul.ConsulConfig  `mapstructure:"CONSUL"`
 	GrpcConsul consul.ServiceConfig `mapstructure:"CONSUL_GRPC"`
 	RestConsul consul.ServiceConfig `mapstructure:"CONSUL_REST"`
+
+	GeoNameDumpDirPath string `mapstructure:"GEONAME_DUMP_DIR" description:"The path to the directory where the GeoNames dumps are located (countryInfo.txt, admin1CodesASKII.txt, cities5000.zip). If variable isn't set, GeoNames api will be disabled. The dumps will be loaded when service starts, if something is missing"`
 }
 
 func (c *Config) ConsulEnabled() bool {

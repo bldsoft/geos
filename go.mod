@@ -3,11 +3,12 @@ module github.com/bldsoft/geos
 go 1.19
 
 require (
-	github.com/bldsoft/gost v0.0.0-20230407153014-cb9ecfcd9d6a
+	github.com/bldsoft/gost v0.0.0-20230414114904-1ed8b840b41a
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/hashicorp/go-multierror v1.1.1
+	github.com/mkrou/geonames v1.0.0
 	github.com/oschwald/maxminddb-golang v1.10.0
 	github.com/rs/zerolog v1.28.0
 	github.com/stretchr/testify v1.8.2
@@ -45,6 +46,8 @@ require (
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hashicorp/serf v0.10.1 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
+	github.com/jszwec/csvutil v1.2.1 // indirect
+	github.com/krolaw/zipstream v0.0.0-20180621105154-0a2661891f94 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
 	github.com/mailru/easyjson v0.7.6 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
