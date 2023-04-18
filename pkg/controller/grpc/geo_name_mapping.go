@@ -130,3 +130,17 @@ func PbToGeoNameCity(c *pb.GeoNameCityResponse) *entity.Geoname {
 		Timezone:              c.TimeZone,
 	}
 }
+
+func PbGeoNameRequestToFilter(r *pb.GeoNameRequest) entity.GeoNameFilter {
+	return entity.GeoNameFilter{
+		CountryCodes: r.CountryCodes,
+		Search:       r.Search,
+	}
+}
+
+func FilterToPbGeoNameRequest(f entity.GeoNameFilter) *pb.GeoNameRequest {
+	return &pb.GeoNameRequest{
+		CountryCodes: f.CountryCodes,
+		Search:       f.Search,
+	}
+}

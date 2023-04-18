@@ -40,33 +40,39 @@ type GeoNameStorage struct {
 
 func NewGeoNamesStorage(dir string) *GeoNameStorage {
 	s := &GeoNameStorage{
-		countries: newGeonameEntityStorage(dir, func(parser geonames.Parser) ([]*entity.GeoNameCountry, geoNameIndex, error) {
+		countries: newGeonameEntityStorage(dir, func(parser geonames.Parser) ([]*entity.GeoNameCountry, geoNameIndex, nameIndex, error) {
 			countries, index := []*entity.GeoNameCountry{}, newGeoNameIndex()
+			var nameIndex nameIndex
 			err := parser.GetCountries(func(c *models.Country) error {
 				countries = append(countries, (*entity.GeoNameCountry)(c))
 				index.put(c.Iso2Code)
+				nameIndex.names = append(nameIndex.names, c.Name)
 				return nil
 			})
-			return countries, index, err
+			return countries, index, nameIndex, err
 		}),
-		subdivisions: newGeonameEntityStorage(dir, func(parser geonames.Parser) ([]*entity.AdminSubdivision, geoNameIndex, error) {
+		subdivisions: newGeonameEntityStorage(dir, func(parser geonames.Parser) ([]*entity.AdminSubdivision, geoNameIndex, nameIndex, error) {
 			subdivisions, index := []*entity.AdminSubdivision{}, newGeoNameIndex()
+			var nameIndex nameIndex
 			err := parser.GetAdminDivisions(func(division *models.AdminDivision) error {
 				res := (*entity.AdminSubdivision)(division)
 				subdivisions = append(subdivisions, res)
 				index.put(res.CountryCode())
+				nameIndex.names = append(nameIndex.names, division.Name)
 				return nil
 			})
-			return subdivisions, index, err
+			return subdivisions, index, nameIndex, err
 		}),
-		cities: newGeonameEntityStorage(dir, func(parser geonames.Parser) ([]*entity.Geoname, geoNameIndex, error) {
+		cities: newGeonameEntityStorage(dir, func(parser geonames.Parser) ([]*entity.Geoname, geoNameIndex, nameIndex, error) {
 			cities, index := []*entity.Geoname{}, newGeoNameIndex()
+			var nameIndex nameIndex
 			err := parser.GetGeonames(geonames.Cities500, func(c *models.Geoname) error {
 				cities = append(cities, (*entity.Geoname)(c))
 				index.put(c.CountryCode)
+				nameIndex.names = append(nameIndex.names, c.Name)
 				return nil
 			})
-			return cities, index, err
+			return cities, index, nameIndex, err
 		}),
 	}
 	return s

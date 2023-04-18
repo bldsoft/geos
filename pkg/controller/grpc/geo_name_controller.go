@@ -37,7 +37,7 @@ func (c *GeoNameController) Continent(in *pb.GeoNameRequest, stream pb.GeoNameSe
 
 func (c *GeoNameController) Country(in *pb.GeoNameRequest, stream pb.GeoNameService_CountryServer) error {
 	ctx := stream.Context()
-	countries, err := c.service.Countries(ctx, entity.GeoNameFilter{CountryCodes: in.CountryCodes})
+	countries, err := c.service.Countries(ctx, PbGeoNameRequestToFilter(in))
 	if err != nil {
 		log.FromContext(ctx).Error(err.Error())
 		return err
@@ -47,7 +47,7 @@ func (c *GeoNameController) Country(in *pb.GeoNameRequest, stream pb.GeoNameServ
 
 func (c *GeoNameController) Subdivision(in *pb.GeoNameRequest, stream pb.GeoNameService_SubdivisionServer) error {
 	ctx := stream.Context()
-	subdivisions, err := c.service.Subdivisions(ctx, entity.GeoNameFilter{CountryCodes: in.CountryCodes})
+	subdivisions, err := c.service.Subdivisions(ctx, PbGeoNameRequestToFilter(in))
 	if err != nil {
 		log.FromContext(ctx).Error(err.Error())
 		return err
@@ -57,7 +57,7 @@ func (c *GeoNameController) Subdivision(in *pb.GeoNameRequest, stream pb.GeoName
 
 func (c *GeoNameController) City(in *pb.GeoNameRequest, stream pb.GeoNameService_CityServer) error {
 	ctx := stream.Context()
-	cities, err := c.service.Cities(ctx, entity.GeoNameFilter{CountryCodes: in.CountryCodes})
+	cities, err := c.service.Cities(ctx, PbGeoNameRequestToFilter(in))
 	if err != nil {
 		log.FromContext(ctx).Error(err.Error())
 		return err

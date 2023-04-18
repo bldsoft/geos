@@ -5,6 +5,10 @@ type indexRange struct {
 	end   int
 }
 
+func (r *indexRange) contains(i int) bool {
+	return r.begin <= i && i < r.end
+}
+
 type geoNameIndex struct {
 	// country code to indexes
 	currentIndex       int

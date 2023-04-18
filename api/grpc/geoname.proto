@@ -5,6 +5,7 @@ option go_package = "./;proto";
 
 message GeoNameRequest {
     repeated string country_codes = 1;
+    string search = 2;
 }
 
 

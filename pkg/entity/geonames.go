@@ -61,6 +61,7 @@ type Geoname struct {
 
 type GeoNameFilter struct {
 	CountryCodes []string `schema:"country-code"`
+	Search       string   `schema:"search"`
 }
 
 type GeoNameContinent struct {
