@@ -7,6 +7,7 @@ import (
 )
 
 type GeoNameStorage interface {
+	Continents(ctx context.Context) []*entity.GeoNameContinent
 	Countries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error)
 	Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.AdminSubdivision, error)
 	Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.Geoname, error)
@@ -18,6 +19,10 @@ type GeoNameRepository struct {
 
 func NewGeoNamesRepository(storage GeoNameStorage) *GeoNameRepository {
 	return &GeoNameRepository{storage: storage}
+}
+
+func (r *GeoNameRepository) Continents(ctx context.Context) []*entity.GeoNameContinent {
+	return r.storage.Continents(ctx)
 }
 
 func (r *GeoNameRepository) Countries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error) {

@@ -9,6 +9,7 @@ import (
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/microservice"
+	"github.com/bldsoft/geos/pkg/storage"
 	"github.com/bldsoft/gost/utils"
 	"github.com/go-resty/resty/v2"
 )
@@ -50,6 +51,10 @@ func get[T any](ctx context.Context, client *resty.Client, path string, query ur
 		return nil, err
 	}
 	return &obj, nil
+}
+
+func (c *Client) GeoNameContinents(ctx context.Context) []*entity.GeoNameContinent {
+	return storage.GeoNameContinents()
 }
 
 func (c *Client) Country(ctx context.Context, address string) (*entity.Country, error) {

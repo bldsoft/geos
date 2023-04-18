@@ -7,7 +7,9 @@ message GeoNameRequest {
     repeated string country_codes = 1;
 }
 
+
 service GeoNameService {
+    rpc Continent(GeoNameRequest) returns (stream GeoNameContinentResponse);
     rpc Country(GeoNameRequest) returns (stream GeoNameCountryResponse);
     rpc City(GeoNameRequest) returns (stream GeoNameCityResponse);
     rpc Subdivision(GeoNameRequest) returns (stream GeoNameSubdivisionResponse);
@@ -40,6 +42,12 @@ message GeoNameSubdivisionResponse {
     string name = 2;
     string ascii_name = 3;
     uint32 geo_name_id = 4;
+}
+
+message GeoNameContinentResponse {
+    string code = 1;
+    string name = 2;
+    uint32 geo_name_id = 3;
 }
 
 

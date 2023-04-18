@@ -29,6 +29,12 @@ func sendToStream[T any, P any](objects []*T, convert func(*T) *P, stream interf
 	return nil
 }
 
+func (c *GeoNameController) Continent(in *pb.GeoNameRequest, stream pb.GeoNameService_ContinentServer) error {
+	ctx := stream.Context()
+	continents := c.service.Continents(ctx)
+	return sendToStream[entity.GeoNameContinent, pb.GeoNameContinentResponse](continents, GeoNameContinentToPb, stream)
+}
+
 func (c *GeoNameController) Country(in *pb.GeoNameRequest, stream pb.GeoNameService_CountryServer) error {
 	ctx := stream.Context()
 	countries, err := c.service.Countries(ctx, entity.GeoNameFilter{CountryCodes: in.CountryCodes})

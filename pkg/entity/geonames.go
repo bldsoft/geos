@@ -62,3 +62,9 @@ type Geoname struct {
 type GeoNameFilter struct {
 	CountryCodes []string `schema:"country-code"`
 }
+
+type GeoNameContinent struct {
+	GeonameID int    `valid:"required" json:"geoNameID"`
+	Code      string `valid:"required" json:"code"`
+	Name      string `valid:"required" json:"name"`
+}

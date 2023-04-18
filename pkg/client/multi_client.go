@@ -53,6 +53,13 @@ func getManyFromAny[T any](ctx context.Context, clients []Client, f func(ctx con
 	return nil, multiErr
 }
 
+func (c *MultiClient) GeoNameContinents(ctx context.Context) []*entity.GeoNameContinent {
+	continents, _ := getManyFromAny(ctx, c.Clients, func(ctx context.Context, client Client) ([]*entity.GeoNameContinent, error) {
+		return client.GeoNameContinents(ctx), nil
+	})
+	return continents
+}
+
 func (c *MultiClient) GeoNameCountries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error) {
 	return getManyFromAny(ctx, c.Clients, func(ctx context.Context, client Client) ([]*entity.GeoNameCountry, error) {
 		return client.GeoNameCountries(ctx, filter)

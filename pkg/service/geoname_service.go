@@ -7,6 +7,7 @@ import (
 )
 
 type GeoNameRepository interface {
+	Continents(ctx context.Context) []*entity.GeoNameContinent
 	Countries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error)
 	Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.AdminSubdivision, error)
 	Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.Geoname, error)
@@ -18,6 +19,10 @@ type GeoNameService struct {
 
 func NewGeoNameService(rep GeoNameRepository) *GeoNameService {
 	return &GeoNameService{rep}
+}
+
+func (r *GeoNameService) Continents(ctx context.Context) []*entity.GeoNameContinent {
+	return r.GeoNameRepository.Continents(ctx)
 }
 
 func (r *GeoNameService) Countries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error) {
