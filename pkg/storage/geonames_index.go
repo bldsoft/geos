@@ -1,6 +1,9 @@
 package storage
 
 import (
+	"sort"
+	"strings"
+
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/derekparker/trie"
 )
@@ -30,7 +33,7 @@ func (idx *index[T]) Init(collection []T) {
 
 	for i, item := range collection {
 		// search by name prefix
-		idx.trie.Add(item.Name(), i)
+		idx.trie.Add(strings.ToLower(item.Name()), i)
 
 		// filter by country code
 		// expected collection sorted by country code
@@ -70,7 +73,9 @@ func (idx *index[T]) GetFiltered(filter entity.GeoNameFilter) (res []T) {
 }
 
 func (idx *index[T]) indexesByNamePrefix(namePrefix string) []int {
+	namePrefix = strings.ToLower(namePrefix)
 	keys := idx.trie.PrefixSearch(namePrefix)
+	sort.Strings(keys)
 	res := make([]int, 0, len(keys))
 	for _, key := range keys {
 		node, _ := idx.trie.Find(key)
@@ -82,6 +87,7 @@ func (idx *index[T]) indexesByNamePrefix(namePrefix string) []int {
 func (idx *index[T]) rangesByCountryCodes(codes ...string) []*indexRange {
 	var ranges []*indexRange
 	for _, code := range codes {
+		code = strings.ToUpper(code)
 		idxRange := idx.countryCodeToRange[code]
 		if idxRange == nil {
 			continue
