@@ -33,46 +33,36 @@ func GeoNameContinents() []*entity.GeoNameContinent {
 }
 
 type GeoNameStorage struct {
-	countries    *geonameEntityStorage[entity.GeoNameCountry]
-	subdivisions *geonameEntityStorage[entity.GeoNameAdminSubdivision]
-	cities       *geonameEntityStorage[entity.GeoName]
+	countries    *geonameEntityStorage[*entity.GeoNameCountry]
+	subdivisions *geonameEntityStorage[*entity.GeoNameAdminSubdivision]
+	cities       *geonameEntityStorage[*entity.GeoName]
 }
 
 func NewGeoNamesStorage(dir string) *GeoNameStorage {
 	s := &GeoNameStorage{
-		countries: newGeonameEntityStorage(dir, func(parser geonames.Parser) ([]*entity.GeoNameCountry, geoNameIndex, nameIndex, error) {
-			countries, index := []*entity.GeoNameCountry{}, newGeoNameIndex()
-			var nameIndex nameIndex
+		countries: newGeonameEntityStorage(dir, func(parser geonames.Parser) ([]*entity.GeoNameCountry, error) {
+			var countries []*entity.GeoNameCountry
 			err := parser.GetCountries(func(c *models.Country) error {
-				countries = append(countries, &entity.GeoNameCountry{c})
-				index.put(c.Iso2Code)
-				nameIndex.names = append(nameIndex.names, c.Name)
+				countries = append(countries, &entity.GeoNameCountry{Country: c})
 				return nil
 			})
-			return countries, index, nameIndex, err
+			return countries, err
 		}),
-		subdivisions: newGeonameEntityStorage(dir, func(parser geonames.Parser) ([]*entity.GeoNameAdminSubdivision, geoNameIndex, nameIndex, error) {
-			subdivisions, index := []*entity.GeoNameAdminSubdivision{}, newGeoNameIndex()
-			var nameIndex nameIndex
+		subdivisions: newGeonameEntityStorage(dir, func(parser geonames.Parser) ([]*entity.GeoNameAdminSubdivision, error) {
+			var subdivisions []*entity.GeoNameAdminSubdivision
 			err := parser.GetAdminDivisions(func(division *models.AdminDivision) error {
-				res := &entity.GeoNameAdminSubdivision{division}
-				subdivisions = append(subdivisions, res)
-				index.put(res.CountryCode())
-				nameIndex.names = append(nameIndex.names, division.Name)
+				subdivisions = append(subdivisions, &entity.GeoNameAdminSubdivision{AdminDivision: division})
 				return nil
 			})
-			return subdivisions, index, nameIndex, err
+			return subdivisions, err
 		}),
-		cities: newGeonameEntityStorage(dir, func(parser geonames.Parser) ([]*entity.GeoName, geoNameIndex, nameIndex, error) {
-			cities, index := []*entity.GeoName{}, newGeoNameIndex()
-			var nameIndex nameIndex
+		cities: newGeonameEntityStorage(dir, func(parser geonames.Parser) ([]*entity.GeoName, error) {
+			var cities []*entity.GeoName
 			err := parser.GetGeonames(geonames.Cities500, func(c *models.Geoname) error {
-				cities = append(cities, &entity.GeoName{c})
-				index.put(c.CountryCode)
-				nameIndex.names = append(nameIndex.names, c.Name)
+				cities = append(cities, &entity.GeoName{Geoname: c})
 				return nil
 			})
-			return cities, index, nameIndex, err
+			return cities, err
 		}),
 	}
 	return s

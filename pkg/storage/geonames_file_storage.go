@@ -21,17 +21,17 @@ var (
 	ErrGeoNameDisabled = errors.New("geoname is disabled")
 )
 
-type geonameEntityStorage[T any] struct {
-	collection       []*T
+type geonameEntityStorage[T entity.GeoNameEntity] struct {
+	collection       []T
 	countryCodeIndex geoNameIndex
 	nameIndex        nameIndex
 
-	fillCollectionCallback func(parser geonames.Parser) ([]*T, geoNameIndex, nameIndex, error)
+	fillCollectionCallback func(parser geonames.Parser) ([]T, error)
 
 	readyC chan struct{}
 }
 
-func newGeonameEntityStorage[T any](dir string, fillCollectionCallback func(parser geonames.Parser) ([]*T, geoNameIndex, nameIndex, error)) *geonameEntityStorage[T] {
+func newGeonameEntityStorage[T entity.GeoNameEntity](dir string, fillCollectionCallback func(parser geonames.Parser) ([]T, error)) *geonameEntityStorage[T] {
 
 	s := &geonameEntityStorage[T]{readyC: make(chan struct{}), fillCollectionCallback: fillCollectionCallback}
 	go s.init(dir)
@@ -69,15 +69,19 @@ func (s *geonameEntityStorage[T]) init(dir string) {
 	defer ticker.Stop()
 	for ; true; <-ticker.C {
 		var err error
-		s.collection, s.countryCodeIndex, s.nameIndex, err = s.fillCollectionCallback(parser)
+		s.collection, err = s.fillCollectionCallback(parser)
 		if err == nil {
+			for _, item := range s.collection {
+				s.countryCodeIndex.put(item.CountryCode())
+				s.nameIndex.Index(item.Name())
+			}
 			break
 		}
 		log.Logger.ErrorWithFields(log.Fields{"err": err}, "Failed to load GeoNames dump")
 	}
 }
 
-func (s *geonameEntityStorage[T]) GetEntities(ctx context.Context, filter entity.GeoNameFilter) ([]*T, error) {
+func (s *geonameEntityStorage[T]) GetEntities(ctx context.Context, filter entity.GeoNameFilter) ([]T, error) {
 	select {
 	case <-s.readyC:
 		if len(s.collection) == 0 {
@@ -87,7 +91,7 @@ func (s *geonameEntityStorage[T]) GetEntities(ctx context.Context, filter entity
 			return s.collection, nil
 		}
 
-		var res []*T
+		var res []T
 
 		if len(filter.Search) == 0 {
 			for _, code := range filter.CountryCodes {
