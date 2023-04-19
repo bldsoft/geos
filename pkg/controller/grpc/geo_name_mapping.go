@@ -3,13 +3,14 @@ package grpc
 import (
 	pb "github.com/bldsoft/geos/pkg/controller/grpc/proto"
 	"github.com/bldsoft/geos/pkg/entity"
+	"github.com/mkrou/geonames/models"
 )
 
 func GeoNameContinentToPb(c *entity.GeoNameContinent) *pb.GeoNameContinentResponse {
 	return &pb.GeoNameContinentResponse{
-		Code:      c.Code,
-		Name:      c.Name,
-		GeoNameId: uint32(c.GeonameID),
+		Code:      c.Code(),
+		Name:      c.Name(),
+		GeoNameId: uint32(c.GeoNameID()),
 	}
 }
 
@@ -19,7 +20,7 @@ func GeoNameCountryToPb(c *entity.GeoNameCountry) *pb.GeoNameCountryResponse {
 		Iso3Code:           c.Iso3Code,
 		IsoNumeric:         c.IsoNumeric,
 		Fips:               c.Fips,
-		Name:               c.Name,
+		Name:               c.Name(),
 		Capital:            c.Capital,
 		Area:               c.Area,
 		Population:         int64(c.Population),
@@ -37,25 +38,25 @@ func GeoNameCountryToPb(c *entity.GeoNameCountry) *pb.GeoNameCountryResponse {
 	}
 }
 
-func GeoNameSubdivisionToPb(s *entity.AdminSubdivision) *pb.GeoNameSubdivisionResponse {
+func GeoNameSubdivisionToPb(s *entity.GeoNameAdminSubdivision) *pb.GeoNameSubdivisionResponse {
 	return &pb.GeoNameSubdivisionResponse{
 		Code:      s.Code,
-		Name:      s.Name,
+		Name:      s.Name(),
 		AsciiName: s.AsciiName,
 		GeoNameId: uint32(s.GeonameId),
 	}
 }
 
-func GeoNameCityToPb(c *entity.Geoname) *pb.GeoNameCityResponse {
+func GeoNameCityToPb(c *entity.GeoName) *pb.GeoNameCityResponse {
 	return &pb.GeoNameCityResponse{
 		GeoNameId:             uint32(c.Id),
-		Name:                  c.Name,
+		Name:                  c.Name(),
 		AsciiName:             c.AsciiName,
 		Latitude:              c.Latitude,
 		Longitude:             c.Longitude,
 		Class:                 c.Class,
 		Code:                  c.Code,
-		CountryCode:           c.CountryCode,
+		CountryCode:           c.CountryCode(),
 		AlternateCountryCodes: c.AlternateCountryCodes,
 		Admin1Code:            c.Admin1Code,
 		Admin2Code:            c.Admin2Code,
@@ -69,65 +70,67 @@ func GeoNameCityToPb(c *entity.Geoname) *pb.GeoNameCityResponse {
 }
 
 func PbToGeoNameContinent(c *pb.GeoNameContinentResponse) *entity.GeoNameContinent {
-	return &entity.GeoNameContinent{
-		Code:      c.Code,
-		Name:      c.Name,
-		GeonameID: int(c.GeoNameId),
-	}
+	return entity.NewGeoNameContinent(int(c.GeoNameId), c.Name, c.Code)
 }
 
 func PbToGeoNameCountry(c *pb.GeoNameCountryResponse) *entity.GeoNameCountry {
 	return &entity.GeoNameCountry{
-		Iso2Code:           c.IsoCode,
-		Iso3Code:           c.Iso3Code,
-		IsoNumeric:         c.IsoNumeric,
-		Fips:               c.Fips,
-		Name:               c.Name,
-		Capital:            c.Capital,
-		Area:               c.Area,
-		Population:         int(c.Population),
-		Continent:          c.Continent,
-		Tld:                c.Tld,
-		CurrencyCode:       c.CurrencyCode,
-		CurrencyName:       c.CurrencyName,
-		Phone:              c.Phone,
-		PostalCodeFormat:   c.PostalCodeFormat,
-		PostalCodeRegex:    c.PostalCodeRegex,
-		Languages:          c.Languages,
-		GeonameID:          int(c.GeoNameId),
-		Neighbours:         c.Neighbours,
-		EquivalentFipsCode: c.EquivalentFipsCode,
+		&models.Country{
+			Iso2Code:           c.IsoCode,
+			Iso3Code:           c.Iso3Code,
+			IsoNumeric:         c.IsoNumeric,
+			Fips:               c.Fips,
+			Name:               c.Name,
+			Capital:            c.Capital,
+			Area:               c.Area,
+			Population:         int(c.Population),
+			Continent:          c.Continent,
+			Tld:                c.Tld,
+			CurrencyCode:       c.CurrencyCode,
+			CurrencyName:       c.CurrencyName,
+			Phone:              c.Phone,
+			PostalCodeFormat:   c.PostalCodeFormat,
+			PostalCodeRegex:    c.PostalCodeRegex,
+			Languages:          c.Languages,
+			GeonameID:          int(c.GeoNameId),
+			Neighbours:         c.Neighbours,
+			EquivalentFipsCode: c.EquivalentFipsCode,
+		},
 	}
 }
 
-func PbToGeoNameSubdivision(s *pb.GeoNameSubdivisionResponse) *entity.AdminSubdivision {
-	return &entity.AdminSubdivision{
-		Code:      s.Code,
-		Name:      s.Name,
-		AsciiName: s.AsciiName,
-		GeonameId: int(s.GeoNameId),
+func PbToGeoNameSubdivision(s *pb.GeoNameSubdivisionResponse) *entity.GeoNameAdminSubdivision {
+	return &entity.GeoNameAdminSubdivision{
+		&models.AdminDivision{
+			Code:      s.Code,
+			Name:      s.Name,
+			AsciiName: s.AsciiName,
+			GeonameId: int(s.GeoNameId),
+		},
 	}
 }
 
-func PbToGeoNameCity(c *pb.GeoNameCityResponse) *entity.Geoname {
-	return &entity.Geoname{
-		Id:                    int(c.GeoNameId),
-		Name:                  c.Name,
-		AsciiName:             c.AsciiName,
-		Latitude:              c.Latitude,
-		Longitude:             c.Longitude,
-		Class:                 c.Class,
-		Code:                  c.Code,
-		CountryCode:           c.CountryCode,
-		AlternateCountryCodes: c.AlternateCountryCodes,
-		Admin1Code:            c.Admin1Code,
-		Admin2Code:            c.Admin2Code,
-		Admin3Code:            c.Admin3Code,
-		Admin4Code:            c.Admin4Code,
-		Population:            int(c.Population),
-		Elevation:             int(c.Elevation),
-		DigitalElevationModel: int(c.DigitalElevationModel),
-		Timezone:              c.TimeZone,
+func PbToGeoNameCity(c *pb.GeoNameCityResponse) *entity.GeoName {
+	return &entity.GeoName{
+		&models.Geoname{
+			Id:                    int(c.GeoNameId),
+			Name:                  c.Name,
+			AsciiName:             c.AsciiName,
+			Latitude:              c.Latitude,
+			Longitude:             c.Longitude,
+			Class:                 c.Class,
+			Code:                  c.Code,
+			CountryCode:           c.CountryCode,
+			AlternateCountryCodes: c.AlternateCountryCodes,
+			Admin1Code:            c.Admin1Code,
+			Admin2Code:            c.Admin2Code,
+			Admin3Code:            c.Admin3Code,
+			Admin4Code:            c.Admin4Code,
+			Population:            int(c.Population),
+			Elevation:             int(c.Elevation),
+			DigitalElevationModel: int(c.DigitalElevationModel),
+			Timezone:              c.TimeZone,
+		},
 	}
 }
 

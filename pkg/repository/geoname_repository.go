@@ -9,8 +9,8 @@ import (
 type GeoNameStorage interface {
 	Continents(ctx context.Context) []*entity.GeoNameContinent
 	Countries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error)
-	Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.AdminSubdivision, error)
-	Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.Geoname, error)
+	Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameAdminSubdivision, error)
+	Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error)
 }
 
 type GeoNameRepository struct {
@@ -29,10 +29,10 @@ func (r *GeoNameRepository) Countries(ctx context.Context, filter entity.GeoName
 	return r.storage.Countries(ctx, filter)
 }
 
-func (r *GeoNameRepository) Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.AdminSubdivision, error) {
+func (r *GeoNameRepository) Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameAdminSubdivision, error) {
 	return r.storage.Subdivisions(ctx, filter)
 }
 
-func (r *GeoNameRepository) Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.Geoname, error) {
+func (r *GeoNameRepository) Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error) {
 	return r.storage.Cities(ctx, filter)
 }

@@ -91,10 +91,10 @@ func (c *Client) GeoNameCountries(ctx context.Context, filter entity.GeoNameFilt
 	return getMany[entity.GeoNameCountry](ctx, c.client, "geoname/country", utils.Query(filter))
 }
 
-func (c *Client) GeoNameSubdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.AdminSubdivision, error) {
-	return getMany[entity.AdminSubdivision](ctx, c.client, "geoname/subdivision", utils.Query(filter))
+func (c *Client) GeoNameSubdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameAdminSubdivision, error) {
+	return getMany[entity.GeoNameAdminSubdivision](ctx, c.client, "geoname/subdivision", utils.Query(filter))
 }
 
-func (c *Client) GeoNameCities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.Geoname, error) {
-	return getMany[entity.Geoname](ctx, c.client, "geoname/city", utils.Query(filter))
+func (c *Client) GeoNameCities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error) {
+	return getMany[entity.GeoName](ctx, c.client, "geoname/city", utils.Query(filter))
 }

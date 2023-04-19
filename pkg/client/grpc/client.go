@@ -102,7 +102,7 @@ func (c *Client) GeoNameCountries(ctx context.Context, filter entity.GeoNameFilt
 	return recvAll[pb.GeoNameCountryResponse](countryClient, mapping.PbToGeoNameCountry)
 }
 
-func (c *Client) GeoNameSubdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.AdminSubdivision, error) {
+func (c *Client) GeoNameSubdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameAdminSubdivision, error) {
 	ctx = c.prepareContext(ctx)
 	subdivisionClient, err := c.geoNameClient.Subdivision(ctx, mapping.FilterToPbGeoNameRequest(filter))
 	if err != nil {
@@ -111,7 +111,7 @@ func (c *Client) GeoNameSubdivisions(ctx context.Context, filter entity.GeoNameF
 	return recvAll[pb.GeoNameSubdivisionResponse](subdivisionClient, mapping.PbToGeoNameSubdivision)
 }
 
-func (c *Client) GeoNameCities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.Geoname, error) {
+func (c *Client) GeoNameCities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error) {
 	ctx = c.prepareContext(ctx)
 	cityClient, err := c.geoNameClient.City(ctx, mapping.FilterToPbGeoNameRequest(filter))
 	if err != nil {

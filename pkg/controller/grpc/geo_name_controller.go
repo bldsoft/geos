@@ -52,7 +52,7 @@ func (c *GeoNameController) Subdivision(in *pb.GeoNameRequest, stream pb.GeoName
 		log.FromContext(ctx).Error(err.Error())
 		return err
 	}
-	return sendToStream[entity.AdminSubdivision, pb.GeoNameSubdivisionResponse](subdivisions, GeoNameSubdivisionToPb, stream)
+	return sendToStream[entity.GeoNameAdminSubdivision, pb.GeoNameSubdivisionResponse](subdivisions, GeoNameSubdivisionToPb, stream)
 }
 
 func (c *GeoNameController) City(in *pb.GeoNameRequest, stream pb.GeoNameService_CityServer) error {
@@ -62,5 +62,5 @@ func (c *GeoNameController) City(in *pb.GeoNameRequest, stream pb.GeoNameService
 		log.FromContext(ctx).Error(err.Error())
 		return err
 	}
-	return sendToStream[entity.Geoname, pb.GeoNameCityResponse](cities, GeoNameCityToPb, stream)
+	return sendToStream[entity.GeoName, pb.GeoNameCityResponse](cities, GeoNameCityToPb, stream)
 }
