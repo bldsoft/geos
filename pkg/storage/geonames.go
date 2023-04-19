@@ -78,6 +78,12 @@ func NewGeoNamesStorage(dir string) *GeoNameStorage {
 	return s
 }
 
+func (r *GeoNameStorage) WaitReady() {
+	<-r.cities.readyC
+	<-r.subdivisions.readyC
+	<-r.countries.readyC
+}
+
 func (r *GeoNameStorage) Continents(ctx context.Context) []*entity.GeoNameContinent {
 	return GeoNameContinents()
 }
