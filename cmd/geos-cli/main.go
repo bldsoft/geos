@@ -45,6 +45,7 @@ func geoNamesFilter(ctx *cli.Context) entity.GeoNameFilter {
 	return entity.GeoNameFilter{
 		CountryCodes: countryCodes,
 		NamePrefix:   ctx.String("name-prefix"),
+		Limit:        uint32(ctx.Int64("limit")),
 	}
 }
 
@@ -141,6 +142,10 @@ func main() {
 						Usage:   "Name prefix",
 						Aliases: []string{"np"},
 					},
+					&cli.Int64Flag{
+						Name:    "limit",
+						Aliases: []string{"l"},
+					},
 				},
 				Action: func(ctx *cli.Context) error {
 					countries, err := client(ctx).GeoNameCountries(ctx.Context, geoNamesFilter(ctx))
@@ -163,6 +168,10 @@ func main() {
 						Value:   "",
 						Usage:   "Name prefix",
 						Aliases: []string{"np"},
+					},
+					&cli.Int64Flag{
+						Name:    "limit",
+						Aliases: []string{"l"},
 					},
 				},
 				Action: func(ctx *cli.Context) error {
@@ -187,6 +196,10 @@ func main() {
 						Value:   "",
 						Usage:   "Name prefix",
 						Aliases: []string{"np"},
+					},
+					&cli.Int64Flag{
+						Name:    "limit",
+						Aliases: []string{"l"},
 					},
 				},
 				Action: func(ctx *cli.Context) error {

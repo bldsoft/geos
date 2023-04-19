@@ -21,9 +21,11 @@ func NewGeoNameController(geoNameService controller.GeoNameService) *GeoNameCont
 func (c *GeoNameController) getGeoNameFilter(r *http.Request) entity.GeoNameFilter {
 	codes, _ := gost.GetQueryOptionSlice[string](r, "country-codes")
 	namePrefix, _ := gost.GetQueryOption(r, "name-prefix", "")
+	limit, _ := gost.GetQueryOption(r, "limit", uint32(0))
 	return entity.GeoNameFilter{
 		CountryCodes: codes,
 		NamePrefix:   namePrefix,
+		Limit:        limit,
 	}
 }
 

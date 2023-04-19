@@ -27,6 +27,12 @@ func BenchmarkGeonamesCity(b *testing.B) {
 			},
 		},
 		{
+			"search by name prefix with limit", entity.GeoNameFilter{
+				NamePrefix: "Min",
+				Limit:      1,
+			},
+		},
+		{
 			"search by country", entity.GeoNameFilter{
 				CountryCodes: []string{"BY"},
 			},

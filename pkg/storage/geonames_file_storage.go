@@ -91,7 +91,11 @@ func (s *geonameEntityStorage[T]) GetEntities(ctx context.Context, filter entity
 		if len(s.collection) == 0 {
 			return nil, ErrGeoNameDisabled
 		}
-		return s.index.GetFiltered(filter), nil
+		filtered := s.index.GetFiltered(filter)
+		if filter.Limit != 0 && len(filtered) > int(filter.Limit) {
+			return filtered[:filter.Limit], nil
+		}
+		return filtered, nil
 	default:
 		return nil, ErrGeoNameNotReady
 	}
