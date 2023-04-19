@@ -22,54 +22,56 @@ const (
 
 func GeoNameContinents() []*entity.GeoNameContinent {
 	return []*entity.GeoNameContinent{
-		{GeonameID: AF, Code: "AF", Name: "Africa"},
-		{GeonameID: AS, Code: "AS", Name: "Asia"},
-		{GeonameID: EU, Code: "EU", Name: "Europe"},
-		{GeonameID: NA, Code: "NA", Name: "North America"},
-		{GeonameID: OC, Code: "OC", Name: "Oceania"},
-		{GeonameID: SA, Code: "SA", Name: "South America"},
-		{GeonameID: AN, Code: "AN", Name: "Antarctica"},
+		entity.NewGeoNameContinent(AF, "AF", "Africa"),
+		entity.NewGeoNameContinent(AS, "AS", "Asia"),
+		entity.NewGeoNameContinent(EU, "EU", "Europe"),
+		entity.NewGeoNameContinent(NA, "NA", "North America"),
+		entity.NewGeoNameContinent(OC, "OC", "Oceania"),
+		entity.NewGeoNameContinent(SA, "SA", "South America"),
+		entity.NewGeoNameContinent(AN, "AN", "Antarctica"),
 	}
 }
 
 type GeoNameStorage struct {
-	countries    *geonameEntityStorage[entity.GeoNameCountry]
-	subdivisions *geonameEntityStorage[entity.AdminSubdivision]
-	cities       *geonameEntityStorage[entity.Geoname]
+	countries    *geonameEntityStorage[*entity.GeoNameCountry]
+	subdivisions *geonameEntityStorage[*entity.GeoNameAdminSubdivision]
+	cities       *geonameEntityStorage[*entity.GeoName]
 }
 
 func NewGeoNamesStorage(dir string) *GeoNameStorage {
 	s := &GeoNameStorage{
-		countries: newGeonameEntityStorage(dir, func(parser geonames.Parser) ([]*entity.GeoNameCountry, geoNameIndex, error) {
-			countries, index := []*entity.GeoNameCountry{}, newGeoNameIndex()
+		countries: newGeonameEntityStorage(dir, func(parser geonames.Parser) ([]*entity.GeoNameCountry, error) {
+			var countries []*entity.GeoNameCountry
 			err := parser.GetCountries(func(c *models.Country) error {
-				countries = append(countries, (*entity.GeoNameCountry)(c))
-				index.put(c.Iso2Code)
+				countries = append(countries, &entity.GeoNameCountry{Country: c})
 				return nil
 			})
-			return countries, index, err
+			return countries, err
 		}),
-		subdivisions: newGeonameEntityStorage(dir, func(parser geonames.Parser) ([]*entity.AdminSubdivision, geoNameIndex, error) {
-			subdivisions, index := []*entity.AdminSubdivision{}, newGeoNameIndex()
+		subdivisions: newGeonameEntityStorage(dir, func(parser geonames.Parser) ([]*entity.GeoNameAdminSubdivision, error) {
+			var subdivisions []*entity.GeoNameAdminSubdivision
 			err := parser.GetAdminDivisions(func(division *models.AdminDivision) error {
-				res := (*entity.AdminSubdivision)(division)
-				subdivisions = append(subdivisions, res)
-				index.put(res.CountryCode())
+				subdivisions = append(subdivisions, &entity.GeoNameAdminSubdivision{AdminDivision: division})
 				return nil
 			})
-			return subdivisions, index, err
+			return subdivisions, err
 		}),
-		cities: newGeonameEntityStorage(dir, func(parser geonames.Parser) ([]*entity.Geoname, geoNameIndex, error) {
-			cities, index := []*entity.Geoname{}, newGeoNameIndex()
+		cities: newGeonameEntityStorage(dir, func(parser geonames.Parser) ([]*entity.GeoName, error) {
+			var cities []*entity.GeoName
 			err := parser.GetGeonames(geonames.Cities500, func(c *models.Geoname) error {
-				cities = append(cities, (*entity.Geoname)(c))
-				index.put(c.CountryCode)
+				cities = append(cities, &entity.GeoName{Geoname: c})
 				return nil
 			})
-			return cities, index, err
+			return cities, err
 		}),
 	}
 	return s
+}
+
+func (r *GeoNameStorage) WaitReady() {
+	<-r.cities.readyC
+	<-r.subdivisions.readyC
+	<-r.countries.readyC
 }
 
 func (r *GeoNameStorage) Continents(ctx context.Context) []*entity.GeoNameContinent {
@@ -80,10 +82,10 @@ func (r *GeoNameStorage) Countries(ctx context.Context, filter entity.GeoNameFil
 	return r.countries.GetEntities(ctx, filter)
 }
 
-func (r *GeoNameStorage) Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.AdminSubdivision, error) {
+func (r *GeoNameStorage) Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameAdminSubdivision, error) {
 	return r.subdivisions.GetEntities(ctx, filter)
 }
 
-func (r *GeoNameStorage) Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.Geoname, error) {
+func (r *GeoNameStorage) Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error) {
 	return r.cities.GetEntities(ctx, filter)
 }

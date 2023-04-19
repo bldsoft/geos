@@ -15,8 +15,8 @@ type GeoIPClient interface {
 type GeoNameClient interface {
 	GeoNameContinents(ctx context.Context) []*entity.GeoNameContinent
 	GeoNameCountries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error)
-	GeoNameSubdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.AdminSubdivision, error)
-	GeoNameCities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.Geoname, error)
+	GeoNameSubdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameAdminSubdivision, error)
+	GeoNameCities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error)
 }
 
 type Client interface {

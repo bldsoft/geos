@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/bldsoft/gost v0.0.0-20230414114904-1ed8b840b41a
+	github.com/derekparker/trie v0.0.0-20221221181808-1424fce0c981
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0

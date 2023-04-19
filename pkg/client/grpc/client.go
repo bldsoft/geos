@@ -95,25 +95,25 @@ func (c *Client) GeoNameContinents(ctx context.Context) []*entity.GeoNameContine
 
 func (c *Client) GeoNameCountries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error) {
 	ctx = c.prepareContext(ctx)
-	countryClient, err := c.geoNameClient.Country(ctx, &pb.GeoNameRequest{CountryCodes: filter.CountryCodes})
+	countryClient, err := c.geoNameClient.Country(ctx, mapping.FilterToPbGeoNameRequest(filter))
 	if err != nil {
 		return nil, err
 	}
 	return recvAll[pb.GeoNameCountryResponse](countryClient, mapping.PbToGeoNameCountry)
 }
 
-func (c *Client) GeoNameSubdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.AdminSubdivision, error) {
+func (c *Client) GeoNameSubdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameAdminSubdivision, error) {
 	ctx = c.prepareContext(ctx)
-	subdivisionClient, err := c.geoNameClient.Subdivision(ctx, &pb.GeoNameRequest{CountryCodes: filter.CountryCodes})
+	subdivisionClient, err := c.geoNameClient.Subdivision(ctx, mapping.FilterToPbGeoNameRequest(filter))
 	if err != nil {
 		return nil, err
 	}
 	return recvAll[pb.GeoNameSubdivisionResponse](subdivisionClient, mapping.PbToGeoNameSubdivision)
 }
 
-func (c *Client) GeoNameCities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.Geoname, error) {
+func (c *Client) GeoNameCities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error) {
 	ctx = c.prepareContext(ctx)
-	cityClient, err := c.geoNameClient.City(ctx, &pb.GeoNameRequest{CountryCodes: filter.CountryCodes})
+	cityClient, err := c.geoNameClient.City(ctx, mapping.FilterToPbGeoNameRequest(filter))
 	if err != nil {
 		return nil, err
 	}

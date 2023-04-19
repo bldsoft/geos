@@ -65,13 +65,13 @@ func (c *MultiClient) GeoNameCountries(ctx context.Context, filter entity.GeoNam
 		return client.GeoNameCountries(ctx, filter)
 	})
 }
-func (c *MultiClient) GeoNameSubdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.AdminSubdivision, error) {
-	return getManyFromAny(ctx, c.Clients, func(ctx context.Context, client Client) ([]*entity.AdminSubdivision, error) {
+func (c *MultiClient) GeoNameSubdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameAdminSubdivision, error) {
+	return getManyFromAny(ctx, c.Clients, func(ctx context.Context, client Client) ([]*entity.GeoNameAdminSubdivision, error) {
 		return client.GeoNameSubdivisions(ctx, filter)
 	})
 }
-func (c *MultiClient) GeoNameCities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.Geoname, error) {
-	return getManyFromAny(ctx, c.Clients, func(ctx context.Context, client Client) ([]*entity.Geoname, error) {
+func (c *MultiClient) GeoNameCities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error) {
+	return getManyFromAny(ctx, c.Clients, func(ctx context.Context, client Client) ([]*entity.GeoName, error) {
 		return client.GeoNameCities(ctx, filter)
 	})
 }

@@ -21,17 +21,26 @@ var (
 	ErrGeoNameDisabled = errors.New("geoname is disabled")
 )
 
-type geonameEntityStorage[T any] struct {
-	collection []*T
-	index      geoNameIndex
+type geonameIndex[T entity.GeoNameEntity] interface {
+	Init(collection []T)
+	GetFiltered(filter entity.GeoNameFilter) []T
+}
 
-	fillCollectionCallback func(parser geonames.Parser) ([]*T, geoNameIndex, error)
+type geonameEntityStorage[T entity.GeoNameEntity] struct {
+	collection []T
+	index      geonameIndex[T]
+
+	fillCollectionCallback func(parser geonames.Parser) ([]T, error)
 
 	readyC chan struct{}
 }
 
-func newGeonameEntityStorage[T any](dir string, fillCollectionCallback func(parser geonames.Parser) ([]*T, geoNameIndex, error)) *geonameEntityStorage[T] {
-	s := &geonameEntityStorage[T]{readyC: make(chan struct{}), fillCollectionCallback: fillCollectionCallback}
+func newGeonameEntityStorage[T entity.GeoNameEntity](dir string, fillCollectionCallback func(parser geonames.Parser) ([]T, error)) *geonameEntityStorage[T] {
+	s := &geonameEntityStorage[T]{
+		index:                  &index[T]{},
+		readyC:                 make(chan struct{}),
+		fillCollectionCallback: fillCollectionCallback,
+	}
 	go s.init(dir)
 	return s
 }
@@ -67,30 +76,26 @@ func (s *geonameEntityStorage[T]) init(dir string) {
 	defer ticker.Stop()
 	for ; true; <-ticker.C {
 		var err error
-		s.collection, s.index, err = s.fillCollectionCallback(parser)
+		s.collection, err = s.fillCollectionCallback(parser)
 		if err == nil {
+			s.index.Init(s.collection)
 			break
 		}
 		log.Logger.ErrorWithFields(log.Fields{"err": err}, "Failed to load GeoNames dump")
 	}
 }
 
-func (s *geonameEntityStorage[T]) GetEntities(ctx context.Context, filter entity.GeoNameFilter) ([]*T, error) {
+func (s *geonameEntityStorage[T]) GetEntities(ctx context.Context, filter entity.GeoNameFilter) ([]T, error) {
 	select {
 	case <-s.readyC:
 		if len(s.collection) == 0 {
 			return nil, ErrGeoNameDisabled
 		}
-		if len(filter.CountryCodes) == 0 {
-			return s.collection, nil
+		filtered := s.index.GetFiltered(filter)
+		if filter.Limit != 0 && len(filtered) > int(filter.Limit) {
+			return filtered[:filter.Limit], nil
 		}
-
-		res := make([]*T, 0, len(filter.CountryCodes))
-		for _, code := range filter.CountryCodes {
-			idx := s.index.indexRange(code)
-			res = append(res, s.collection[idx.begin:idx.end]...)
-		}
-		return res, nil
+		return filtered, nil
 	default:
 		return nil, ErrGeoNameNotReady
 	}

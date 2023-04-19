@@ -5,6 +5,8 @@ option go_package = "./;proto";
 
 message GeoNameRequest {
     repeated string country_codes = 1;
+    string name_prefix = 2;
+    uint32 limit = 3;
 }
 
 

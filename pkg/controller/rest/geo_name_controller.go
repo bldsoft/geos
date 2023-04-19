@@ -20,8 +20,12 @@ func NewGeoNameController(geoNameService controller.GeoNameService) *GeoNameCont
 
 func (c *GeoNameController) getGeoNameFilter(r *http.Request) entity.GeoNameFilter {
 	codes, _ := gost.GetQueryOptionSlice[string](r, "country-codes")
+	namePrefix, _ := gost.GetQueryOption(r, "name-prefix", "")
+	limit, _ := gost.GetQueryOption(r, "limit", uint32(0))
 	return entity.GeoNameFilter{
 		CountryCodes: codes,
+		NamePrefix:   namePrefix,
+		Limit:        limit,
 	}
 }
 
@@ -40,6 +44,7 @@ func (c *GeoNameController) GetGeoNameContinentsHandler(w http.ResponseWriter, r
 // @Produce json
 // @Tags geonames
 // @Param country-codes query []string false "comma separated list of country codes"
+// @Param name-prefix query string false "name prefix"
 // @Success 200 {object} []entity.GeoNameCountry
 // @Failure 400 {string} string "error"
 // @Failure 500 {string} string "error"
@@ -60,6 +65,7 @@ func (c *GeoNameController) GetGeoNameCountriesHandler(w http.ResponseWriter, r 
 // @Produce json
 // @Tags geonames
 // @Param country-codes query []string false "comma separated list of country codes"
+// @Param name-prefix query string false "name prefix"
 // @Success 200 {object} []entity.AdminSubdivision
 // @Failure 400 {string} string "error"
 // @Failure 500 {string} string "error"
@@ -80,6 +86,7 @@ func (c *GeoNameController) GetGeoNameSubdivisionsHandler(w http.ResponseWriter,
 // @Produce json
 // @Tags geonames
 // @Param country-codes query []string false "comma separated list of country codes"
+// @Param name-prefix query string false "name prefix"
 // @Success 200 {object} []entity.Geoname
 // @Failure 400 {string} string "error"
 // @Failure 500 {string} string "error"
