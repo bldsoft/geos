@@ -21,10 +21,14 @@ var (
 	ErrGeoNameDisabled = errors.New("geoname is disabled")
 )
 
+type geonameIndex[T entity.GeoNameEntity] interface {
+	Init(collection []T)
+	GetFiltered(filter entity.GeoNameFilter) []T
+}
+
 type geonameEntityStorage[T entity.GeoNameEntity] struct {
-	collection       []T
-	countryCodeIndex geoNameIndex
-	nameIndex        nameIndex
+	collection []T
+	index      geonameIndex[T]
 
 	fillCollectionCallback func(parser geonames.Parser) ([]T, error)
 
@@ -32,8 +36,11 @@ type geonameEntityStorage[T entity.GeoNameEntity] struct {
 }
 
 func newGeonameEntityStorage[T entity.GeoNameEntity](dir string, fillCollectionCallback func(parser geonames.Parser) ([]T, error)) *geonameEntityStorage[T] {
-
-	s := &geonameEntityStorage[T]{readyC: make(chan struct{}), fillCollectionCallback: fillCollectionCallback}
+	s := &geonameEntityStorage[T]{
+		index:                  &index[T]{},
+		readyC:                 make(chan struct{}),
+		fillCollectionCallback: fillCollectionCallback,
+	}
 	go s.init(dir)
 	return s
 }
@@ -71,10 +78,7 @@ func (s *geonameEntityStorage[T]) init(dir string) {
 		var err error
 		s.collection, err = s.fillCollectionCallback(parser)
 		if err == nil {
-			for _, item := range s.collection {
-				s.countryCodeIndex.put(item.CountryCode())
-				s.nameIndex.Index(item.Name())
-			}
+			s.index.Init(s.collection)
 			break
 		}
 		log.Logger.ErrorWithFields(log.Fields{"err": err}, "Failed to load GeoNames dump")
@@ -87,37 +91,7 @@ func (s *geonameEntityStorage[T]) GetEntities(ctx context.Context, filter entity
 		if len(s.collection) == 0 {
 			return nil, ErrGeoNameDisabled
 		}
-		if len(filter.CountryCodes) == 0 && len(filter.Search) == 0 {
-			return s.collection, nil
-		}
-
-		var res []T
-
-		if len(filter.Search) == 0 {
-			for _, code := range filter.CountryCodes {
-				idx := s.countryCodeIndex.indexRange(code)
-				res = append(res, s.collection[idx.begin:idx.end]...)
-			}
-			return res, nil
-		}
-
-		indexes := s.nameIndex.GetColectionIndexes(filter.Search)
-		if len(filter.CountryCodes) != 0 {
-			for _, i := range indexes {
-				for _, code := range filter.CountryCodes {
-					idx := s.countryCodeIndex.indexRange(code)
-					if idx.contains(i) {
-						res = append(res, s.collection[i])
-					}
-				}
-			}
-		} else {
-			for _, i := range indexes {
-				res = append(res, s.collection[i])
-			}
-		}
-
-		return res, nil
+		return s.index.GetFiltered(filter), nil
 	default:
 		return nil, ErrGeoNameNotReady
 	}
