@@ -17,8 +17,13 @@ func BenchmarkGeonamesCity(b *testing.B) {
 		Filter entity.GeoNameFilter
 	}{
 		{
-			"search city", entity.GeoNameFilter{
-				Search: "Minsk",
+			"search by name", entity.GeoNameFilter{
+				NamePrefix: "Minsk",
+			},
+		},
+		{
+			"search by name prefix", entity.GeoNameFilter{
+				NamePrefix: "Min",
 			},
 		},
 		{
@@ -27,9 +32,15 @@ func BenchmarkGeonamesCity(b *testing.B) {
 			},
 		},
 		{
-			"search city with country filter", entity.GeoNameFilter{
+			"search by name and country", entity.GeoNameFilter{
 				CountryCodes: []string{"BY"},
-				Search:       "Minsk",
+				NamePrefix:   "Minsk",
+			},
+		},
+		{
+			"search by name prefix and country", entity.GeoNameFilter{
+				CountryCodes: []string{"BY"},
+				NamePrefix:   "Min",
 			},
 		},
 	}

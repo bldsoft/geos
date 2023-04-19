@@ -44,6 +44,7 @@ func geoNamesFilter(ctx *cli.Context) entity.GeoNameFilter {
 	}
 	return entity.GeoNameFilter{
 		CountryCodes: countryCodes,
+		NamePrefix:   ctx.String("name-prefix"),
 	}
 }
 
@@ -132,7 +133,14 @@ func main() {
 					&cli.StringFlag{
 						Name:    "countries",
 						Usage:   "Comma separated list of country codes",
-						Aliases: []string{"cc"}},
+						Aliases: []string{"cc"},
+					},
+					&cli.StringFlag{
+						Name:    "name-prefix",
+						Value:   "",
+						Usage:   "Name prefix",
+						Aliases: []string{"np"},
+					},
 				},
 				Action: func(ctx *cli.Context) error {
 					countries, err := client(ctx).GeoNameCountries(ctx.Context, geoNamesFilter(ctx))
@@ -148,7 +156,14 @@ func main() {
 					&cli.StringFlag{
 						Name:    "countries",
 						Usage:   "Comma separated list of country codes",
-						Aliases: []string{"cc"}},
+						Aliases: []string{"cc"},
+					},
+					&cli.StringFlag{
+						Name:    "name-prefix",
+						Value:   "",
+						Usage:   "Name prefix",
+						Aliases: []string{"np"},
+					},
 				},
 				Action: func(ctx *cli.Context) error {
 					subdivisions, err := client(ctx).GeoNameSubdivisions(ctx.Context, geoNamesFilter(ctx))
@@ -165,7 +180,14 @@ func main() {
 						Name:    "countries",
 						Value:   "",
 						Usage:   "Comma separated list of country codes",
-						Aliases: []string{"cc"}},
+						Aliases: []string{"cc"},
+					},
+					&cli.StringFlag{
+						Name:    "name-prefix",
+						Value:   "",
+						Usage:   "Name prefix",
+						Aliases: []string{"np"},
+					},
 				},
 				Action: func(ctx *cli.Context) error {
 

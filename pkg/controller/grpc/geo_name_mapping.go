@@ -75,7 +75,7 @@ func PbToGeoNameContinent(c *pb.GeoNameContinentResponse) *entity.GeoNameContine
 
 func PbToGeoNameCountry(c *pb.GeoNameCountryResponse) *entity.GeoNameCountry {
 	return &entity.GeoNameCountry{
-		&models.Country{
+		Country: &models.Country{
 			Iso2Code:           c.IsoCode,
 			Iso3Code:           c.Iso3Code,
 			IsoNumeric:         c.IsoNumeric,
@@ -101,7 +101,7 @@ func PbToGeoNameCountry(c *pb.GeoNameCountryResponse) *entity.GeoNameCountry {
 
 func PbToGeoNameSubdivision(s *pb.GeoNameSubdivisionResponse) *entity.GeoNameAdminSubdivision {
 	return &entity.GeoNameAdminSubdivision{
-		&models.AdminDivision{
+		AdminDivision: &models.AdminDivision{
 			Code:      s.Code,
 			Name:      s.Name,
 			AsciiName: s.AsciiName,
@@ -112,7 +112,7 @@ func PbToGeoNameSubdivision(s *pb.GeoNameSubdivisionResponse) *entity.GeoNameAdm
 
 func PbToGeoNameCity(c *pb.GeoNameCityResponse) *entity.GeoName {
 	return &entity.GeoName{
-		&models.Geoname{
+		Geoname: &models.Geoname{
 			Id:                    int(c.GeoNameId),
 			Name:                  c.Name,
 			AsciiName:             c.AsciiName,
@@ -137,13 +137,13 @@ func PbToGeoNameCity(c *pb.GeoNameCityResponse) *entity.GeoName {
 func PbGeoNameRequestToFilter(r *pb.GeoNameRequest) entity.GeoNameFilter {
 	return entity.GeoNameFilter{
 		CountryCodes: r.CountryCodes,
-		Search:       r.Search,
+		NamePrefix:   r.NamePrefix,
 	}
 }
 
 func FilterToPbGeoNameRequest(f entity.GeoNameFilter) *pb.GeoNameRequest {
 	return &pb.GeoNameRequest{
 		CountryCodes: f.CountryCodes,
-		Search:       f.Search,
+		NamePrefix:   f.NamePrefix,
 	}
 }

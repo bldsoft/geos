@@ -29,7 +29,7 @@ func (idx *index[T]) Init(collection []T) {
 	idx.countryCodeToRange = make(map[string]*indexRange)
 
 	for i, item := range collection {
-		// search by prefix
+		// search by name prefix
 		idx.trie.Add(item.Name(), i)
 
 		// filter by country code
@@ -46,10 +46,10 @@ func (idx *index[T]) Init(collection []T) {
 
 func (idx *index[T]) GetFiltered(filter entity.GeoNameFilter) (res []T) {
 	switch {
-	case len(filter.CountryCodes) == 0 && len(filter.Search) == 0:
+	case len(filter.CountryCodes) == 0 && len(filter.NamePrefix) == 0:
 		return idx.collection
-	case len(filter.CountryCodes) > 0 && len(filter.Search) > 0:
-		for _, index := range idx.indexesByNamePrefix(filter.Search) {
+	case len(filter.CountryCodes) > 0 && len(filter.NamePrefix) > 0:
+		for _, index := range idx.indexesByNamePrefix(filter.NamePrefix) {
 			for _, rng := range idx.rangesByCountryCodes(filter.CountryCodes...) {
 				if rng.contains(index) {
 					res = append(res, idx.collection[index])
@@ -62,7 +62,7 @@ func (idx *index[T]) GetFiltered(filter entity.GeoNameFilter) (res []T) {
 			res = append(res, idx.collection[rng.begin:rng.end]...)
 		}
 	default:
-		for _, index := range idx.indexesByNamePrefix(filter.Search) {
+		for _, index := range idx.indexesByNamePrefix(filter.NamePrefix) {
 			res = append(res, idx.collection[index])
 		}
 	}
