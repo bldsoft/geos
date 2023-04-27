@@ -9,15 +9,16 @@
 |GEOIP_DB_PATH|../../db.mmdb|Path to GeoLite2 or GeoIP2 databases|
 |CONSUL_ADDRESS||Address of the Consul server|
 |CONSUL_SCHEME|http|URI scheme for the Consul server|
+|CONSUL_TOKEN|| Token is used to provide a per-request ACL token|
 |CONSUL_GRPC_SERVICE_ID||The ID of the service. If empty, a random one will be generated|
 |CONSUL_GRPC_CLUSTER|grpc_geos|The name of the service to register|
-|CONSUL_GRPC_SERVICE_ADDRESS||The address of the service|
+|CONSUL_GRPC_SERVICE_ADDRESS||The address of the service. If it's empty the service doesn't register in consul|
 |CONSUL_GRPC_SERVICE_PORT|0|The port of the service|
 |CONSUL_GRPC_HEALTH_CHECK_TTL|30s|Check TTL|
 |CONSUL_GRPC_DEREREGISTER_TTL|30s|If a check is in the critical state for more than this configured value,	then the service will automatically be deregistered|
 |CONSUL_REST_SERVICE_ID||The ID of the service. If empty, a random one will be generated|
 |CONSUL_REST_CLUSTER|rest_geos|The name of the service to register|
-|CONSUL_REST_SERVICE_ADDRESS||The address of the service|
+|CONSUL_REST_SERVICE_ADDRESS||The address of the service. If it's empty the service doesn't register in consul|
 |CONSUL_REST_SERVICE_PORT|0|The port of the service|
 |CONSUL_REST_HEALTH_CHECK_TTL|30s|Check TTL|
 |CONSUL_REST_DEREREGISTER_TTL|30s|If a check is in the critical state for more than this configured value,	then the service will automatically be deregistered|
