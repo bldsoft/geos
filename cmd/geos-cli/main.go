@@ -42,10 +42,16 @@ func geoNamesFilter(ctx *cli.Context) entity.GeoNameFilter {
 	if codes := ctx.String("countries"); codes != "" {
 		countryCodes = strings.Split(codes, ",")
 	}
+	inGeoNamesIDs := ctx.Uint64Slice("geoname-ids")
+	outGeoNamesIDs := make([]uint32, 0, len(inGeoNamesIDs))
+	for _, id := range inGeoNamesIDs {
+		outGeoNamesIDs = append(outGeoNamesIDs, uint32(id))
+	}
 	return entity.GeoNameFilter{
 		CountryCodes: countryCodes,
 		NamePrefix:   ctx.String("name-prefix"),
 		Limit:        uint32(ctx.Int64("limit")),
+		GeoNameIDs:   outGeoNamesIDs,
 	}
 }
 
@@ -66,6 +72,30 @@ func commonFlags() []cli.Flag {
 			Value:       uint(defaults.GrpcPort),
 			Destination: &port,
 			Aliases:     []string{"p"},
+		},
+	}
+}
+
+func commonGeoNamesFlags() []cli.Flag {
+	return []cli.Flag{
+		&cli.StringFlag{
+			Name:    "countries",
+			Usage:   "Comma separated list of country codes",
+			Aliases: []string{"cc"},
+		},
+		&cli.StringFlag{
+			Name:    "name-prefix",
+			Value:   "",
+			Usage:   "Name prefix",
+			Aliases: []string{"np"},
+		},
+		&cli.Int64Flag{
+			Name:    "limit",
+			Aliases: []string{"l"},
+		},
+		&cli.Uint64SliceFlag{
+			Name:    "geoname-ids",
+			Aliases: []string{"gid"},
 		},
 	}
 }
@@ -129,24 +159,8 @@ func main() {
 				},
 			},
 			{
-				Name: "geoname-country",
-				Flags: []cli.Flag{
-					&cli.StringFlag{
-						Name:    "countries",
-						Usage:   "Comma separated list of country codes",
-						Aliases: []string{"cc"},
-					},
-					&cli.StringFlag{
-						Name:    "name-prefix",
-						Value:   "",
-						Usage:   "Name prefix",
-						Aliases: []string{"np"},
-					},
-					&cli.Int64Flag{
-						Name:    "limit",
-						Aliases: []string{"l"},
-					},
-				},
+				Name:  "geoname-country",
+				Flags: commonGeoNamesFlags(),
 				Action: func(ctx *cli.Context) error {
 					countries, err := client(ctx).GeoNameCountries(ctx.Context, geoNamesFilter(ctx))
 					if err != nil {
@@ -156,24 +170,8 @@ func main() {
 				},
 			},
 			{
-				Name: "geoname-subdivision",
-				Flags: []cli.Flag{
-					&cli.StringFlag{
-						Name:    "countries",
-						Usage:   "Comma separated list of country codes",
-						Aliases: []string{"cc"},
-					},
-					&cli.StringFlag{
-						Name:    "name-prefix",
-						Value:   "",
-						Usage:   "Name prefix",
-						Aliases: []string{"np"},
-					},
-					&cli.Int64Flag{
-						Name:    "limit",
-						Aliases: []string{"l"},
-					},
-				},
+				Name:  "geoname-subdivision",
+				Flags: commonGeoNamesFlags(),
 				Action: func(ctx *cli.Context) error {
 					subdivisions, err := client(ctx).GeoNameSubdivisions(ctx.Context, geoNamesFilter(ctx))
 					if err != nil {
@@ -183,25 +181,8 @@ func main() {
 				},
 			},
 			{
-				Name: "geoname-city",
-				Flags: []cli.Flag{
-					&cli.StringFlag{
-						Name:    "countries",
-						Value:   "",
-						Usage:   "Comma separated list of country codes",
-						Aliases: []string{"cc"},
-					},
-					&cli.StringFlag{
-						Name:    "name-prefix",
-						Value:   "",
-						Usage:   "Name prefix",
-						Aliases: []string{"np"},
-					},
-					&cli.Int64Flag{
-						Name:    "limit",
-						Aliases: []string{"l"},
-					},
-				},
+				Name:  "geoname-city",
+				Flags: commonGeoNamesFlags(),
 				Action: func(ctx *cli.Context) error {
 
 					cities, err := client(ctx).GeoNameCities(ctx.Context, geoNamesFilter(ctx))

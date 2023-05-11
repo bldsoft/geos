@@ -181,6 +181,21 @@ const docTemplate = `{
                         "description": "comma separated list of country codes",
                         "name": "country-codes",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "name prefix",
+                        "name": "name-prefix",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "description": "comma separated list of GeoNames ids",
+                        "name": "geoname-ids",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -189,7 +204,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/entity.Geoname"
+                                "$ref": "#/definitions/entity.GeoName"
                             }
                         }
                     },
@@ -223,7 +238,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/entity.GeoNameContinent"
+                                "$ref": "#/definitions/entity.geoNameContinentJson"
                             }
                         }
                     }
@@ -247,6 +262,21 @@ const docTemplate = `{
                         },
                         "description": "comma separated list of country codes",
                         "name": "country-codes",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "name prefix",
+                        "name": "name-prefix",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "description": "comma separated list of GeoNames ids",
+                        "name": "geoname-ids",
                         "in": "query"
                     }
                 ],
@@ -293,6 +323,21 @@ const docTemplate = `{
                         "description": "comma separated list of country codes",
                         "name": "country-codes",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "name prefix",
+                        "name": "name-prefix",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "description": "comma separated list of GeoNames ids",
+                        "name": "geoname-ids",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -301,7 +346,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/entity.AdminSubdivision"
+                                "$ref": "#/definitions/entity.GeoNameAdminSubdivision"
                             }
                         }
                     },
@@ -370,23 +415,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "version": {
-                    "type": "string"
-                }
-            }
-        },
-        "entity.AdminSubdivision": {
-            "type": "object",
-            "properties": {
-                "asciiName": {
-                    "type": "string"
-                },
-                "code": {
-                    "type": "string"
-                },
-                "geoNameID": {
-                    "type": "integer"
-                },
-                "name": {
                     "type": "string"
                 }
             }
@@ -672,13 +700,78 @@ const docTemplate = `{
                 }
             }
         },
-        "entity.GeoNameContinent": {
+        "entity.GeoName": {
             "type": "object",
             "properties": {
+                "admin1Code": {
+                    "type": "string"
+                },
+                "admin2Code": {
+                    "type": "string"
+                },
+                "admin3Code": {
+                    "type": "string"
+                },
+                "admin4Code": {
+                    "type": "string"
+                },
+                "alternateCountryCodes": {
+                    "type": "string"
+                },
+                "alternateNames": {
+                    "type": "string"
+                },
+                "asciiName": {
+                    "type": "string"
+                },
+                "class": {
+                    "type": "string"
+                },
                 "code": {
                     "type": "string"
                 },
-                "geoNameID": {
+                "countryCode": {
+                    "type": "string"
+                },
+                "digitalElevationModel": {
+                    "type": "integer"
+                },
+                "elevation": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "modificationDate": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "population": {
+                    "type": "integer"
+                },
+                "timezone": {
+                    "type": "string"
+                }
+            }
+        },
+        "entity.GeoNameAdminSubdivision": {
+            "type": "object",
+            "properties": {
+                "asciiName": {
+                    "type": "string"
+                },
+                "code": {
+                    "type": "string"
+                },
+                "geonameId": {
                     "type": "integer"
                 },
                 "name": {
@@ -710,7 +803,7 @@ const docTemplate = `{
                 "fips": {
                     "type": "string"
                 },
-                "geoNameID": {
+                "geonameID": {
                     "type": "integer"
                 },
                 "iso2Code": {
@@ -748,65 +841,6 @@ const docTemplate = `{
                 }
             }
         },
-        "entity.Geoname": {
-            "type": "object",
-            "properties": {
-                "admin1Code": {
-                    "type": "string"
-                },
-                "admin2Code": {
-                    "type": "string"
-                },
-                "admin3Code": {
-                    "type": "string"
-                },
-                "admin4Code": {
-                    "type": "string"
-                },
-                "alternateCountryCodes": {
-                    "type": "string"
-                },
-                "alternateNames": {
-                    "type": "string"
-                },
-                "asciiName": {
-                    "type": "string"
-                },
-                "class": {
-                    "type": "string"
-                },
-                "code": {
-                    "type": "string"
-                },
-                "countryCode": {
-                    "type": "string"
-                },
-                "dem": {
-                    "type": "integer"
-                },
-                "elevation": {
-                    "type": "integer"
-                },
-                "geoNameID": {
-                    "type": "integer"
-                },
-                "latitude": {
-                    "type": "number"
-                },
-                "longitude": {
-                    "type": "number"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "population": {
-                    "type": "integer"
-                },
-                "timezone": {
-                    "type": "string"
-                }
-            }
-        },
         "entity.LocationLite": {
             "type": "object",
             "properties": {
@@ -817,6 +851,20 @@ const docTemplate = `{
                     "type": "number"
                 },
                 "timeZone": {
+                    "type": "string"
+                }
+            }
+        },
+        "entity.geoNameContinentJson": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "geoNameID": {
+                    "type": "integer"
+                },
+                "name": {
                     "type": "string"
                 }
             }

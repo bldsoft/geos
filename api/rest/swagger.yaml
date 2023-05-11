@@ -9,17 +9,6 @@ definitions:
       version:
         type: string
     type: object
-  entity.AdminSubdivision:
-    properties:
-      asciiName:
-        type: string
-      code:
-        type: string
-      geoNameID:
-        type: integer
-      name:
-        type: string
-    type: object
   entity.City:
     properties:
       city:
@@ -201,11 +190,54 @@ definitions:
             type: boolean
         type: object
     type: object
-  entity.GeoNameContinent:
+  entity.GeoName:
     properties:
+      admin1Code:
+        type: string
+      admin2Code:
+        type: string
+      admin3Code:
+        type: string
+      admin4Code:
+        type: string
+      alternateCountryCodes:
+        type: string
+      alternateNames:
+        type: string
+      asciiName:
+        type: string
+      class:
+        type: string
       code:
         type: string
-      geoNameID:
+      countryCode:
+        type: string
+      digitalElevationModel:
+        type: integer
+      elevation:
+        type: integer
+      id:
+        type: integer
+      latitude:
+        type: number
+      longitude:
+        type: number
+      modificationDate:
+        type: string
+      name:
+        type: string
+      population:
+        type: integer
+      timezone:
+        type: string
+    type: object
+  entity.GeoNameAdminSubdivision:
+    properties:
+      asciiName:
+        type: string
+      code:
+        type: string
+      geonameId:
         type: integer
       name:
         type: string
@@ -226,7 +258,7 @@ definitions:
         type: string
       fips:
         type: string
-      geoNameID:
+      geonameID:
         type: integer
       iso2Code:
         type: string
@@ -251,45 +283,6 @@ definitions:
       tld:
         type: string
     type: object
-  entity.Geoname:
-    properties:
-      admin1Code:
-        type: string
-      admin2Code:
-        type: string
-      admin3Code:
-        type: string
-      admin4Code:
-        type: string
-      alternateCountryCodes:
-        type: string
-      alternateNames:
-        type: string
-      asciiName:
-        type: string
-      class:
-        type: string
-      code:
-        type: string
-      countryCode:
-        type: string
-      dem:
-        type: integer
-      elevation:
-        type: integer
-      geoNameID:
-        type: integer
-      latitude:
-        type: number
-      longitude:
-        type: number
-      name:
-        type: string
-      population:
-        type: integer
-      timezone:
-        type: string
-    type: object
   entity.LocationLite:
     properties:
       latitude:
@@ -297,6 +290,15 @@ definitions:
       longitude:
         type: number
       timeZone:
+        type: string
+    type: object
+  entity.geoNameContinentJson:
+    properties:
+      code:
+        type: string
+      geoNameID:
+        type: integer
+      name:
         type: string
     type: object
 info:
@@ -408,6 +410,16 @@ paths:
           type: string
         name: country-codes
         type: array
+      - description: name prefix
+        in: query
+        name: name-prefix
+        type: string
+      - description: comma separated list of GeoNames ids
+        in: query
+        items:
+          type: integer
+        name: geoname-ids
+        type: array
       produces:
       - application/json
       responses:
@@ -415,7 +427,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/entity.Geoname'
+              $ref: '#/definitions/entity.GeoName'
             type: array
         "400":
           description: error
@@ -437,7 +449,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/entity.GeoNameContinent'
+              $ref: '#/definitions/entity.geoNameContinentJson'
             type: array
       summary: continent
       tags:
@@ -450,6 +462,16 @@ paths:
         items:
           type: string
         name: country-codes
+        type: array
+      - description: name prefix
+        in: query
+        name: name-prefix
+        type: string
+      - description: comma separated list of GeoNames ids
+        in: query
+        items:
+          type: integer
+        name: geoname-ids
         type: array
       produces:
       - application/json
@@ -480,6 +502,16 @@ paths:
           type: string
         name: country-codes
         type: array
+      - description: name prefix
+        in: query
+        name: name-prefix
+        type: string
+      - description: comma separated list of GeoNames ids
+        in: query
+        items:
+          type: integer
+        name: geoname-ids
+        type: array
       produces:
       - application/json
       responses:
@@ -487,7 +519,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/entity.AdminSubdivision'
+              $ref: '#/definitions/entity.GeoNameAdminSubdivision'
             type: array
         "400":
           description: error
