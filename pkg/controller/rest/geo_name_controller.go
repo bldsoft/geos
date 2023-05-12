@@ -21,10 +21,12 @@ func NewGeoNameController(geoNameService controller.GeoNameService) *GeoNameCont
 func (c *GeoNameController) getGeoNameFilter(r *http.Request) entity.GeoNameFilter {
 	codes, _ := gost.GetQueryOptionSlice[string](r, "country-codes")
 	namePrefix, _ := gost.GetQueryOption(r, "name-prefix", "")
+	geoNameIDs, _ := gost.GetQueryOptionSlice[uint32](r, "geoname-ids")
 	limit, _ := gost.GetQueryOption(r, "limit", uint32(0))
 	return entity.GeoNameFilter{
 		CountryCodes: codes,
 		NamePrefix:   namePrefix,
+		GeoNameIDs:   geoNameIDs,
 		Limit:        limit,
 	}
 }
@@ -32,7 +34,7 @@ func (c *GeoNameController) getGeoNameFilter(r *http.Request) entity.GeoNameFilt
 // @Summary continent
 // @Produce json
 // @Tags geonames
-// @Success 200 {object} []entity.GeoNameContinent
+// @Success 200 {object} []entity.geoNameContinentJson
 // @Router /geoname/continent [get]
 func (c *GeoNameController) GetGeoNameContinentsHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -45,6 +47,7 @@ func (c *GeoNameController) GetGeoNameContinentsHandler(w http.ResponseWriter, r
 // @Tags geonames
 // @Param country-codes query []string false "comma separated list of country codes"
 // @Param name-prefix query string false "name prefix"
+// @Param geoname-ids query []integer false "comma separated list of GeoNames ids"
 // @Success 200 {object} []entity.GeoNameCountry
 // @Failure 400 {string} string "error"
 // @Failure 500 {string} string "error"
@@ -66,7 +69,8 @@ func (c *GeoNameController) GetGeoNameCountriesHandler(w http.ResponseWriter, r 
 // @Tags geonames
 // @Param country-codes query []string false "comma separated list of country codes"
 // @Param name-prefix query string false "name prefix"
-// @Success 200 {object} []entity.AdminSubdivision
+// @Param geoname-ids query []integer false "comma separated list of GeoNames ids"
+// @Success 200 {object} []entity.GeoNameAdminSubdivision
 // @Failure 400 {string} string "error"
 // @Failure 500 {string} string "error"
 // @Router /geoname/subdivision [get]
@@ -87,7 +91,8 @@ func (c *GeoNameController) GetGeoNameSubdivisionsHandler(w http.ResponseWriter,
 // @Tags geonames
 // @Param country-codes query []string false "comma separated list of country codes"
 // @Param name-prefix query string false "name prefix"
-// @Success 200 {object} []entity.Geoname
+// @Param geoname-ids query []integer false "comma separated list of GeoNames ids"
+// @Success 200 {object} []entity.GeoName
 // @Failure 400 {string} string "error"
 // @Failure 500 {string} string "error"
 // @Router /geoname/city [get]

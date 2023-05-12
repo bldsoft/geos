@@ -20,8 +20,9 @@ func (r *indexRange) contains(i int) bool {
 type index[T entity.GeoNameEntity] struct {
 	collection []T
 
-	trie               *trie.Trie
-	countryCodeToRange map[string]*indexRange
+	geoNameIDToCollectionIndex map[uint32]int
+	trie                       *trie.Trie
+	countryCodeToRange         map[string]*indexRange
 }
 
 func (idx *index[T]) Init(collection []T) {
@@ -30,10 +31,14 @@ func (idx *index[T]) Init(collection []T) {
 	idx.trie = trie.New()
 
 	idx.countryCodeToRange = make(map[string]*indexRange)
+	idx.geoNameIDToCollectionIndex = make(map[uint32]int)
 
 	for i, item := range collection {
 		// search by name prefix
 		idx.trie.Add(strings.ToLower(item.Name()), i)
+
+		// search by geoNameID
+		idx.geoNameIDToCollectionIndex[uint32(item.GeoNameID())] = i
 
 		// filter by country code
 		// expected collection sorted by country code
@@ -49,6 +54,14 @@ func (idx *index[T]) Init(collection []T) {
 
 func (idx *index[T]) GetFiltered(filter entity.GeoNameFilter) (res []T) {
 	switch {
+	case len(filter.GeoNameIDs) > 0:
+		collection := make([]T, 0, len(filter.GeoNameIDs))
+		for _, geoNameID := range filter.GeoNameIDs {
+			if i, ok := idx.geoNameIDToCollectionIndex[geoNameID]; ok {
+				collection = append(collection, idx.collection[i])
+			}
+		}
+		return collection
 	case len(filter.CountryCodes) == 0 && len(filter.NamePrefix) == 0:
 		return idx.collection
 	case len(filter.CountryCodes) > 0 && len(filter.NamePrefix) > 0:

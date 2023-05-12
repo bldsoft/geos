@@ -138,6 +138,7 @@ func PbGeoNameRequestToFilter(r *pb.GeoNameRequest) entity.GeoNameFilter {
 	return entity.GeoNameFilter{
 		CountryCodes: r.CountryCodes,
 		NamePrefix:   r.NamePrefix,
+		GeoNameIDs:   r.GeoNameIds,
 		Limit:        r.Limit,
 	}
 }
@@ -146,6 +147,7 @@ func FilterToPbGeoNameRequest(f entity.GeoNameFilter) *pb.GeoNameRequest {
 	return &pb.GeoNameRequest{
 		CountryCodes: f.CountryCodes,
 		NamePrefix:   f.NamePrefix,
+		GeoNameIds:   f.GeoNameIDs,
 		Limit:        f.Limit,
 	}
 }
