@@ -7,6 +7,7 @@ import (
 	"github.com/bldsoft/geos/pkg/entity"
 	gost "github.com/bldsoft/gost/controller"
 	"github.com/bldsoft/gost/log"
+	"github.com/bldsoft/gost/utils"
 )
 
 type GeoNameController struct {
@@ -19,16 +20,7 @@ func NewGeoNameController(geoNameService controller.GeoNameService) *GeoNameCont
 }
 
 func (c *GeoNameController) getGeoNameFilter(r *http.Request) entity.GeoNameFilter {
-	codes, _ := gost.GetQueryOptionSlice[string](r, "country-codes")
-	namePrefix, _ := gost.GetQueryOption(r, "name-prefix", "")
-	geoNameIDs, _ := gost.GetQueryOptionSlice[uint32](r, "geoname-ids")
-	limit, _ := gost.GetQueryOption(r, "limit", uint32(0))
-	return entity.GeoNameFilter{
-		CountryCodes: codes,
-		NamePrefix:   namePrefix,
-		GeoNameIDs:   geoNameIDs,
-		Limit:        limit,
-	}
+	return *utils.FromRequest[entity.GeoNameFilter](r)
 }
 
 // @Summary continent
