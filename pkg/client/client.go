@@ -1,24 +1,55 @@
 package client
 
 import (
+	"context"
 	"errors"
+	"time"
 
 	grpc_client "github.com/bldsoft/geos/pkg/client/grpc"
 	rest_client "github.com/bldsoft/geos/pkg/client/rest"
 )
 
-func NewClient(addr string) (Client, error) {
+func newClient(addr string) (Client, error) {
+	grpcClient := func(addr string) (Client, error) {
+		return grpc_client.NewClient(addr)
+	}
+	restClient := func(addr string) (Client, error) {
+		return rest_client.NewClient(addr)
+	}
+
 	var multiErr error
-	grpcClient, err := grpc_client.NewClient(addr)
-	if err == nil {
-		return grpcClient, nil
+	for _, getClient := range []func(addr string) (Client, error){
+		grpcClient,
+		restClient,
+	} {
+		client, err := getClient(addr)
+		if err == nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			_, err = client.CityLite(ctx, "8.8.8.8", "")
+			if err == nil {
+				return client, nil
+			}
+		}
+		multiErr = errors.Join(multiErr, err)
 	}
-	multiErr = errors.Join(multiErr, err)
+	return nil, multiErr
+}
 
-	restClient, err := rest_client.NewClient(addr)
-	if err == nil {
-		return restClient, nil
+func NewClient(addrs ...string) (Client, error) {
+	res := &MultiClient{}
+	var multiErr error
+
+	for _, addr := range addrs {
+		if client, err := newClient(addr); err == nil {
+			res.Clients = append(res.Clients, client)
+		} else {
+			multiErr = errors.Join(multiErr, err)
+		}
 	}
 
-	return nil, errors.Join(multiErr, err)
+	if len(res.Clients) == 0 {
+		return nil, multiErr
+	}
+	return res, nil
 }
