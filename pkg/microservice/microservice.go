@@ -69,6 +69,7 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 		r.Get("/country/{addr}", geoIpController.GetCountryHandler)
 		r.Get("/city/{addr}", geoIpController.GetCityHandler)
 		r.Get("/city-lite/{addr}", geoIpController.GetCityLiteHandler)
+		r.Get("/dump", geoIpController.GetDumpHandler)
 
 		geoNameController := rest.NewGeoNameController(m.geoNameService)
 		r.Route("/geoname", func(r chi.Router) {

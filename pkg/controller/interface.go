@@ -4,12 +4,14 @@ import (
 	"context"
 
 	"github.com/bldsoft/geos/pkg/entity"
+	"github.com/bldsoft/geos/pkg/service"
 )
 
 type GeoIpService interface {
 	Country(ctx context.Context, address string) (*entity.Country, error)
 	City(ctx context.Context, address string) (*entity.City, error)
 	CityLite(ctx context.Context, address string, lang string) (*entity.CityLite, error)
+	Dump(ctx context.Context, format service.DumpFormat) ([]byte, error)
 }
 
 type GeoNameService interface {

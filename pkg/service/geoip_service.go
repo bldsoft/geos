@@ -6,12 +6,16 @@ import (
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/microservice/middleware"
+	"github.com/bldsoft/geos/pkg/repository"
 )
+
+type DumpFormat = repository.DumpFormat
 
 type GeoRepository interface {
 	Country(ctx context.Context, ip net.IP) (*entity.Country, error)
 	City(ctx context.Context, ip net.IP) (*entity.City, error)
 	CityLite(ctx context.Context, ip net.IP, lang string) (*entity.CityLite, error)
+	Dump(ctx context.Context, format repository.DumpFormat) ([]byte, error)
 }
 
 type GeoIpService struct {
@@ -69,4 +73,8 @@ func (s *GeoIpService) CityLite(ctx context.Context, address string, lang string
 	}
 
 	return s.rep.CityLite(ctx, ip, lang)
+}
+
+func (r *GeoIpService) Dump(ctx context.Context, format DumpFormat) ([]byte, error) {
+	return r.rep.Dump(ctx, format)
 }

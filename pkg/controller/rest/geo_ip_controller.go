@@ -5,6 +5,7 @@ import (
 
 	"github.com/bldsoft/geos/pkg/controller"
 	_ "github.com/bldsoft/geos/pkg/entity"
+	"github.com/bldsoft/geos/pkg/service"
 	gost "github.com/bldsoft/gost/controller"
 	"github.com/bldsoft/gost/log"
 	"github.com/go-chi/chi/v5"
@@ -79,4 +80,25 @@ func (c *GeoIpController) GetCityLiteHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	c.ResponseJson(w, r, city)
+}
+
+// @Summary database dump
+// @Produce csv
+// @Tags geo IP
+// @Param addr path string false "format"
+// @Success 200 {object} sring
+// @Failure 400 {string} string "error"
+// @Failure 500 {string} string "error"
+// @Router /dump [get]
+func (c *GeoIpController) GetDumpHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	format, _ := gost.GetQueryOption[string](r, "format")
+	dump, err := c.geoIpService.Dump(ctx, service.DumpFormat(format))
+	if err != nil {
+		log.FromContext(ctx).Error(err.Error())
+		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(dump)
 }
