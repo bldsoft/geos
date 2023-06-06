@@ -19,4 +19,5 @@ type GeoNameService interface {
 	Countries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error)
 	Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameAdminSubdivision, error)
 	Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error)
+	Dump(ctx context.Context, format service.DumpFormat) ([]byte, error)
 }

@@ -77,6 +77,7 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 			r.Get("/country", geoNameController.GetGeoNameCountriesHandler)
 			r.Get("/subdivision", geoNameController.GetGeoNameSubdivisionsHandler)
 			r.Get("/city", geoNameController.GetGeoNameCitiesHandler)
+			r.Get("/dump", geoNameController.GetDumpHandler)
 		})
 	})
 }
