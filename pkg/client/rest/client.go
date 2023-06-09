@@ -35,6 +35,10 @@ func NewWithClient(addr string, client *http.Client) (*Client, error) {
 	}, nil
 }
 
+func (c *Client) Origin() string {
+	return strings.TrimSuffix(c.client.BaseURL, microservice.BaseApiPath)
+}
+
 func get[T any](ctx context.Context, client *resty.Client, path string, query url.Values) (*T, error) {
 	request := client.R().SetContext(ctx)
 	if query != nil {
