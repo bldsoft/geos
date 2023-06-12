@@ -9,7 +9,44 @@ import (
 	rest_client "github.com/bldsoft/geos/pkg/client/rest"
 )
 
-func newClient(addr string) (Client, error) {
+type Opt func(Client)
+
+func WithApiKey(apiKey string) Opt {
+	return func(c Client) {
+		restClient, ok := c.(*rest_client.Client)
+		if ok {
+			restClient.SetApiKey(apiKey)
+		}
+	}
+}
+
+func NewClientWithOpt(addrs []string, opts ...Opt) (Client, error) {
+	res := &MultiClient{}
+	var multiErr error
+
+	for _, addr := range addrs {
+		if client, err := newClient(addr, ""); err == nil {
+			for _, opt := range opts {
+				opt(client)
+			}
+			res.Clients = append(res.Clients, client)
+		} else {
+			multiErr = errors.Join(multiErr, err)
+		}
+	}
+
+	if len(res.Clients) == 0 {
+		return nil, multiErr
+	}
+	return res, nil
+
+}
+
+func NewClient(addrs ...string) (Client, error) {
+	return NewClientWithOpt(addrs)
+}
+
+func newClient(addr string, apiKey string) (Client, error) {
 	grpcClient := func(addr string) (Client, error) {
 		return grpc_client.NewClient(addr)
 	}
@@ -34,22 +71,4 @@ func newClient(addr string) (Client, error) {
 		multiErr = errors.Join(multiErr, err)
 	}
 	return nil, multiErr
-}
-
-func NewClient(addrs ...string) (Client, error) {
-	res := &MultiClient{}
-	var multiErr error
-
-	for _, addr := range addrs {
-		if client, err := newClient(addr); err == nil {
-			res.Clients = append(res.Clients, client)
-		} else {
-			multiErr = errors.Join(multiErr, err)
-		}
-	}
-
-	if len(res.Clients) == 0 {
-		return nil, multiErr
-	}
-	return res, nil
 }

@@ -1,12 +1,15 @@
 package microservice
 
 import (
+	"net/http"
+
 	"github.com/bldsoft/geos/pkg/config"
 	"github.com/bldsoft/geos/pkg/controller"
 	"github.com/bldsoft/geos/pkg/controller/rest"
 	"github.com/bldsoft/geos/pkg/repository"
 	"github.com/bldsoft/geos/pkg/service"
 	"github.com/bldsoft/geos/pkg/storage"
+	"github.com/bldsoft/gost/auth"
 	"github.com/bldsoft/gost/consul"
 	gost "github.com/bldsoft/gost/controller"
 	"github.com/bldsoft/gost/log"
@@ -14,7 +17,11 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-const BaseApiPath = "/geoip"
+const (
+	BaseApiPath      = "/geoip"
+	APIKey           = "GEOS-API-Key"
+	ConsulAPIMetaKey = "api-key"
+)
 
 type Microservice struct {
 	config *config.Config
@@ -56,6 +63,7 @@ func (m *Microservice) initServices() {
 	if m.config.ConsulEnabled() {
 		discovery := consul.NewDiscovery(m.config.RestConsulConfig())
 		m.asyncRunners = append(m.asyncRunners, discovery)
+		discovery.SetMetadata(ConsulAPIMetaKey, m.config.ApiKey)
 	}
 }
 
@@ -69,7 +77,7 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 		r.Get("/country/{addr}", geoIpController.GetCountryHandler)
 		r.Get("/city/{addr}", geoIpController.GetCityHandler)
 		r.Get("/city-lite/{addr}", geoIpController.GetCityLiteHandler)
-		r.Get("/dump", geoIpController.GetDumpHandler)
+		r.With(m.ApiKeyMiddleware()).Get("/dump", geoIpController.GetDumpHandler)
 
 		geoNameController := rest.NewGeoNameController(m.geoNameService)
 		r.Route("/geoname", func(r chi.Router) {
@@ -77,9 +85,13 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 			r.Get("/country", geoNameController.GetGeoNameCountriesHandler)
 			r.Get("/subdivision", geoNameController.GetGeoNameSubdivisionsHandler)
 			r.Get("/city", geoNameController.GetGeoNameCitiesHandler)
-			r.Get("/dump", geoNameController.GetDumpHandler)
+			r.With(m.ApiKeyMiddleware()).Get("/dump", geoNameController.GetDumpHandler)
 		})
 	})
+}
+
+func (m *Microservice) ApiKeyMiddleware() func(next http.Handler) http.Handler {
+	return auth.ApiKeyMiddleware(APIKey, m.config.ApiKey)
 }
 
 func (m *Microservice) GetAsyncRunners() []server.AsyncRunner {
