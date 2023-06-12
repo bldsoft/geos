@@ -25,8 +25,9 @@ type Config struct {
 	GrpcConsul consul.ServiceConfig `mapstructure:"CONSUL_GRPC"`
 	RestConsul consul.ServiceConfig `mapstructure:"CONSUL_REST"`
 
-	GeoNameDumpDirPath string `mapstructure:"GEONAME_DUMP_DIR" description:"The path to the directory where the GeoNames dumps are located (countryInfo.txt, admin1CodesASKII.txt, cities5000.zip). If variable isn't set, GeoNames api will be disabled. The dumps will be loaded when service starts, if something is missing"`
-	ApiKey             string `mapstructure:"API_KEY" description:"API key used to protect dumps that are used for importing into other databases"`
+	GeoNameDumpDirPath  string `mapstructure:"GEONAME_DUMP_DIR" description:"The path to the directory where the GeoNames dumps are located (countryInfo.txt, admin1CodesASKII.txt, cities5000.zip). If variable isn't set, GeoNames api will be disabled. The dumps will be loaded when service starts, if something is missing"`
+	GeoIPCsvDumpDirPath string `mapstructure:"GEOIP_DUMP_DIR" description:"The path to the directory where the csv ip database is located. The csv file will be generated from mmdb when service starts, if variable is set and csv is missing"`
+	ApiKey              string `mapstructure:"API_KEY" description:"API key used to protect dumps that are used for importing into other databases"`
 }
 
 func (c *Config) ConsulEnabled() bool {
@@ -64,6 +65,7 @@ func (c *Config) SetDefaults() {
 	c.Consul.ConsulAddr = ""
 	c.GrpcConsul.Cluster = ConsulGrpcClusterName
 	c.RestConsul.Cluster = ConsulRestClusterName
+
 	c.ApiKey = "Dfga4pBfeRsMnxesWmY8eNBCW2Zf46kL"
 }
 

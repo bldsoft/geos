@@ -41,7 +41,7 @@ func NewMicroservice(config config.Config) *Microservice {
 }
 
 func (m *Microservice) initServices() {
-	rep := repository.NewGeoIpRepository(m.config.GeoDbPath)
+	rep := repository.NewGeoIpRepository(m.config.GeoDbPath, m.config.GeoIPCsvDumpDirPath)
 	m.geoIpService = service.NewGeoIpService(rep)
 
 	geoNameStorage := storage.NewGeoNamesStorage(m.config.GeoNameDumpDirPath)

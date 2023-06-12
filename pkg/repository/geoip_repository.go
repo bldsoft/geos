@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -15,6 +16,11 @@ import (
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/gost/log"
 	"github.com/oschwald/maxminddb-golang"
+)
+
+var (
+	ErrGeoIPCSVNotReady = errors.New("geoip csv dump not ready")
+	ErrGeoIPCSVDisabled = errors.New("geoip csv dump is disabled")
 )
 
 type DumpFormat string
@@ -31,7 +37,7 @@ type GeoIpRepository struct {
 	csvWithNamesDump []byte
 }
 
-func NewGeoIpRepository(dbPath string) *GeoIpRepository {
+func NewGeoIpRepository(dbPath string, csvDirPath string) *GeoIpRepository {
 	db, err := maxminddb.Open(dbPath)
 	if err != nil {
 		log.Fatalf("Failed to open db: %s", err)
@@ -39,17 +45,24 @@ func NewGeoIpRepository(dbPath string) *GeoIpRepository {
 	rep := &GeoIpRepository{db: db, dumpReady: make(chan struct{})}
 
 	go func() {
+		defer close(rep.dumpReady)
+		if csvDirPath == "" {
+			return
+		}
+
 		var err error
 		ctx := context.Background()
 
-		dir, _ := filepath.Split(dbPath)
-		dumpPath := filepath.Join(dir, "dump.csv")
+		if err := os.MkdirAll(csvDirPath, os.ModePerm); err != nil {
+			panic(fmt.Errorf("failed to create dir for csv dump: %w", err))
+		}
+
+		dumpPath := filepath.Join(csvDirPath, "dump.csv")
 		rep.csvWithNamesDump, err = rep.getDumpFromDisk(ctx, dbPath, dumpPath)
 		if err != nil {
 			panic(fmt.Errorf("failed to load GeoIP dump: %w", err))
 		}
 		log.FromContext(ctx).Infof("Dump loaded to memory, size %d MB", len(rep.csvWithNamesDump)/1024/1024)
-		close(rep.dumpReady)
 	}()
 	return rep
 }
@@ -76,11 +89,18 @@ func (r *GeoIpRepository) CityLite(ctx context.Context, ip net.IP, lang string) 
 }
 
 func (r *GeoIpRepository) Dump(ctx context.Context, format DumpFormat) ([]byte, error) {
-	<-r.dumpReady
-	if format == DumpFormatCSV {
-		return r.removeFirstLine(r.csvWithNamesDump), nil
+	select {
+	case <-r.dumpReady:
+		if r.csvWithNamesDump == nil {
+			return nil, ErrGeoIPCSVDisabled
+		}
+		if format == DumpFormatCSV {
+			return r.removeFirstLine(r.csvWithNamesDump), nil
+		}
+		return r.csvWithNamesDump, nil
+	default:
+		return nil, ErrGeoIPCSVNotReady
 	}
-	return r.csvWithNamesDump, nil
 }
 
 func (r *GeoIpRepository) removeFirstLine(buf []byte) []byte {
