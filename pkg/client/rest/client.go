@@ -25,7 +25,7 @@ func NewClient(addr string) (*Client, error) {
 
 func NewWithClient(addr string, client *http.Client) (*Client, error) {
 	if !strings.HasPrefix(addr, "http://") && !strings.HasPrefix(addr, "https://") {
-		addr = "http://" + addr
+		addr = "https://" + addr
 	}
 	baseURL, err := url.JoinPath(addr, microservice.BaseApiPath)
 	if err != nil {
