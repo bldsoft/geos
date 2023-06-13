@@ -26,8 +26,8 @@ type Config struct {
 	RestConsul consul.ServiceConfig `mapstructure:"CONSUL_REST"`
 
 	GeoNameDumpDirPath  string `mapstructure:"GEONAME_DUMP_DIR" description:"The path to the directory where the GeoNames dumps are located (countryInfo.txt, admin1CodesASKII.txt, cities5000.zip). If variable isn't set, GeoNames api will be disabled. The dumps will be loaded when service starts, if something is missing"`
-	GeoIPCsvDumpDirPath string `mapstructure:"GEOIP_DUMP_DIR" description:"The path to the directory where the csv ip database is located. The csv file will be generated from mmdb when service starts, if variable is set and csv is missing"`
-	ApiKey              string `mapstructure:"API_KEY" description:"API key used to protect dumps that are used for importing into other databases"`
+	GeoIPCsvDumpDirPath string `mapstructure:"GEOIP_DUMP_DIR" description:"The path to the directory where the csv ip database is located. If the variable is set and the csv file is missing, the service will generate it from the mmdb when it starts."`
+	ApiKey              string `mapstructure:"API_KEY" description:"API key for dumps used for importing into other databases"`
 }
 
 func (c *Config) ConsulEnabled() bool {

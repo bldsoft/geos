@@ -101,11 +101,11 @@ func (c *GeoNameController) GetGeoNameCitiesHandler(w http.ResponseWriter, r *ht
 	c.ResponseJson(w, r, cities, false)
 }
 
-// @Summary database dump
-// @Produce csv
+// @Summary geonames csv dump
+// @Produce text/csv
 // @Tags geonames
-// @Param addr path string false "format"
-// @Success 200 {object} sring
+// @Param format query string false "format" "csvWithNames"
+// @Success 200 {object} string
 // @Failure 400 {string} string "error"
 // @Failure 500 {string} string "error"
 // @Router /geoname/dump [get]

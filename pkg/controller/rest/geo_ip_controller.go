@@ -82,11 +82,11 @@ func (c *GeoIpController) GetCityLiteHandler(w http.ResponseWriter, r *http.Requ
 	c.ResponseJson(w, r, city)
 }
 
-// @Summary database dump
-// @Produce csv
+// @Summary geoip database dump
+// @Produce text/csv
 // @Tags geo IP
-// @Param addr path string false "format"
-// @Success 200 {object} sring
+// @Param format query string false "format" "csvWithNames"
+// @Success 200 {object} string
 // @Failure 400 {string} string "error"
 // @Failure 500 {string} string "error"
 // @Router /dump [get]
