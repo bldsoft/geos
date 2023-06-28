@@ -139,6 +139,45 @@ const docTemplate = `{
                 }
             }
         },
+        "/dump": {
+            "get": {
+                "produces": [
+                    "text/csv"
+                ],
+                "tags": [
+                    "geo IP"
+                ],
+                "summary": "geoip database dump",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "format",
+                        "name": "format",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/env": {
             "get": {
                 "security": [
@@ -288,6 +327,45 @@ const docTemplate = `{
                             "items": {
                                 "$ref": "#/definitions/entity.GeoNameCountry"
                             }
+                        }
+                    },
+                    "400": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/geoname/dump": {
+            "get": {
+                "produces": [
+                    "text/csv"
+                ],
+                "tags": [
+                    "geonames"
+                ],
+                "summary": "geonames csv dump",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "format",
+                        "name": "format",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
                         }
                     },
                     "400": {

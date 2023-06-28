@@ -84,7 +84,17 @@ func (s GeoNameAdminSubdivision) Name() string {
 	return s.AdminDivision.Name
 }
 
+func (s GeoNameAdminSubdivision) AdminCode() string {
+	if len(s.AdminDivision.Code) < 3 {
+		return ""
+	}
+	return s.AdminDivision.Code[3:]
+}
+
 func (s GeoNameAdminSubdivision) CountryCode() string {
+	if len(s.AdminDivision.Code) < 2 {
+		return ""
+	}
 	return s.AdminDivision.Code[:2]
 }
 

@@ -5,6 +5,7 @@ import (
 
 	"github.com/bldsoft/geos/pkg/controller"
 	"github.com/bldsoft/geos/pkg/entity"
+	"github.com/bldsoft/geos/pkg/service"
 	gost "github.com/bldsoft/gost/controller"
 	"github.com/bldsoft/gost/log"
 	"github.com/bldsoft/gost/utils"
@@ -98,4 +99,25 @@ func (c *GeoNameController) GetGeoNameCitiesHandler(w http.ResponseWriter, r *ht
 		return
 	}
 	c.ResponseJson(w, r, cities, false)
+}
+
+// @Summary geonames csv dump
+// @Produce text/csv
+// @Tags geonames
+// @Param format query string false "format" "csvWithNames"
+// @Success 200 {object} string
+// @Failure 400 {string} string "error"
+// @Failure 500 {string} string "error"
+// @Router /geoname/dump [get]
+func (c *GeoNameController) GetDumpHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	format, _ := gost.GetQueryOption[string](r, "format")
+	dump, err := c.geoNameService.Dump(ctx, service.DumpFormat(format))
+	if err != nil {
+		log.FromContext(ctx).Error(err.Error())
+		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(dump)
 }

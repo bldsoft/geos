@@ -387,6 +387,31 @@ paths:
       summary: country
       tags:
       - geo IP
+  /dump:
+    get:
+      parameters:
+      - description: format
+        in: query
+        name: format
+        type: string
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: error
+          schema:
+            type: string
+        "500":
+          description: error
+          schema:
+            type: string
+      summary: geoip database dump
+      tags:
+      - geo IP
   /env:
     get:
       produces:
@@ -491,6 +516,31 @@ paths:
           schema:
             type: string
       summary: country
+      tags:
+      - geonames
+  /geoname/dump:
+    get:
+      parameters:
+      - description: format
+        in: query
+        name: format
+        type: string
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: error
+          schema:
+            type: string
+        "500":
+          description: error
+          schema:
+            type: string
+      summary: geonames csv dump
       tags:
       - geonames
   /geoname/subdivision:

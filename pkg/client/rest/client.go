@@ -16,6 +16,7 @@ import (
 
 type Client struct {
 	client *resty.Client
+	apiKey string
 }
 
 func NewClient(addr string) (*Client, error) {
@@ -24,15 +25,29 @@ func NewClient(addr string) (*Client, error) {
 
 func NewWithClient(addr string, client *http.Client) (*Client, error) {
 	if !strings.HasPrefix(addr, "http://") && !strings.HasPrefix(addr, "https://") {
-		addr = "http://" + addr
+		addr = "https://" + addr
 	}
 	baseURL, err := url.JoinPath(addr, microservice.BaseApiPath)
 	if err != nil {
 		return nil, err
 	}
 	return &Client{
-		resty.NewWithClient(client).SetBaseURL(baseURL),
+		client: resty.NewWithClient(client).SetBaseURL(baseURL),
 	}, nil
+}
+
+// only for dump endpoints
+func (c *Client) SetApiKey(apiKey string) *Client {
+	c.apiKey = apiKey
+	return c
+}
+
+func (c *Client) APIKey() string {
+	return c.apiKey
+}
+
+func (c *Client) Origin() string {
+	return strings.TrimSuffix(c.client.BaseURL, microservice.BaseApiPath)
 }
 
 func get[T any](ctx context.Context, client *resty.Client, path string, query url.Values) (*T, error) {
@@ -69,6 +84,10 @@ func (c *Client) CityLite(ctx context.Context, address, lang string) (*entity.Ci
 	return get[entity.CityLite](ctx, c.client, "city-lite/"+address, nil)
 }
 
+func (c *Client) GeoIPDump(ctx context.Context) (*resty.Response, error) {
+	return c.client.R().SetHeader(microservice.APIKey, c.APIKey()).Get("/dump")
+}
+
 func getMany[T any](ctx context.Context, client *resty.Client, path string, query url.Values) ([]*T, error) {
 	request := client.R().SetContext(ctx)
 	if query != nil {
@@ -97,4 +116,8 @@ func (c *Client) GeoNameSubdivisions(ctx context.Context, filter entity.GeoNameF
 
 func (c *Client) GeoNameCities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error) {
 	return getMany[entity.GeoName](ctx, c.client, "geoname/city", utils.Query(filter))
+}
+
+func (c *Client) GeoNameDump(ctx context.Context, filter entity.GeoNameFilter) (*resty.Response, error) {
+	return c.client.R().SetHeader(microservice.APIKey, c.APIKey()).Get("geoname/dump")
 }

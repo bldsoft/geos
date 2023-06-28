@@ -12,7 +12,9 @@ services:
     environment:
       - LOG_LEVEL=debug
       - GEOIP_DB_PATH=/var/db.mmdb
+      - GEOIP_DUMP_DIR=/tmp/geos/
       - GRPC_SERVICE_PORT=${GRPC_SERVICE_PORT} # 0 - disable gRPC
     volumes:
       - ${LOCAL_GEOIP_DB_PATH}:/var/db.mmdb
+      - ${LOCAL_GEOIP_DUMP_PATH}:/tmp/geos/
     restart: always
