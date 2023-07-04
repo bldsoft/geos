@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/hashicorp/go-multierror"
@@ -12,6 +13,9 @@ type MultiClient struct {
 }
 
 func getFromAny[T any](ctx context.Context, clients []Client, f func(ctx context.Context, client Client) (*T, error)) (*T, error) {
+	if len(clients) == 0 {
+		return nil, errors.New("no clients")
+	}
 	var multiErr error
 	for _, client := range clients {
 		obj, err := f(ctx, client)

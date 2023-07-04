@@ -70,5 +70,5 @@ func newClient(addr string, apiKey string) (Client, error) {
 		}
 		multiErr = errors.Join(multiErr, err)
 	}
-	return nil, multiErr
+	return restClient(addr)
 }
