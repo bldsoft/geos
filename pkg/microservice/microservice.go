@@ -77,7 +77,14 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 		r.Get("/country/{addr}", geoIpController.GetCountryHandler)
 		r.Get("/city/{addr}", geoIpController.GetCityHandler)
 		r.Get("/city-lite/{addr}", geoIpController.GetCityLiteHandler)
-		r.With(m.ApiKeyMiddleware()).Get("/dump", geoIpController.GetDumpHandler)
+
+		r.With(m.ApiKeyMiddleware()).Get("/dump", geoIpController.GetDumpHandler) // deprecated, used by streampool
+		r.Route("/dump/{db}", func(r chi.Router) {
+			r.Use(m.ApiKeyMiddleware())
+			r.Get("/csv", geoIpController.GetDumpHandler)
+			r.Get("/mmdb", geoIpController.GetDatabaseHandler)
+			r.Get("/metadata", geoIpController.GetDatabaseMetaHandler)
+		})
 
 		geoNameController := rest.NewGeoNameController(m.geoNameService)
 		r.Route("/geoname", func(r chi.Router) {

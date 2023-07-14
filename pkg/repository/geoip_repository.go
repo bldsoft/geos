@@ -30,19 +30,27 @@ const (
 	DumpFormatCSVWithNames DumpFormat = "csvWithNames"
 )
 
-type GeoIpRepository struct {
-	db *maxminddb.Reader
+type MaxmindDBType string
 
+const (
+	City MaxmindDBType = "city"
+)
+
+type GeoIpRepository struct {
+	dbRaw            []byte
+	db               *maxminddb.Reader
 	dumpReady        chan struct{}
 	csvWithNamesDump []byte
 }
 
 func NewGeoIpRepository(dbPath string, csvDirPath string) *GeoIpRepository {
-	db, err := maxminddb.Open(dbPath)
+	dbRaw, err := ioutil.ReadFile(dbPath)
 	if err != nil {
-		log.Fatalf("Failed to open db: %s", err)
+		log.Fatalf("Failed to read db: %s", err)
 	}
-	rep := &GeoIpRepository{db: db, dumpReady: make(chan struct{})}
+
+	db, err := maxminddb.FromBytes(dbRaw)
+	rep := &GeoIpRepository{dbRaw: dbRaw, db: db, dumpReady: make(chan struct{})}
 
 	go func() {
 		defer close(rep.dumpReady)
@@ -86,6 +94,19 @@ func (r *GeoIpRepository) CityLite(ctx context.Context, ip net.IP, lang string) 
 		return nil, err
 	}
 	return entity.DbToCityLite(cityLiteDb, lang), nil
+}
+
+func (r *GeoIpRepository) Database(ctx context.Context, dbType MaxmindDBType) (*entity.Database, error) {
+	switch dbType {
+	case City:
+		return &entity.Database{
+			Data:     r.dbRaw,
+			MetaData: r.db.Metadata,
+			Ext:      ".mmdb",
+		}, nil
+	default:
+		return nil, errors.New("Unknown database type")
+	}
 }
 
 func (r *GeoIpRepository) Dump(ctx context.Context, format DumpFormat) ([]byte, error) {

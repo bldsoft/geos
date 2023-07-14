@@ -83,6 +83,8 @@ func (c *GeoIpController) GetCityLiteHandler(w http.ResponseWriter, r *http.Requ
 }
 
 // @Summary geoip database dump
+// @Security ApiKeyAuth
+// @Deprecated
 // @Produce text/csv
 // @Tags geo IP
 // @Param format query string false "format" "csvWithNames"
@@ -90,6 +92,19 @@ func (c *GeoIpController) GetCityLiteHandler(w http.ResponseWriter, r *http.Requ
 // @Failure 400 {string} string "error"
 // @Failure 500 {string} string "error"
 // @Router /dump [get]
+func (c *GeoIpController) deprecatedDumpHandler(w http.ResponseWriter, r *http.Request) {
+	// used to generate doc
+}
+
+// @Summary maxmind csv database. It's generated from the mmdb file, so the result may differ from those that are officially supplied
+// @Security ApiKeyAuth
+// @Produce text/csv
+// @Tags geo IP
+// @Param db path string true "db type" Enums(city)
+// @Success 200 {object} string
+// @Failure 400 {string} string "error"
+// @Failure 500 {string} string "error"
+// @Router /dump/{db}/csv [get]
 func (c *GeoIpController) GetDumpHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	format, _ := gost.GetQueryOption[string](r, "format")
@@ -101,4 +116,49 @@ func (c *GeoIpController) GetDumpHandler(w http.ResponseWriter, r *http.Request)
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(dump)
+}
+
+// @Summary maxmind mmdb database
+// @Security ApiKeyAuth
+// @Produce octet-stream
+// @Param db path string true "db type" Enums(city)
+// @Tags geo IP
+// @Success 200 {object} string
+// @Failure 400 {string} string "error"
+// @Failure 500 {string} string "error"
+// @securityDefinitions.apikey ApiKeyAuth
+// @Router /dump/{db}/mmdb [get]
+func (c *GeoIpController) GetDatabaseHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	db := chi.URLParam(r, "db")
+	database, err := c.geoIpService.Database(ctx, service.DBType(db))
+	if err != nil {
+		log.FromContext(ctx).Error(err.Error())
+		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Disposition", "attachment; filename="+database.FileName())
+	w.Write(database.Data)
+}
+
+// @Summary maxmind database metadata
+// @Security ApiKeyAuth
+// @Produce json
+// @Param db path string true "db type" Enums(city)
+// @Tags geo IP
+// @Success 200 {object} entity.MetaData
+// @Failure 400 {string} string "error"
+// @Failure 500 {string} string "error"
+// @Router /dump/{db}/metadata [get]
+func (c *GeoIpController) GetDatabaseMetaHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	db := chi.URLParam(r, "db")
+	database, err := c.geoIpService.Database(ctx, service.DBType(db))
+	if err != nil {
+		log.FromContext(ctx).Error(err.Error())
+		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+	c.ResponseJson(w, r, database.MetaData)
 }
