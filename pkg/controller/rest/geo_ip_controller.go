@@ -33,8 +33,9 @@ func (c *GeoIpController) address(r *http.Request) string {
 // @Failure 500 {string} string "error"
 // @Router /city/{addr} [get]
 func (c *GeoIpController) GetCityHandler(w http.ResponseWriter, r *http.Request) {
+	includeISP, _ := gost.GetQueryOption(r, "isp", false)
 	ctx := r.Context()
-	city, err := c.geoIpService.City(ctx, c.address(r))
+	city, err := c.geoIpService.City(ctx, c.address(r), includeISP)
 	if err != nil {
 		log.FromContext(ctx).Error(err.Error())
 		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)

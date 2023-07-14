@@ -29,7 +29,7 @@ func (c *GeoIpController) Country(ctx context.Context, req *pb.AddrRequest) (*pb
 }
 
 func (c *GeoIpController) City(ctx context.Context, req *pb.AddrRequest) (*pb.CityResponse, error) {
-	city, err := c.service.City(ctx, req.Address)
+	city, err := c.service.City(ctx, req.Address, false)
 	if err != nil {
 		log.FromContext(ctx).Error(err.Error())
 		return nil, err

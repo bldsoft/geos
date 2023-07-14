@@ -50,4 +50,16 @@ type City struct {
 		IsAnonymousProxy    bool `maxminddb:"is_anonymous_proxy" json:"isAnonymousProxy,omitempty"`
 		IsSatelliteProvider bool `maxminddb:"is_satellite_provider" json:"isSatelliteProvider,omitempty"`
 	} `maxminddb:"traits" json:"traits,omitempty"`
+
+	ISP *ISP `json:"ISP,omitempty"`
+}
+
+// The ISP struct corresponds to the data in the GeoIP2 ISP database.
+type ISP struct {
+	AutonomousSystemOrganization string `maxminddb:"autonomous_system_organization"`
+	ISP                          string `maxminddb:"isp"`
+	MobileCountryCode            string `maxminddb:"mobile_country_code"`
+	MobileNetworkCode            string `maxminddb:"mobile_network_code"`
+	Organization                 string `maxminddb:"organization"`
+	AutonomousSystemNumber       uint   `maxminddb:"autonomous_system_number"`
 }

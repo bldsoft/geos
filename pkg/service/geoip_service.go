@@ -14,7 +14,7 @@ type DBType = repository.MaxmindDBType
 
 type GeoRepository interface {
 	Country(ctx context.Context, ip net.IP) (*entity.Country, error)
-	City(ctx context.Context, ip net.IP) (*entity.City, error)
+	City(ctx context.Context, ip net.IP, includeISP bool) (*entity.City, error)
 	CityLite(ctx context.Context, ip net.IP, lang string) (*entity.CityLite, error)
 	Dump(ctx context.Context, format repository.DumpFormat) ([]byte, error)
 	Database(ctx context.Context, dbType DBType) (*entity.Database, error)
@@ -56,12 +56,12 @@ func (s *GeoIpService) Country(ctx context.Context, address string) (*entity.Cou
 	return s.rep.Country(ctx, ip)
 }
 
-func (s *GeoIpService) City(ctx context.Context, address string) (*entity.City, error) {
+func (s *GeoIpService) City(ctx context.Context, address string, includeISP bool) (*entity.City, error) {
 	ip, err := s.ip(ctx, address)
 	if err != nil {
 		return nil, err
 	}
-	return s.rep.City(ctx, ip)
+	return s.rep.City(ctx, ip, includeISP)
 }
 
 func (s *GeoIpService) CityLite(ctx context.Context, address string, lang string) (*entity.CityLite, error) {
