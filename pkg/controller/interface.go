@@ -12,6 +12,7 @@ type GeoIpService interface {
 	City(ctx context.Context, address string) (*entity.City, error)
 	CityLite(ctx context.Context, address string, lang string) (*entity.CityLite, error)
 	Dump(ctx context.Context, format service.DumpFormat) ([]byte, error)
+	Database(ctx context.Context, dbType service.DBType) (*entity.Database, error)
 }
 
 type GeoNameService interface {

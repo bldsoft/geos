@@ -292,6 +292,31 @@ definitions:
       timeZone:
         type: string
     type: object
+  entity.MetaData:
+    properties:
+      binaryFormatMajorVersion:
+        type: integer
+      binaryFormatMinorVersion:
+        type: integer
+      buildEpoch:
+        type: integer
+      databaseType:
+        type: string
+      description:
+        additionalProperties:
+          type: string
+        type: object
+      ipversion:
+        type: integer
+      languages:
+        items:
+          type: string
+        type: array
+      nodeCount:
+        type: integer
+      recordSize:
+        type: integer
+    type: object
   entity.geoNameContinentJson:
     properties:
       code:
@@ -389,6 +414,7 @@ paths:
       - geo IP
   /dump:
     get:
+      deprecated: true
       parameters:
       - description: format
         in: query
@@ -409,7 +435,100 @@ paths:
           description: error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: geoip database dump
+      tags:
+      - geo IP
+  /dump/{db}/csv:
+    get:
+      parameters:
+      - description: db type
+        enum:
+        - city
+        in: path
+        name: db
+        required: true
+        type: string
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: error
+          schema:
+            type: string
+        "500":
+          description: error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: maxmind csv database. It's generated from the mmdb file, so the result
+        may differ from those that are officially supplied
+      tags:
+      - geo IP
+  /dump/{db}/metadata:
+    get:
+      parameters:
+      - description: db type
+        enum:
+        - city
+        in: path
+        name: db
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.MetaData'
+        "400":
+          description: error
+          schema:
+            type: string
+        "500":
+          description: error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: maxmind database metadata
+      tags:
+      - geo IP
+  /dump/{db}/mmdb:
+    get:
+      parameters:
+      - description: db type
+        enum:
+        - city
+        in: path
+        name: db
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: error
+          schema:
+            type: string
+        "500":
+          description: error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: maxmind mmdb database
       tags:
       - geo IP
   /env:
@@ -608,4 +727,9 @@ paths:
       - public
 schemes:
 - http
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: GEOS-API-Key
+    type: apiKey
 swagger: "2.0"

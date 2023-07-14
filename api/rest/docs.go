@@ -141,6 +141,11 @@ const docTemplate = `{
         },
         "/dump": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "produces": [
                     "text/csv"
                 ],
@@ -148,12 +153,157 @@ const docTemplate = `{
                     "geo IP"
                 ],
                 "summary": "geoip database dump",
+                "deprecated": true,
                 "parameters": [
                     {
                         "type": "string",
                         "description": "format",
                         "name": "format",
                         "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/dump/{db}/csv": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "produces": [
+                    "text/csv"
+                ],
+                "tags": [
+                    "geo IP"
+                ],
+                "summary": "maxmind csv database. It's generated from the mmdb file, so the result may differ from those that are officially supplied",
+                "parameters": [
+                    {
+                        "enum": [
+                            "city"
+                        ],
+                        "type": "string",
+                        "description": "db type",
+                        "name": "db",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/dump/{db}/metadata": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "geo IP"
+                ],
+                "summary": "maxmind database metadata",
+                "parameters": [
+                    {
+                        "enum": [
+                            "city"
+                        ],
+                        "type": "string",
+                        "description": "db type",
+                        "name": "db",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entity.MetaData"
+                        }
+                    },
+                    "400": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/dump/{db}/mmdb": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/octet-stream"
+                ],
+                "tags": [
+                    "geo IP"
+                ],
+                "summary": "maxmind mmdb database",
+                "parameters": [
+                    {
+                        "enum": [
+                            "city"
+                        ],
+                        "type": "string",
+                        "description": "db type",
+                        "name": "db",
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -933,6 +1083,44 @@ const docTemplate = `{
                 }
             }
         },
+        "entity.MetaData": {
+            "type": "object",
+            "properties": {
+                "binaryFormatMajorVersion": {
+                    "type": "integer"
+                },
+                "binaryFormatMinorVersion": {
+                    "type": "integer"
+                },
+                "buildEpoch": {
+                    "type": "integer"
+                },
+                "databaseType": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "ipversion": {
+                    "type": "integer"
+                },
+                "languages": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "nodeCount": {
+                    "type": "integer"
+                },
+                "recordSize": {
+                    "type": "integer"
+                }
+            }
+        },
         "entity.geoNameContinentJson": {
             "type": "object",
             "properties": {
@@ -946,6 +1134,13 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "type": "apiKey",
+            "name": "GEOS-API-Key",
+            "in": "header"
         }
     }
 }`

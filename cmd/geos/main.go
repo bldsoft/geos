@@ -18,6 +18,10 @@ import (
 // @license.name ᅠ
 // @BasePath /geoip
 
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name GEOS-API-Key
+
 func main() {
 	var cfg config.Config
 	gost.ReadConfig(&cfg, "")
