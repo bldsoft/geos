@@ -70,7 +70,7 @@ func (m *Microservice) initServices() {
 func (m *Microservice) BuildRoutes(router chi.Router) {
 	router.Route(BaseApiPath, func(r chi.Router) {
 		r.Get("/ping", gost.GetPingHandler)
-		r.Get("/env", gost.GetEnvHandler(m.config, nil))
+		r.With(m.ApiKeyMiddleware()).Get("/env", gost.GetEnvHandler(m.config, nil))
 		r.Get("/version", gost.GetVersionHandler)
 
 		geoIpController := rest.NewGeoIpController(m.geoIpService)
