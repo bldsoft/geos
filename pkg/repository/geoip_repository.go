@@ -38,38 +38,6 @@ const (
 	ISP  MaxmindDBType = "isp"
 )
 
-type database struct {
-	*maxminddb.Reader
-	dbRaw []byte
-}
-
-func openDB(path string, required bool) *database {
-	handleErr := func(err error) {
-		if err != nil {
-			if required {
-				log.Fatalf("Failed to read db: %s", err)
-			}
-			log.Warnf("Failed to read db: %s", err)
-		}
-	}
-	dbRaw, err := ioutil.ReadFile(path)
-	if err != nil {
-		handleErr(err)
-		return nil
-	}
-
-	db, err := maxminddb.FromBytes(dbRaw)
-	if err != nil {
-		handleErr(err)
-		return nil
-	}
-
-	return &database{
-		Reader: db,
-		dbRaw:  dbRaw,
-	}
-}
-
 type GeoIpRepository struct {
 	dbCity *database
 	dbISP  *database
@@ -80,8 +48,8 @@ type GeoIpRepository struct {
 
 func NewGeoIpRepository(dbCityPath, dbISPPath string, csvDirPath string) *GeoIpRepository {
 	rep := &GeoIpRepository{
-		dbCity:    openDB(dbCityPath, true),
-		dbISP:     openDB(dbISPPath, false),
+		dbCity:    openDB(dbCityPath, City, true),
+		dbISP:     openDB(dbISPPath, ISP, false),
 		dumpReady: make(chan struct{}),
 	}
 
@@ -124,13 +92,14 @@ func (r *GeoIpRepository) City(ctx context.Context, ip net.IP, includeISP bool) 
 	}
 	if includeISP {
 		var isp entity.ISP
-		err = r.dbISP.Lookup(ip, &isp)
+		err := r.dbISP.Lookup(ip, &isp)
 		if err != nil {
-			return nil, err
+			log.FromContext(ctx).ErrorWithFields(log.Fields{"err": err}, "Failed to fill ISP")
+		} else {
+			city.ISP = &isp
 		}
-		city.ISP = &isp
 	}
-	return city, err
+	return city, nil
 }
 
 func (r *GeoIpRepository) CityLite(ctx context.Context, ip net.IP, lang string) (*entity.CityLite, error) {
@@ -146,9 +115,13 @@ func (r *GeoIpRepository) Database(ctx context.Context, dbType MaxmindDBType) (*
 	if err != nil {
 		return nil, err
 	}
+	meta, err := db.MetaData()
+	if err != nil {
+		return nil, err
+	}
 	return &entity.Database{
 		Data:     db.dbRaw,
-		MetaData: db.Metadata,
+		MetaData: *meta,
 		Ext:      ".mmdb",
 	}, nil
 }
@@ -225,7 +198,10 @@ func (r *GeoIpRepository) loadDumpFull(ctx context.Context, dbPath, dumpPath str
 }
 
 func (r *GeoIpRepository) loadDump(ctx context.Context, dbPath, dumpPath string) ([]byte, error) {
-	networks := r.dbCity.Networks(maxminddb.SkipAliasedNetworks)
+	networks, err := r.dbCity.Networks(maxminddb.SkipAliasedNetworks)
+	if err != nil {
+		return nil, err
+	}
 
 	var buf bytes.Buffer
 	file, err := os.Create(dumpPath)
