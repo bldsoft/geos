@@ -28,6 +28,7 @@ func (c *GeoIpController) address(r *http.Request) string {
 // @Produce json
 // @Tags geo IP
 // @Param addr path string true "ip or hostname"
+// @Param isp query bool false "include ISP info"
 // @Success 200 {object} entity.City
 // @Failure 400 {string} string "error"
 // @Failure 500 {string} string "error"
@@ -101,7 +102,7 @@ func (c *GeoIpController) deprecatedDumpHandler(w http.ResponseWriter, r *http.R
 // @Security ApiKeyAuth
 // @Produce text/csv
 // @Tags geo IP
-// @Param db path string true "db type" Enums(city)
+// @Param db path string true "db type" Enums(city,isp)
 // @Success 200 {object} string
 // @Failure 400 {string} string "error"
 // @Failure 500 {string} string "error"
@@ -122,7 +123,7 @@ func (c *GeoIpController) GetDumpHandler(w http.ResponseWriter, r *http.Request)
 // @Summary maxmind mmdb database
 // @Security ApiKeyAuth
 // @Produce octet-stream
-// @Param db path string true "db type" Enums(city)
+// @Param db path string true "db type" Enums(city,isp)
 // @Tags geo IP
 // @Success 200 {object} string
 // @Failure 400 {string} string "error"
@@ -146,7 +147,7 @@ func (c *GeoIpController) GetDatabaseHandler(w http.ResponseWriter, r *http.Requ
 // @Summary maxmind database metadata
 // @Security ApiKeyAuth
 // @Produce json
-// @Param db path string true "db type" Enums(city)
+// @Param db path string true "db type" Enums(city,isp)
 // @Tags geo IP
 // @Success 200 {object} entity.MetaData
 // @Failure 400 {string} string "error"

@@ -75,6 +75,12 @@ const docTemplate = `{
                         "name": "addr",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "include ISP info",
+                        "name": "isp",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -201,7 +207,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "enum": [
-                            "city"
+                            "city",
+                            "isp"
                         ],
                         "type": "string",
                         "description": "db type",
@@ -249,7 +256,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "enum": [
-                            "city"
+                            "city",
+                            "isp"
                         ],
                         "type": "string",
                         "description": "db type",
@@ -297,7 +305,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "enum": [
-                            "city"
+                            "city",
+                            "isp"
                         ],
                         "type": "string",
                         "description": "db type",
@@ -650,6 +659,9 @@ const docTemplate = `{
         "entity.City": {
             "type": "object",
             "properties": {
+                "ISP": {
+                    "$ref": "#/definitions/entity.ISP"
+                },
                 "city": {
                     "type": "object",
                     "properties": {
@@ -1065,6 +1077,29 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "tld": {
+                    "type": "string"
+                }
+            }
+        },
+        "entity.ISP": {
+            "type": "object",
+            "properties": {
+                "autonomousSystemNumber": {
+                    "type": "integer"
+                },
+                "autonomousSystemOrganization": {
+                    "type": "string"
+                },
+                "isp": {
+                    "type": "string"
+                },
+                "mobileCountryCode": {
+                    "type": "string"
+                },
+                "mobileNetworkCode": {
+                    "type": "string"
+                },
+                "organization": {
                     "type": "string"
                 }
             }

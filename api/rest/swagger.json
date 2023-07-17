@@ -70,6 +70,12 @@
                         "name": "addr",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "include ISP info",
+                        "name": "isp",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -196,7 +202,8 @@
                 "parameters": [
                     {
                         "enum": [
-                            "city"
+                            "city",
+                            "isp"
                         ],
                         "type": "string",
                         "description": "db type",
@@ -244,7 +251,8 @@
                 "parameters": [
                     {
                         "enum": [
-                            "city"
+                            "city",
+                            "isp"
                         ],
                         "type": "string",
                         "description": "db type",
@@ -292,7 +300,8 @@
                 "parameters": [
                     {
                         "enum": [
-                            "city"
+                            "city",
+                            "isp"
                         ],
                         "type": "string",
                         "description": "db type",
@@ -645,6 +654,9 @@
         "entity.City": {
             "type": "object",
             "properties": {
+                "ISP": {
+                    "$ref": "#/definitions/entity.ISP"
+                },
                 "city": {
                     "type": "object",
                     "properties": {
@@ -1060,6 +1072,29 @@
                     "type": "string"
                 },
                 "tld": {
+                    "type": "string"
+                }
+            }
+        },
+        "entity.ISP": {
+            "type": "object",
+            "properties": {
+                "autonomousSystemNumber": {
+                    "type": "integer"
+                },
+                "autonomousSystemOrganization": {
+                    "type": "string"
+                },
+                "isp": {
+                    "type": "string"
+                },
+                "mobileCountryCode": {
+                    "type": "string"
+                },
+                "mobileNetworkCode": {
+                    "type": "string"
+                },
+                "organization": {
                     "type": "string"
                 }
             }
