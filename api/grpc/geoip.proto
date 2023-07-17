@@ -3,8 +3,13 @@ package geoip;
 
 option go_package = "./;proto";
 
-message AddrRequest {
+message CountryRequest {
     string address = 1;
+}
+
+message CityRequest {
+    string address = 1;
+    optional bool isp = 2;
 }
 
 message CityLiteRequest {
@@ -13,8 +18,8 @@ message CityLiteRequest {
 }
 
 service GeoIpService {
-    rpc Country(AddrRequest) returns (CountryResponse);
-    rpc City(AddrRequest) returns (CityResponse);
+    rpc Country(CountryRequest) returns (CountryResponse);
+    rpc City(CityRequest) returns (CityResponse);
     rpc CityLite(CityLiteRequest) returns (CityLiteResponse);
 }
 
@@ -36,6 +41,7 @@ message CityResponse {
     RepresentedCountry represented_country = 7;
     repeated Subdivision subdivisions = 8;
     Traits traits = 9;
+    optional ISP isp = 10;
 }
 
 message CityLiteResponse {
@@ -103,4 +109,13 @@ message Subdivision {
     uint32 geo_name_id = 1;
     string iso_code = 2;
     map<string, string> names = 3;
+}
+
+message ISP {
+    string autonomous_system_organization = 1;
+    string isp = 2;
+    string mobile_country_code = 3;
+    string mobile_network_code = 4;
+    string organization = 5;
+    uint32 autonomous_system_number = 6;
 }

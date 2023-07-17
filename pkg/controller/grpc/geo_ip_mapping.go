@@ -170,6 +170,7 @@ func CityToPb(city *entity.City) *pb.CityResponse {
 			IsAnonymousProxy:    city.Traits.IsAnonymousProxy,
 			IsSatelliteProvider: city.Traits.IsSatelliteProvider,
 		},
+		Isp: ISPToPb(city.ISP),
 	}
 }
 
@@ -202,4 +203,18 @@ func PbToCityLite(cityLitePb *pb.CityLiteResponse) *entity.CityLite {
 	cityLite.Location.TimeZone = cityLitePb.Location.TimeZone
 
 	return &cityLite
+}
+
+func ISPToPb(isp *entity.ISP) *pb.ISP {
+	if isp == nil {
+		return nil
+	}
+	return &pb.ISP{
+		AutonomousSystemOrganization: isp.AutonomousSystemOrganization,
+		Isp:                          isp.ISP,
+		MobileCountryCode:            isp.MobileCountryCode,
+		MobileNetworkCode:            isp.MobileNetworkCode,
+		Organization:                 isp.Organization,
+		AutonomousSystemNumber:       uint32(isp.AutonomousSystemNumber),
+	}
 }
