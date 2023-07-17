@@ -114,6 +114,8 @@ func PbToCity(cityPb *pb.CityResponse) *entity.City {
 
 	city.Traits.IsAnonymousProxy = cityPb.Traits.IsAnonymousProxy
 	city.Traits.IsSatelliteProvider = cityPb.Traits.IsSatelliteProvider
+
+	city.ISP = PbToISP(cityPb.Isp)
 	return &city
 }
 
@@ -216,5 +218,19 @@ func ISPToPb(isp *entity.ISP) *pb.ISP {
 		MobileNetworkCode:            isp.MobileNetworkCode,
 		Organization:                 isp.Organization,
 		AutonomousSystemNumber:       uint32(isp.AutonomousSystemNumber),
+	}
+}
+
+func PbToISP(isp *pb.ISP) *entity.ISP {
+	if isp == nil {
+		return nil
+	}
+	return &entity.ISP{
+		AutonomousSystemOrganization: isp.AutonomousSystemOrganization,
+		ISP:                          isp.Isp,
+		MobileCountryCode:            isp.MobileCountryCode,
+		MobileNetworkCode:            isp.MobileNetworkCode,
+		Organization:                 isp.Organization,
+		AutonomousSystemNumber:       uint(isp.AutonomousSystemNumber),
 	}
 }

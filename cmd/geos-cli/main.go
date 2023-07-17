@@ -118,7 +118,7 @@ func main() {
 			{
 				Name: "city",
 				Action: func(ctx *cli.Context) error {
-					city, err := client(ctx).City(ctx.Context, addr(ctx))
+					city, err := client(ctx).City(ctx.Context, addr(ctx), true)
 					if err != nil {
 						return err
 					}
