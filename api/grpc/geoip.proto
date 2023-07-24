@@ -3,104 +3,113 @@ package geoip;
 
 option go_package = "./;proto";
 
-message AddrRequest {
-    string address = 1;
+message CountryRequest { string address = 1; }
+
+message CityRequest {
+  string address = 1;
+  optional bool isp = 2;
 }
 
 message CityLiteRequest {
-    string address = 1;
-    string lang = 2;
+  string address = 1;
+  string lang = 2;
 }
 
 service GeoIpService {
-    rpc Country(AddrRequest) returns (CountryResponse);
-    rpc City(AddrRequest) returns (CityResponse);
-    rpc CityLite(CityLiteRequest) returns (CityLiteResponse);
+  rpc Country(CountryRequest) returns (CountryResponse);
+  rpc City(CityRequest) returns (CityResponse);
+  rpc CityLite(CityLiteRequest) returns (CityLiteResponse);
 }
 
 message CountryResponse {
-    Continent continent = 1;
-    Country country = 2;
-    Country registered_country = 3;
-    RepresentedCountry represented_country = 4;
-    Traits traits = 5;
+  Continent continent = 1;
+  Country country = 2;
+  Country registered_country = 3;
+  RepresentedCountry represented_country = 4;
+  Traits traits = 5;
 }
 
 message CityResponse {
-    City city = 1;
-    Continent continent = 2;
-    Country country = 3;
-    Location location = 4;
-    Postal postal = 5;
-    Country registered_country = 6;
-    RepresentedCountry represented_country = 7;
-    repeated Subdivision subdivisions = 8;
-    Traits traits = 9;
+  City city = 1;
+  Continent continent = 2;
+  Country country = 3;
+  Location location = 4;
+  Postal postal = 5;
+  Country registered_country = 6;
+  RepresentedCountry represented_country = 7;
+  repeated Subdivision subdivisions = 8;
+  Traits traits = 9;
+  optional ISP isp = 10;
 }
 
 message CityLiteResponse {
-    message City {
-		string name = 1;
-	}
-	message Country {
-		string iso_code = 3;
-		string name = 5;
-	}
-    message Location{    
-        double latitude = 2;
-        double longitude = 3;
-        string time_zone = 5;
-    }
-    City city = 1;
-    Country country = 2;
-    Location location = 3;
+  message City { string name = 1; }
+  message Country {
+    string iso_code = 3;
+    string name = 5;
+  }
+  message Location {
+    double latitude = 2;
+    double longitude = 3;
+    string time_zone = 5;
+  }
+  City city = 1;
+  Country country = 2;
+  Location location = 3;
 }
 
 message Continent {
-    string code = 1;
-    uint32 geo_name_id = 2;
-    map<string, string> names = 3;
+  string code = 1;
+  uint32 geo_name_id = 2;
+  map<string, string> names = 3;
 }
 
 message Country {
-    uint32 geo_name_id = 1;
-    bool is_in_european_union = 2;
-    string iso_code = 3;
-    map<string, string> names = 4;
+  uint32 geo_name_id = 1;
+  bool is_in_european_union = 2;
+  string iso_code = 3;
+  map<string, string> names = 4;
 }
 
 message RepresentedCountry {
-    uint32 geo_name_id = 1;
-    bool is_in_european_union = 2;
-    string iso_code = 3;
-    map<string, string> names = 4;
-    string type = 5;
+  uint32 geo_name_id = 1;
+  bool is_in_european_union = 2;
+  string iso_code = 3;
+  map<string, string> names = 4;
+  string type = 5;
 }
 
 message Traits {
-    bool is_anonymous_proxy = 1;
-    bool is_satellite_provider = 2;
+  bool is_anonymous_proxy = 1;
+  bool is_satellite_provider = 2;
 }
 
 message City {
-    uint32 geo_name_id = 1;
-    map<string, string> names = 2;
+  uint32 geo_name_id = 1;
+  map<string, string> names = 2;
 }
 
-message Location{
-    uint32 accuracy_radius = 1;
-    double latitude = 2;
-    double longitude = 3;
-    uint32 metro_code = 4;
-    string time_zone = 5;
+message Location {
+  uint32 accuracy_radius = 1;
+  double latitude = 2;
+  double longitude = 3;
+  uint32 metro_code = 4;
+  string time_zone = 5;
 }
 
-message Postal {
-    string code = 1;
-}
+message Postal { string code = 1; }
 
 message Subdivision {
-    uint32 geo_name_id = 1;
-    string iso_code = 2;
-    map<string, string> names = 3;
+  uint32 geo_name_id = 1;
+  string iso_code = 2;
+  map<string, string> names = 3;
+}
+
+message ISP {
+  string autonomous_system_organization = 1;
+  string isp = 2;
+  string mobile_country_code = 3;
+  string mobile_network_code = 4;
+  string organization = 5;
+  uint32 autonomous_system_number = 6;
 }

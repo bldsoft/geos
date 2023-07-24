@@ -4,72 +4,70 @@ package geoname;
 option go_package = "./;proto";
 
 message GeoNameRequest {
-    repeated string country_codes = 1;
-    string name_prefix = 2;
-    uint32 limit = 3;
-    repeated uint32 geo_name_ids = 4;
+  repeated string country_codes = 1;
+  string name_prefix = 2;
+  uint32 limit = 3;
+  repeated uint32 geo_name_ids = 4;
 }
 
-
 service GeoNameService {
-    rpc Continent(GeoNameRequest) returns (stream GeoNameContinentResponse);
-    rpc Country(GeoNameRequest) returns (stream GeoNameCountryResponse);
-    rpc City(GeoNameRequest) returns (stream GeoNameCityResponse);
-    rpc Subdivision(GeoNameRequest) returns (stream GeoNameSubdivisionResponse);
+  rpc Continent(GeoNameRequest) returns (stream GeoNameContinentResponse);
+  rpc Country(GeoNameRequest) returns (stream GeoNameCountryResponse);
+  rpc City(GeoNameRequest) returns (stream GeoNameCityResponse);
+  rpc Subdivision(GeoNameRequest) returns (stream GeoNameSubdivisionResponse);
 }
 
 message GeoNameCountryResponse {
-    string iso_code = 1;
-    string iso3_code = 2;
-    string iso_numeric = 3;
-    string fips = 4;
-    string name = 5;
-    string capital = 6;
-    double area = 7;
-    int64 population = 8;
-    string continent = 9;
-    string tld = 10;
-    string currency_code = 11;
-    string currency_name = 12;
-    string phone = 13;
-    string postal_code_format = 14;
-    string postal_code_regex = 15;
-    string languages = 16;
-    uint32 geo_name_id = 17;
-    string neighbours = 18;
-    string equivalent_fips_code = 19;
+  string iso_code = 1;
+  string iso3_code = 2;
+  string iso_numeric = 3;
+  string fips = 4;
+  string name = 5;
+  string capital = 6;
+  double area = 7;
+  int64 population = 8;
+  string continent = 9;
+  string tld = 10;
+  string currency_code = 11;
+  string currency_name = 12;
+  string phone = 13;
+  string postal_code_format = 14;
+  string postal_code_regex = 15;
+  string languages = 16;
+  uint32 geo_name_id = 17;
+  string neighbours = 18;
+  string equivalent_fips_code = 19;
 }
 
 message GeoNameSubdivisionResponse {
-    string code = 1;
-    string name = 2;
-    string ascii_name = 3;
-    uint32 geo_name_id = 4;
+  string code = 1;
+  string name = 2;
+  string ascii_name = 3;
+  uint32 geo_name_id = 4;
 }
 
 message GeoNameContinentResponse {
-    string code = 1;
-    string name = 2;
-    uint32 geo_name_id = 3;
+  string code = 1;
+  string name = 2;
+  uint32 geo_name_id = 3;
 }
 
-
 message GeoNameCityResponse {
-    uint32 geo_name_id = 1;
-    string name = 2;
-    string ascii_name = 3;
-    double latitude = 4;
-    double longitude = 5;
-    string class = 6;
-    string code = 7;
-    string country_code = 8;
-    string alternate_country_codes = 9;
-    string admin1_code = 10;
-    string admin2_code = 11;
-    string admin3_code = 12;
-    string admin4_code = 13;
-    int64 population = 14;
-    int64 elevation = 15;
-    int64 digital_elevation_model = 16;
-    string time_zone = 17;
+  uint32 geo_name_id = 1;
+  string name = 2;
+  string ascii_name = 3;
+  double latitude = 4;
+  double longitude = 5;
+  string class = 6;
+  string code = 7;
+  string country_code = 8;
+  string alternate_country_codes = 9;
+  string admin1_code = 10;
+  string admin2_code = 11;
+  string admin3_code = 12;
+  string admin4_code = 13;
+  int64 population = 14;
+  int64 elevation = 15;
+  int64 digital_elevation_model = 16;
+  string time_zone = 17;
 }

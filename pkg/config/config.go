@@ -16,10 +16,11 @@ const (
 )
 
 type Config struct {
-	Server    server.Config
-	Log       log.Config
-	GrpcPort  int    `mapstructure:"GRPC_SERVICE_PORT" description:"gRPC service port (0 - disabled)"`
-	GeoDbPath string `mapstructure:"GEOIP_DB_PATH" description:"Path to GeoLite2 or GeoIP2 databases"`
+	Server       server.Config
+	Log          log.Config
+	GrpcPort     int    `mapstructure:"GRPC_SERVICE_PORT" description:"gRPC service port (0 - disabled)"`
+	GeoDbPath    string `mapstructure:"GEOIP_DB_PATH" description:"Path to GeoLite2 or GeoIP2 city database"`
+	GeoDbISPPath string `mapstructure:"GEOIP_DB_ISP_PATH" description:"Path to GeoIP2 ISP database"`
 
 	Consul     consul.ConsulConfig  `mapstructure:"CONSUL"`
 	GrpcConsul consul.ServiceConfig `mapstructure:"CONSUL_GRPC"`

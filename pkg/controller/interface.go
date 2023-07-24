@@ -9,7 +9,7 @@ import (
 
 type GeoIpService interface {
 	Country(ctx context.Context, address string) (*entity.Country, error)
-	City(ctx context.Context, address string) (*entity.City, error)
+	City(ctx context.Context, address string, includeISP bool) (*entity.City, error)
 	CityLite(ctx context.Context, address string, lang string) (*entity.CityLite, error)
 	Dump(ctx context.Context, format service.DumpFormat) ([]byte, error)
 	Database(ctx context.Context, dbType service.DBType) (*entity.Database, error)

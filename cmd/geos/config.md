@@ -6,7 +6,8 @@
 |LOG_LEVEL|info|Log level|
 |LOG_COLOR_ENABLED|false|Enable the colorized output|
 |GRPC_SERVICE_PORT|0|gRPC service port (0 - disabled)|
-|GEOIP_DB_PATH|../../db.mmdb|Path to GeoLite2 or GeoIP2 databases|
+|GEOIP_DB_PATH|../../db.mmdb|Path to GeoLite2 or GeoIP2 city database|
+|GEOIP_DB_ISP_PATH||Path to GeoIP2 ISP database|
 |CONSUL_ADDRESS||Address of the Consul server|
 |CONSUL_SCHEME|http|URI scheme for the Consul server|
 |CONSUL_TOKEN|| Token is used to provide a per-request ACL token|

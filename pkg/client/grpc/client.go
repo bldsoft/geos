@@ -47,16 +47,16 @@ func (c *Client) prepareContext(ctx context.Context) context.Context {
 
 func (c *Client) Country(ctx context.Context, address string) (*entity.Country, error) {
 	ctx = c.prepareContext(ctx)
-	country, err := c.geoIpClient.Country(ctx, &pb.AddrRequest{Address: address})
+	country, err := c.geoIpClient.Country(ctx, &pb.CountryRequest{Address: address})
 	if err != nil {
 		return nil, err
 	}
 	return mapping.PbToCountry(country), nil
 }
 
-func (c *Client) City(ctx context.Context, address string) (*entity.City, error) {
+func (c *Client) City(ctx context.Context, address string, includeISP bool) (*entity.City, error) {
 	ctx = c.prepareContext(ctx)
-	city, err := c.geoIpClient.City(ctx, &pb.AddrRequest{Address: address})
+	city, err := c.geoIpClient.City(ctx, &pb.CityRequest{Address: address, Isp: &includeISP})
 	if err != nil {
 		return nil, err
 	}

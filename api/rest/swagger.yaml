@@ -11,6 +11,8 @@ definitions:
     type: object
   entity.City:
     properties:
+      ISP:
+        $ref: '#/definitions/entity.ISP'
       city:
         properties:
           geoNameID:
@@ -283,6 +285,21 @@ definitions:
       tld:
         type: string
     type: object
+  entity.ISP:
+    properties:
+      autonomousSystemNumber:
+        type: integer
+      autonomousSystemOrganization:
+        type: string
+      isp:
+        type: string
+      mobileCountryCode:
+        type: string
+      mobileNetworkCode:
+        type: string
+      organization:
+        type: string
+    type: object
   entity.LocationLite:
     properties:
       latitude:
@@ -368,6 +385,10 @@ paths:
         name: addr
         required: true
         type: string
+      - description: include ISP info
+        in: query
+        name: isp
+        type: boolean
       produces:
       - application/json
       responses:
@@ -446,6 +467,7 @@ paths:
       - description: db type
         enum:
         - city
+        - isp
         in: path
         name: db
         required: true
@@ -477,6 +499,7 @@ paths:
       - description: db type
         enum:
         - city
+        - isp
         in: path
         name: db
         required: true
@@ -507,6 +530,7 @@ paths:
       - description: db type
         enum:
         - city
+        - isp
         in: path
         name: db
         required: true

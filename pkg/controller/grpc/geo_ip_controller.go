@@ -19,7 +19,7 @@ func NewGeoIpController(geoService controller.GeoIpService) *GeoIpController {
 	return &GeoIpController{service: geoService}
 }
 
-func (c *GeoIpController) Country(ctx context.Context, req *pb.AddrRequest) (*pb.CountryResponse, error) {
+func (c *GeoIpController) Country(ctx context.Context, req *pb.CountryRequest) (*pb.CountryResponse, error) {
 	country, err := c.service.Country(ctx, req.Address)
 	if err != nil {
 		log.FromContext(ctx).Error(err.Error())
@@ -28,8 +28,8 @@ func (c *GeoIpController) Country(ctx context.Context, req *pb.AddrRequest) (*pb
 	return CountryToPb(country), nil
 }
 
-func (c *GeoIpController) City(ctx context.Context, req *pb.AddrRequest) (*pb.CityResponse, error) {
-	city, err := c.service.City(ctx, req.Address)
+func (c *GeoIpController) City(ctx context.Context, req *pb.CityRequest) (*pb.CityResponse, error) {
+	city, err := c.service.City(ctx, req.Address, req.GetIsp())
 	if err != nil {
 		log.FromContext(ctx).Error(err.Error())
 		return nil, err
