@@ -81,8 +81,8 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 		r.With(m.ApiKeyMiddleware()).Get("/dump", geoIpController.GetDumpHandler) // deprecated, used by streampool
 		r.Route("/dump/{db}", func(r chi.Router) {
 			r.Use(m.ApiKeyMiddleware())
-			r.Get("/csv", geoIpController.GetDumpHandler)
-			r.Get("/mmdb", geoIpController.GetDatabaseHandler)
+			r.Get("/csv", geoIpController.GetCSVDatabaseHandler)
+			r.Get("/mmdb", geoIpController.GetMMDBDatabaseHandler)
 			r.Get("/metadata", geoIpController.GetDatabaseMetaHandler)
 		})
 
