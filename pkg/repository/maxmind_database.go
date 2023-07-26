@@ -1,15 +1,16 @@
 package repository
 
 import (
-	"errors"
+	"fmt"
 	"io/ioutil"
 	"net"
 
+	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
 	"github.com/oschwald/maxminddb-golang"
 )
 
-var ErrDBNotAvailable = errors.New("db not available")
+var ErrDBNotAvailable = fmt.Errorf("db %w", utils.ErrNotAvailable)
 
 type database struct {
 	path  string

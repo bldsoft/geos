@@ -9,13 +9,14 @@ import (
 	"path/filepath"
 
 	"github.com/bldsoft/geos/pkg/entity"
+	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
 	"github.com/oschwald/maxminddb-golang"
 )
 
 var (
-	ErrGeoIPCSVNotReady = errors.New("geoip csv dump not ready")
-	ErrGeoIPCSVDisabled = errors.New("geoip csv dump is disabled")
+	ErrGeoIPCSVNotReady = fmt.Errorf("geoip csv dump is %w", utils.ErrNotReady)
+	ErrGeoIPCSVDisabled = fmt.Errorf("geoip csv dump is %w", utils.ErrDisabled)
 )
 
 type DumpFormat string

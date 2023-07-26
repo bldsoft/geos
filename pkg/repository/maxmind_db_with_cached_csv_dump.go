@@ -99,7 +99,7 @@ func (db *maxmindDBWithCachedCSVDump) loadDumpFull(ctx context.Context, dumpPath
 func (db *maxmindDBWithCachedCSVDump) CSV(ctx context.Context, withColumnNames bool) ([]byte, error) {
 	select {
 	case <-db.dumpReady:
-		if db.maxmindCSVDumper == nil {
+		if !db.Available() {
 			return nil, ErrDBNotAvailable
 		}
 		if db.csvWithNamesDump == nil {

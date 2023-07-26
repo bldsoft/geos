@@ -1,14 +1,16 @@
 package rest
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/bldsoft/geos/pkg/controller"
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/service"
+	"github.com/bldsoft/geos/pkg/utils"
 	gost "github.com/bldsoft/gost/controller"
 	"github.com/bldsoft/gost/log"
-	"github.com/bldsoft/gost/utils"
+	gostUtils "github.com/bldsoft/gost/utils"
 )
 
 type GeoNameController struct {
@@ -21,7 +23,7 @@ func NewGeoNameController(geoNameService controller.GeoNameService) *GeoNameCont
 }
 
 func (c *GeoNameController) getGeoNameFilter(r *http.Request) entity.GeoNameFilter {
-	return *utils.FromRequest[entity.GeoNameFilter](r)
+	return *gostUtils.FromRequest[entity.GeoNameFilter](r)
 }
 
 // @Summary continent
@@ -50,8 +52,7 @@ func (c *GeoNameController) GetGeoNameCountriesHandler(w http.ResponseWriter, r 
 	filter := c.getGeoNameFilter(r)
 	countries, err := c.geoNameService.Countries(ctx, filter)
 	if err != nil {
-		log.FromContext(ctx).Error(err.Error())
-		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		c.responseError(w, r, err)
 		return
 	}
 	c.ResponseJson(w, r, countries, false)
@@ -72,8 +73,7 @@ func (c *GeoNameController) GetGeoNameSubdivisionsHandler(w http.ResponseWriter,
 	filter := c.getGeoNameFilter(r)
 	subdivisions, err := c.geoNameService.Subdivisions(ctx, filter)
 	if err != nil {
-		log.FromContext(ctx).Error(err.Error())
-		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		c.responseError(w, r, err)
 		return
 	}
 	c.ResponseJson(w, r, subdivisions, false)
@@ -94,8 +94,7 @@ func (c *GeoNameController) GetGeoNameCitiesHandler(w http.ResponseWriter, r *ht
 	filter := c.getGeoNameFilter(r)
 	cities, err := c.geoNameService.Cities(ctx, filter)
 	if err != nil {
-		log.FromContext(ctx).Error(err.Error())
-		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		c.responseError(w, r, err)
 		return
 	}
 	c.ResponseJson(w, r, cities, false)
@@ -114,10 +113,23 @@ func (c *GeoNameController) GetDumpHandler(w http.ResponseWriter, r *http.Reques
 	format, _ := gost.GetQueryOption[string](r, "format")
 	dump, err := c.geoNameService.Dump(ctx, service.DumpFormat(format))
 	if err != nil {
-		log.FromContext(ctx).Error(err.Error())
-		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		c.responseError(w, r, err)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(dump)
+}
+
+func (c *GeoNameController) responseError(w http.ResponseWriter, r *http.Request, err error) {
+	log.FromContext(r.Context()).Error(err.Error())
+	switch {
+	case errors.Is(err, utils.ErrDisabled):
+		c.ResponseError(w, err.Error(), http.StatusInternalServerError)
+	case errors.Is(err, utils.ErrNotReady):
+		c.ResponseError(w, err.Error(), http.StatusServiceUnavailable)
+	case errors.Is(err, utils.ErrNotAvailable):
+		c.ResponseError(w, err.Error(), http.StatusInternalServerError)
+	default:
+		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+	}
 }

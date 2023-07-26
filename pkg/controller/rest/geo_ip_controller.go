@@ -1,12 +1,14 @@
 package rest
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/bldsoft/geos/pkg/controller"
 	_ "github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/repository"
 	"github.com/bldsoft/geos/pkg/service"
+	"github.com/bldsoft/geos/pkg/utils"
 	gost "github.com/bldsoft/gost/controller"
 	"github.com/bldsoft/gost/log"
 	"github.com/go-chi/chi/v5"
@@ -39,8 +41,7 @@ func (c *GeoIpController) GetCityHandler(w http.ResponseWriter, r *http.Request)
 	ctx := r.Context()
 	city, err := c.geoIpService.City(ctx, c.address(r), includeISP)
 	if err != nil {
-		log.FromContext(ctx).Error(err.Error())
-		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		c.responseError(w, r, err)
 		return
 	}
 	c.ResponseJson(w, r, city)
@@ -58,8 +59,7 @@ func (c *GeoIpController) GetCountryHandler(w http.ResponseWriter, r *http.Reque
 	ctx := r.Context()
 	country, err := c.geoIpService.Country(ctx, c.address(r))
 	if err != nil {
-		log.FromContext(ctx).Error(err.Error())
-		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		c.responseError(w, r, err)
 		return
 	}
 	c.ResponseJson(w, r, country)
@@ -78,8 +78,7 @@ func (c *GeoIpController) GetCityLiteHandler(w http.ResponseWriter, r *http.Requ
 	lang, _ := gost.GetQueryOption[string](r, "lang")
 	city, err := c.geoIpService.CityLite(ctx, c.address(r), lang)
 	if err != nil {
-		log.FromContext(ctx).Error(err.Error())
-		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		c.responseError(w, r, err)
 		return
 	}
 	c.ResponseJson(w, r, city)
@@ -100,8 +99,7 @@ func (c *GeoIpController) GetDumpHandler(w http.ResponseWriter, r *http.Request)
 	format, _ := gost.GetQueryOption(r, "format", repository.DumpFormatCSVWithNames)
 	db, err := c.geoIpService.Database(ctx, repository.MaxmindDBTypeCity, service.DumpFormat(format))
 	if err != nil {
-		log.FromContext(ctx).Error(err.Error())
-		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		c.responseError(w, r, err)
 		return
 	}
 	w.Header().Set("Content-Type", "text/csv")
@@ -123,8 +121,7 @@ func (c *GeoIpController) GetMMDBDatabaseHandler(w http.ResponseWriter, r *http.
 	db := chi.URLParam(r, "db")
 	database, err := c.geoIpService.Database(ctx, service.DBType(db), repository.DumpFormatMMDB)
 	if err != nil {
-		log.FromContext(ctx).Error(err.Error())
-		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		c.responseError(w, r, err)
 		return
 	}
 	w.Header().Set("Content-Type", "application/octet-stream")
@@ -153,8 +150,7 @@ func (c *GeoIpController) GetCSVDatabaseHandler(w http.ResponseWriter, r *http.R
 	}
 	database, err := c.geoIpService.Database(ctx, service.DBType(db), format)
 	if err != nil {
-		log.FromContext(ctx).Error(err.Error())
-		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		c.responseError(w, r, err)
 		return
 	}
 	w.Header().Set("Content-Type", "text/csv")
@@ -176,9 +172,22 @@ func (c *GeoIpController) GetDatabaseMetaHandler(w http.ResponseWriter, r *http.
 	db := chi.URLParam(r, "db")
 	database, err := c.geoIpService.Database(ctx, service.DBType(db), repository.DumpFormatMMDB)
 	if err != nil {
-		log.FromContext(ctx).Error(err.Error())
-		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		c.responseError(w, r, err)
 		return
 	}
 	c.ResponseJson(w, r, database.MetaData)
+}
+
+func (c *GeoIpController) responseError(w http.ResponseWriter, r *http.Request, err error) {
+	log.FromContext(r.Context()).Error(err.Error())
+	switch {
+	case errors.Is(err, utils.ErrDisabled):
+		c.ResponseError(w, err.Error(), http.StatusInternalServerError)
+	case errors.Is(err, utils.ErrNotReady):
+		c.ResponseError(w, err.Error(), http.StatusServiceUnavailable)
+	case errors.Is(err, utils.ErrNotAvailable):
+		c.ResponseError(w, err.Error(), http.StatusInternalServerError)
+	default:
+		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+	}
 }
