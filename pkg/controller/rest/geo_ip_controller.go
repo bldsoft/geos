@@ -1,11 +1,14 @@
 package rest
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/bldsoft/geos/pkg/controller"
 	_ "github.com/bldsoft/geos/pkg/entity"
+	"github.com/bldsoft/geos/pkg/repository"
 	"github.com/bldsoft/geos/pkg/service"
+	"github.com/bldsoft/geos/pkg/utils"
 	gost "github.com/bldsoft/gost/controller"
 	"github.com/bldsoft/gost/log"
 	"github.com/go-chi/chi/v5"
@@ -38,8 +41,7 @@ func (c *GeoIpController) GetCityHandler(w http.ResponseWriter, r *http.Request)
 	ctx := r.Context()
 	city, err := c.geoIpService.City(ctx, c.address(r), includeISP)
 	if err != nil {
-		log.FromContext(ctx).Error(err.Error())
-		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		c.responseError(w, r, err)
 		return
 	}
 	c.ResponseJson(w, r, city)
@@ -57,8 +59,7 @@ func (c *GeoIpController) GetCountryHandler(w http.ResponseWriter, r *http.Reque
 	ctx := r.Context()
 	country, err := c.geoIpService.Country(ctx, c.address(r))
 	if err != nil {
-		log.FromContext(ctx).Error(err.Error())
-		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		c.responseError(w, r, err)
 		return
 	}
 	c.ResponseJson(w, r, country)
@@ -77,8 +78,7 @@ func (c *GeoIpController) GetCityLiteHandler(w http.ResponseWriter, r *http.Requ
 	lang, _ := gost.GetQueryOption[string](r, "lang")
 	city, err := c.geoIpService.CityLite(ctx, c.address(r), lang)
 	if err != nil {
-		log.FromContext(ctx).Error(err.Error())
-		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		c.responseError(w, r, err)
 		return
 	}
 	c.ResponseJson(w, r, city)
@@ -93,31 +93,18 @@ func (c *GeoIpController) GetCityLiteHandler(w http.ResponseWriter, r *http.Requ
 // @Success 200 {object} string
 // @Failure 400 {string} string "error"
 // @Failure 500 {string} string "error"
+// @Failure 503 {string} string "error"
 // @Router /dump [get]
-func (c *GeoIpController) deprecatedDumpHandler(w http.ResponseWriter, r *http.Request) {
-	// used to generate doc
-}
-
-// @Summary maxmind csv database. It's generated from the mmdb file, so the result may differ from those that are officially supplied
-// @Security ApiKeyAuth
-// @Produce text/csv
-// @Tags geo IP
-// @Param db path string true "db type" Enums(city,isp)
-// @Success 200 {object} string
-// @Failure 400 {string} string "error"
-// @Failure 500 {string} string "error"
-// @Router /dump/{db}/csv [get]
 func (c *GeoIpController) GetDumpHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	format, _ := gost.GetQueryOption[string](r, "format")
-	dump, err := c.geoIpService.Dump(ctx, service.DumpFormat(format))
+	format, _ := gost.GetQueryOption(r, "format", repository.DumpFormatCSVWithNames)
+	db, err := c.geoIpService.Database(ctx, repository.MaxmindDBTypeCity, service.DumpFormat(format))
 	if err != nil {
-		log.FromContext(ctx).Error(err.Error())
-		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		c.responseError(w, r, err)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(dump)
+	w.Header().Set("Content-Type", "text/csv")
+	w.Write(db.Data)
 }
 
 // @Summary maxmind mmdb database
@@ -128,18 +115,48 @@ func (c *GeoIpController) GetDumpHandler(w http.ResponseWriter, r *http.Request)
 // @Success 200 {object} string
 // @Failure 400 {string} string "error"
 // @Failure 500 {string} string "error"
+// @Failure 503 {string} string "error"
 // @securityDefinitions.apikey ApiKeyAuth
 // @Router /dump/{db}/mmdb [get]
-func (c *GeoIpController) GetDatabaseHandler(w http.ResponseWriter, r *http.Request) {
+func (c *GeoIpController) GetMMDBDatabaseHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	db := chi.URLParam(r, "db")
-	database, err := c.geoIpService.Database(ctx, service.DBType(db))
+	database, err := c.geoIpService.Database(ctx, service.DBType(db), repository.DumpFormatMMDB)
 	if err != nil {
-		log.FromContext(ctx).Error(err.Error())
-		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		c.responseError(w, r, err)
 		return
 	}
 	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Disposition", "attachment; filename="+database.FileName())
+	w.Write(database.Data)
+}
+
+// @Summary maxmind csv database. It's generated from the mmdb file, so the result may differ from those that are officially supplied
+// @Security ApiKeyAuth
+// @Produce text/csv
+// @Param db path string true "db type" Enums(city,isp)
+// @Param header query bool false "include header"
+// @Tags geo IP
+// @Success 200 {object} string
+// @Failure 400 {string} string "error"
+// @Failure 500 {string} string "error"
+// @Failure 503 {string} string "error"
+// @securityDefinitions.apikey ApiKeyAuth
+// @Router /dump/{db}/csv [get]
+func (c *GeoIpController) GetCSVDatabaseHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	db := chi.URLParam(r, "db")
+	includeHeader, _ := gost.GetQueryOption(r, "header", true)
+	format := repository.DumpFormatCSVWithNames
+	if !includeHeader {
+		format = repository.DumpFormatCSV
+	}
+	database, err := c.geoIpService.Database(ctx, service.DBType(db), format)
+	if err != nil {
+		c.responseError(w, r, err)
+		return
+	}
+	w.Header().Set("Content-Type", "text/csv")
 	w.Header().Set("Content-Disposition", "attachment; filename="+database.FileName())
 	w.Write(database.Data)
 }
@@ -152,15 +169,29 @@ func (c *GeoIpController) GetDatabaseHandler(w http.ResponseWriter, r *http.Requ
 // @Success 200 {object} entity.MetaData
 // @Failure 400 {string} string "error"
 // @Failure 500 {string} string "error"
+// @Failure 503 {string} string "error"
 // @Router /dump/{db}/metadata [get]
 func (c *GeoIpController) GetDatabaseMetaHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	db := chi.URLParam(r, "db")
-	database, err := c.geoIpService.Database(ctx, service.DBType(db))
+	database, err := c.geoIpService.Database(ctx, service.DBType(db), repository.DumpFormatMMDB)
 	if err != nil {
-		log.FromContext(ctx).Error(err.Error())
-		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		c.responseError(w, r, err)
 		return
 	}
 	c.ResponseJson(w, r, database.MetaData)
+}
+
+func (c *GeoIpController) responseError(w http.ResponseWriter, r *http.Request, err error) {
+	log.FromContext(r.Context()).Error(err.Error())
+	switch {
+	case errors.Is(err, utils.ErrDisabled):
+		c.ResponseError(w, err.Error(), http.StatusInternalServerError)
+	case errors.Is(err, utils.ErrNotReady):
+		c.ResponseError(w, err.Error(), http.StatusServiceUnavailable)
+	case errors.Is(err, utils.ErrNotAvailable):
+		c.ResponseError(w, err.Error(), http.StatusInternalServerError)
+	default:
+		c.ResponseError(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+	}
 }

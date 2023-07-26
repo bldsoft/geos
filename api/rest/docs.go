@@ -186,6 +186,12 @@ const docTemplate = `{
                         "schema": {
                             "type": "string"
                         }
+                    },
+                    "503": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 }
             }
@@ -215,6 +221,12 @@ const docTemplate = `{
                         "name": "db",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "include header",
+                        "name": "header",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -231,6 +243,12 @@ const docTemplate = `{
                         }
                     },
                     "500": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "503": {
                         "description": "error",
                         "schema": {
                             "type": "string"
@@ -284,6 +302,12 @@ const docTemplate = `{
                         "schema": {
                             "type": "string"
                         }
+                    },
+                    "503": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 }
             }
@@ -329,6 +353,12 @@ const docTemplate = `{
                         }
                     },
                     "500": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "503": {
                         "description": "error",
                         "schema": {
                             "type": "string"
@@ -417,6 +447,12 @@ const docTemplate = `{
                         "schema": {
                             "type": "string"
                         }
+                    },
+                    "503": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 }
             }
@@ -499,6 +535,12 @@ const docTemplate = `{
                         "schema": {
                             "type": "string"
                         }
+                    },
+                    "503": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 }
             }
@@ -534,6 +576,12 @@ const docTemplate = `{
                         }
                     },
                     "500": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "503": {
                         "description": "error",
                         "schema": {
                             "type": "string"
@@ -594,6 +642,12 @@ const docTemplate = `{
                         }
                     },
                     "500": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "503": {
                         "description": "error",
                         "schema": {
                             "type": "string"

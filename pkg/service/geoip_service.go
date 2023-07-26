@@ -16,8 +16,7 @@ type GeoRepository interface {
 	Country(ctx context.Context, ip net.IP) (*entity.Country, error)
 	City(ctx context.Context, ip net.IP, includeISP bool) (*entity.City, error)
 	CityLite(ctx context.Context, ip net.IP, lang string) (*entity.CityLite, error)
-	Dump(ctx context.Context, format repository.DumpFormat) ([]byte, error)
-	Database(ctx context.Context, dbType DBType) (*entity.Database, error)
+	Database(ctx context.Context, dbType DBType, format DumpFormat) (*entity.Database, error)
 }
 
 type GeoIpService struct {
@@ -77,10 +76,6 @@ func (s *GeoIpService) CityLite(ctx context.Context, address string, lang string
 	return s.rep.CityLite(ctx, ip, lang)
 }
 
-func (r *GeoIpService) Dump(ctx context.Context, format DumpFormat) ([]byte, error) {
-	return r.rep.Dump(ctx, format)
-}
-
-func (r *GeoIpService) Database(ctx context.Context, dbType DBType) (*entity.Database, error) {
-	return r.rep.Database(ctx, dbType)
+func (r *GeoIpService) Database(ctx context.Context, dbType DBType, format DumpFormat) (*entity.Database, error) {
+	return r.rep.Database(ctx, dbType, format)
 }

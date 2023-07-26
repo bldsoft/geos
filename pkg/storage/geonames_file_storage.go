@@ -2,7 +2,7 @@ package storage
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -17,8 +17,8 @@ import (
 const initRetryInterval = time.Minute
 
 var (
-	ErrGeoNameNotReady = errors.New("geoname not ready")
-	ErrGeoNameDisabled = errors.New("geoname is disabled")
+	ErrGeoNameNotReady = fmt.Errorf("geoname csv dump is %w", utils.ErrNotReady)
+	ErrGeoNameDisabled = fmt.Errorf("geoname csv dump is %w", utils.ErrDisabled)
 )
 
 type geonameIndex[T entity.GeoNameEntity] interface {

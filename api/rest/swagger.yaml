@@ -456,6 +456,10 @@ paths:
           description: error
           schema:
             type: string
+        "503":
+          description: error
+          schema:
+            type: string
       security:
       - ApiKeyAuth: []
       summary: geoip database dump
@@ -472,6 +476,10 @@ paths:
         name: db
         required: true
         type: string
+      - description: include header
+        in: query
+        name: header
+        type: boolean
       produces:
       - text/csv
       responses:
@@ -484,6 +492,10 @@ paths:
           schema:
             type: string
         "500":
+          description: error
+          schema:
+            type: string
+        "503":
           description: error
           schema:
             type: string
@@ -519,6 +531,10 @@ paths:
           description: error
           schema:
             type: string
+        "503":
+          description: error
+          schema:
+            type: string
       security:
       - ApiKeyAuth: []
       summary: maxmind database metadata
@@ -547,6 +563,10 @@ paths:
           schema:
             type: string
         "500":
+          description: error
+          schema:
+            type: string
+        "503":
           description: error
           schema:
             type: string
@@ -605,6 +625,10 @@ paths:
           description: error
           schema:
             type: string
+        "503":
+          description: error
+          schema:
+            type: string
       summary: city
       tags:
       - geonames
@@ -658,6 +682,10 @@ paths:
           description: error
           schema:
             type: string
+        "503":
+          description: error
+          schema:
+            type: string
       summary: country
       tags:
       - geonames
@@ -680,6 +708,10 @@ paths:
           schema:
             type: string
         "500":
+          description: error
+          schema:
+            type: string
+        "503":
           description: error
           schema:
             type: string
@@ -719,6 +751,10 @@ paths:
           schema:
             type: string
         "500":
+          description: error
+          schema:
+            type: string
+        "503":
           description: error
           schema:
             type: string
