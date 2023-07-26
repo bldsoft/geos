@@ -3,9 +3,12 @@ package repository
 import (
 	"bytes"
 	"context"
+	"encoding/csv"
 	"io"
+	"strconv"
 
-	"github.com/bldsoft/gost/utils"
+	"github.com/bldsoft/geos/pkg/entity"
+	"github.com/oschwald/maxminddb-golang"
 )
 
 type ispDB struct {
@@ -17,7 +20,48 @@ func openISPDB(path string, required bool) *ispDB {
 }
 
 func (db *ispDB) WriteCSVTo(ctx context.Context, w io.Writer) error {
-	return utils.ErrNotImplemented
+	networks, err := db.Networks(maxminddb.SkipAliasedNetworks)
+	if err != nil {
+		return err
+	}
+
+	csvWriter := csv.NewWriter(w)
+
+	if err := csvWriter.Write([]string{
+		"network",
+		"autonomous_system_organization",
+		"ISP",
+		"mobile_country_code",
+		"mobile_network_code",
+		"organization",
+		"autonomous_system_number",
+	}); err != nil {
+		return err
+	}
+
+	var record entity.ISP
+	for networks.Next() {
+		subnet, err := networks.Network(&record)
+		if err != nil {
+			return err
+		}
+
+		err = csvWriter.Write([]string{
+			subnet.String(),
+			record.AutonomousSystemOrganization,
+			record.ISP,
+			record.MobileCountryCode,
+			record.MobileCountryCode,
+			record.Organization,
+			strconv.FormatUint(uint64(record.AutonomousSystemNumber), 10),
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	csvWriter.Flush()
+	return nil
 }
 
 func (db *ispDB) CSV(ctx context.Context, withColumnNames bool) ([]byte, error) {
