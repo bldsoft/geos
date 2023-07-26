@@ -93,6 +93,7 @@ func (c *GeoIpController) GetCityLiteHandler(w http.ResponseWriter, r *http.Requ
 // @Success 200 {object} string
 // @Failure 400 {string} string "error"
 // @Failure 500 {string} string "error"
+// @Failure 503 {string} string "error"
 // @Router /dump [get]
 func (c *GeoIpController) GetDumpHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -114,6 +115,7 @@ func (c *GeoIpController) GetDumpHandler(w http.ResponseWriter, r *http.Request)
 // @Success 200 {object} string
 // @Failure 400 {string} string "error"
 // @Failure 500 {string} string "error"
+// @Failure 503 {string} string "error"
 // @securityDefinitions.apikey ApiKeyAuth
 // @Router /dump/{db}/mmdb [get]
 func (c *GeoIpController) GetMMDBDatabaseHandler(w http.ResponseWriter, r *http.Request) {
@@ -133,11 +135,12 @@ func (c *GeoIpController) GetMMDBDatabaseHandler(w http.ResponseWriter, r *http.
 // @Security ApiKeyAuth
 // @Produce text/csv
 // @Param db path string true "db type" Enums(city,isp)
-// @Param header query string false "include header" bool
+// @Param header query bool false "include header"
 // @Tags geo IP
 // @Success 200 {object} string
 // @Failure 400 {string} string "error"
 // @Failure 500 {string} string "error"
+// @Failure 503 {string} string "error"
 // @securityDefinitions.apikey ApiKeyAuth
 // @Router /dump/{db}/csv [get]
 func (c *GeoIpController) GetCSVDatabaseHandler(w http.ResponseWriter, r *http.Request) {
@@ -166,6 +169,7 @@ func (c *GeoIpController) GetCSVDatabaseHandler(w http.ResponseWriter, r *http.R
 // @Success 200 {object} entity.MetaData
 // @Failure 400 {string} string "error"
 // @Failure 500 {string} string "error"
+// @Failure 503 {string} string "error"
 // @Router /dump/{db}/metadata [get]
 func (c *GeoIpController) GetDatabaseMetaHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()

@@ -46,6 +46,7 @@ func (c *GeoNameController) GetGeoNameContinentsHandler(w http.ResponseWriter, r
 // @Success 200 {object} []entity.GeoNameCountry
 // @Failure 400 {string} string "error"
 // @Failure 500 {string} string "error"
+// @Failure 503 {string} string "error"
 // @Router /geoname/country [get]
 func (c *GeoNameController) GetGeoNameCountriesHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -67,6 +68,7 @@ func (c *GeoNameController) GetGeoNameCountriesHandler(w http.ResponseWriter, r 
 // @Success 200 {object} []entity.GeoNameAdminSubdivision
 // @Failure 400 {string} string "error"
 // @Failure 500 {string} string "error"
+// @Failure 503 {string} string "error"
 // @Router /geoname/subdivision [get]
 func (c *GeoNameController) GetGeoNameSubdivisionsHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -88,6 +90,7 @@ func (c *GeoNameController) GetGeoNameSubdivisionsHandler(w http.ResponseWriter,
 // @Success 200 {object} []entity.GeoName
 // @Failure 400 {string} string "error"
 // @Failure 500 {string} string "error"
+// @Failure 503 {string} string "error"
 // @Router /geoname/city [get]
 func (c *GeoNameController) GetGeoNameCitiesHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -107,6 +110,7 @@ func (c *GeoNameController) GetGeoNameCitiesHandler(w http.ResponseWriter, r *ht
 // @Success 200 {object} string
 // @Failure 400 {string} string "error"
 // @Failure 500 {string} string "error"
+// @Failure 503 {string} string "error"
 // @Router /geoname/dump [get]
 func (c *GeoNameController) GetDumpHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()

@@ -181,6 +181,12 @@
                         "schema": {
                             "type": "string"
                         }
+                    },
+                    "503": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 }
             }
@@ -210,6 +216,12 @@
                         "name": "db",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "include header",
+                        "name": "header",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -226,6 +238,12 @@
                         }
                     },
                     "500": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "503": {
                         "description": "error",
                         "schema": {
                             "type": "string"
@@ -279,6 +297,12 @@
                         "schema": {
                             "type": "string"
                         }
+                    },
+                    "503": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 }
             }
@@ -324,6 +348,12 @@
                         }
                     },
                     "500": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "503": {
                         "description": "error",
                         "schema": {
                             "type": "string"
@@ -412,6 +442,12 @@
                         "schema": {
                             "type": "string"
                         }
+                    },
+                    "503": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 }
             }
@@ -494,6 +530,12 @@
                         "schema": {
                             "type": "string"
                         }
+                    },
+                    "503": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 }
             }
@@ -529,6 +571,12 @@
                         }
                     },
                     "500": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "503": {
                         "description": "error",
                         "schema": {
                             "type": "string"
@@ -589,6 +637,12 @@
                         }
                     },
                     "500": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "503": {
                         "description": "error",
                         "schema": {
                             "type": "string"
