@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -76,8 +77,8 @@ func (c *Client) Country(ctx context.Context, address string) (*entity.Country, 
 	return get[entity.Country](ctx, c.client, "country/"+address, nil)
 }
 
-func (c *Client) City(ctx context.Context, address string) (*entity.City, error) {
-	return get[entity.City](ctx, c.client, "city/"+address, nil)
+func (c *Client) City(ctx context.Context, address string, includeISP bool) (*entity.City, error) {
+	return get[entity.City](ctx, c.client, fmt.Sprintf("city/%s?isp=%v", address, includeISP), nil)
 }
 
 func (c *Client) CityLite(ctx context.Context, address, lang string) (*entity.CityLite, error) {

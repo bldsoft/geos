@@ -33,9 +33,9 @@ func (c *MultiClient) Country(ctx context.Context, address string) (*entity.Coun
 	})
 }
 
-func (c *MultiClient) City(ctx context.Context, address string) (*entity.City, error) {
+func (c *MultiClient) City(ctx context.Context, address string, includeISP bool) (*entity.City, error) {
 	return getFromAny(ctx, c.Clients, func(ctx context.Context, client Client) (*entity.City, error) {
-		return client.City(ctx, address)
+		return client.City(ctx, address, includeISP)
 	})
 }
 
