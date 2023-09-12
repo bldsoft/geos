@@ -8,6 +8,21 @@
 |GRPC_SERVICE_PORT|0|gRPC service port (0 - disabled)|
 |GEOIP_DB_PATH|../../db.mmdb|Path to GeoLite2 or GeoIP2 city database|
 |GEOIP_DB_ISP_PATH||Path to GeoIP2 ISP database|
+|CONSUL_ADDRESS||DEPRECATED. Address of the Consul server|
+|CONSUL_SCHEME|http|DEPRECATED. URI scheme for the Consul server|
+|CONSUL_TOKEN|| DEPRECATED. Token is used to provide a per-request ACL token|
+|CONSUL_GRPC_SERVICE_ID||DEPRECATED. The ID of the service. If empty, a random one will be generated|
+|CONSUL_GRPC_CLUSTER|grpc_geos|DEPRECATED. The name of the service to register|
+|CONSUL_GRPC_SERVICE_ADDRESS||DEPRECATED. The address of the service. If it's empty the service doesn't register in consul|
+|CONSUL_GRPC_SERVICE_PORT|0|DEPRECATED. The port of the service|
+|CONSUL_GRPC_HEALTH_CHECK_TTL|30s|DEPRECATED. Check TTL|
+|CONSUL_GRPC_DEREREGISTER_TTL|30s|DEPRECATED. If a check is in the critical state for more than this configured value,	then the service will automatically be deregistered|
+|CONSUL_REST_SERVICE_ID||DEPRECATED. The ID of the service. If empty, a random one will be generated|
+|CONSUL_REST_CLUSTER|rest_geos|DEPRECATED. The name of the service to register|
+|CONSUL_REST_SERVICE_ADDRESS||DEPRECATED. The address of the service. If it's empty the service doesn't register in consul|
+|CONSUL_REST_SERVICE_PORT|0|DEPRECATED. The port of the service|
+|CONSUL_REST_HEALTH_CHECK_TTL|30s|DEPRECATED. Check TTL|
+|CONSUL_REST_DEREREGISTER_TTL|30s|DEPRECATED. If a check is in the critical state for more than this configured value,	then the service will automatically be deregistered|
 |DISCOVERY_GRPC_SERVICE_ID||The ID of the service. This must be unique in the cluster. If empty, a random one will be generated|
 |DISCOVERY_GRPC_SERVICE_NAME|grpc_geos|The name of the service to register|
 |DISCOVERY_GRPC_SERVICE_PROTO||The proto of the service|
