@@ -23,31 +23,23 @@
 |CONSUL_REST_SERVICE_PORT|0|DEPRECATED. The port of the service|
 |CONSUL_REST_HEALTH_CHECK_TTL|30s|DEPRECATED. Check TTL|
 |CONSUL_REST_DEREREGISTER_TTL|30s|DEPRECATED. If a check is in the critical state for more than this configured value,	then the service will automatically be deregistered|
+|DISCOVERY_GRPC_TYPE|none|Discovery type (none, in-house, consul)|
 |DISCOVERY_GRPC_SERVICE_ID||The ID of the service. This must be unique in the cluster. If empty, a random one will be generated|
 |DISCOVERY_GRPC_SERVICE_NAME|grpc_geos|The name of the service to register|
-|DISCOVERY_GRPC_SERVICE_PROTO||The proto of the service|
-|DISCOVERY_GRPC_SERVICE_HOST||The address of the service. If it's empty the service doesn't register in discovery|
-|DISCOVERY_GRPC_SERVICE_PORT||The port of the service|
-|DISCOVERY_GRPC_TYPE|none|Discovery type|
-|DISCOVERY_GRPC_MEMBERLIST_HOST||Memberlist host|
-|DISCOVERY_GRPC_MEMBERLIST_PORT|0|Meberlist port|
-|DISCOVERY_GRPC_MEMBERLIST_CLUSTER_MEMBERS||Any existing member of the cluster to join it|
-|DISCOVERY_GRPC_CONSUL_ADDRESS|127.0.0.1:8500|Address of the Consul server|
-|DISCOVERY_GRPC_CONSUL_SCHEME|http|URI scheme for the Consul server|
+|DISCOVERY_GRPC_SERVICE_ADDRESS|http://0.0.0.0:3000|The address of the current service|
+|DISCOVERY_GRPC_INHOUSE_ADDRESS|0.0.0.0:3001|Address used for in-house discovery communication|
+|DISCOVERY_GRPC_INHOUSE_CLUSTER_MEMBERS||Any existing member of the cluster to join it|
+|DISCOVERY_GRPC_CONSUL_ADDRESS|http://127.0.0.1:8500|Address of the Consul server|
 |DISCOVERY_GRPC_CONSUL_TOKEN|| Token is used to provide a per-request ACL token|
 |DISCOVERY_GRPC_CONSUL_HEALTH_CHECK_TTL|30s|Check TTL|
 |DISCOVERY_GRPC_CONSUL_DEREREGISTER_TTL|30s|If a check is in the critical state for more than this configured value,	then the service will automatically be deregistered|
+|DISCOVERY_REST_TYPE|none|Discovery type (none, in-house, consul)|
 |DISCOVERY_REST_SERVICE_ID||The ID of the service. This must be unique in the cluster. If empty, a random one will be generated|
 |DISCOVERY_REST_SERVICE_NAME|rest_geos|The name of the service to register|
-|DISCOVERY_REST_SERVICE_PROTO|http|The proto of the service|
-|DISCOVERY_REST_SERVICE_HOST||The address of the service. If it's empty the service doesn't register in discovery|
-|DISCOVERY_REST_SERVICE_PORT||The port of the service|
-|DISCOVERY_REST_TYPE|none|Discovery type|
-|DISCOVERY_REST_MEMBERLIST_HOST||Memberlist host|
-|DISCOVERY_REST_MEMBERLIST_PORT|0|Meberlist port|
-|DISCOVERY_REST_MEMBERLIST_CLUSTER_MEMBERS||Any existing member of the cluster to join it|
-|DISCOVERY_REST_CONSUL_ADDRESS|127.0.0.1:8500|Address of the Consul server|
-|DISCOVERY_REST_CONSUL_SCHEME|http|URI scheme for the Consul server|
+|DISCOVERY_REST_SERVICE_ADDRESS|http://0.0.0.0:3000|The address of the current service|
+|DISCOVERY_REST_INHOUSE_ADDRESS|0.0.0.0:3001|Address used for in-house discovery communication|
+|DISCOVERY_REST_INHOUSE_CLUSTER_MEMBERS||Any existing member of the cluster to join it|
+|DISCOVERY_REST_CONSUL_ADDRESS|http://127.0.0.1:8500|Address of the Consul server|
 |DISCOVERY_REST_CONSUL_TOKEN|| Token is used to provide a per-request ACL token|
 |DISCOVERY_REST_CONSUL_HEALTH_CHECK_TTL|30s|Check TTL|
 |DISCOVERY_REST_CONSUL_DEREREGISTER_TTL|30s|If a check is in the critical state for more than this configured value,	then the service will automatically be deregistered|

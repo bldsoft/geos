@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"strconv"
 	"time"
@@ -51,7 +52,6 @@ func (c *Config) SetDefaults() {
 	c.GeoDbPath = "../../db.mmdb"
 
 	c.GrpcDiscovery.ServiceName = GrpcServiceName
-	c.GrpcDiscovery.ServiceProto = ""
 	c.RestDiscovery.ServiceName = RestServiceName
 
 	c.ApiKey = "Dfga4pBfeRsMnxesWmY8eNBCW2Zf46kL"
@@ -114,14 +114,17 @@ func (c *Config) setFromDeprecated() {
 	if c.DeprecatedConsul.GrpcServiceAddr != "" {
 		c.GrpcDiscovery.DiscoveryType = common.DiscoveryTypeConsul
 
-		c.GrpcDiscovery.Consul.ConsulAddr = c.DeprecatedConsul.ConsulAddr
-		c.GrpcDiscovery.Consul.ConsulScheme = c.DeprecatedConsul.ConsulScheme
+		c.GrpcDiscovery.Consul.ConsulAddr = config.HttpAddress(fmt.Sprintf("%s://%s", c.DeprecatedConsul.ConsulScheme, c.DeprecatedConsul.ConsulAddr))
 		c.GrpcDiscovery.Consul.Token = c.DeprecatedConsul.Token
 
 		c.GrpcDiscovery.ServiceID = c.DeprecatedConsul.GrpcServiceID
 		c.GrpcDiscovery.ServiceName = c.DeprecatedConsul.GrpcCluster
-		c.GrpcDiscovery.ServiceHost = c.DeprecatedConsul.GrpcServiceAddr
-		c.GrpcDiscovery.ServicePort = strconv.Itoa(c.DeprecatedConsul.GrpcServicePort)
+		if c.DeprecatedConsul.GrpcServicePort != 0 {
+			c.GrpcDiscovery.ServiceAddr = config.Address(net.JoinHostPort(c.DeprecatedConsul.GrpcServiceAddr, strconv.Itoa(c.DeprecatedConsul.GrpcServicePort)))
+		} else {
+			c.RestDiscovery.ServiceAddr = config.Address(c.DeprecatedConsul.GrpcServiceAddr)
+		}
+
 		c.GrpcDiscovery.Consul.HealthCheckTTL = c.DeprecatedConsul.GrpcHealthCheckTTL
 		c.GrpcDiscovery.Consul.DeregisterTTL = c.DeprecatedConsul.GrpcDeregisterTTL
 	}
@@ -129,14 +132,18 @@ func (c *Config) setFromDeprecated() {
 	if c.DeprecatedConsul.RestServiceAddr != "" {
 		c.RestDiscovery.DiscoveryType = common.DiscoveryTypeConsul
 
-		c.RestDiscovery.Consul.ConsulAddr = c.DeprecatedConsul.ConsulAddr
-		c.RestDiscovery.Consul.ConsulScheme = c.DeprecatedConsul.ConsulScheme
+		c.RestDiscovery.Consul.ConsulAddr = config.HttpAddress(fmt.Sprintf("%s://%s", c.DeprecatedConsul.ConsulScheme, c.DeprecatedConsul.ConsulAddr))
+
 		c.RestDiscovery.Consul.Token = c.DeprecatedConsul.Token
 
 		c.RestDiscovery.ServiceID = c.DeprecatedConsul.RestServiceID
 		c.RestDiscovery.ServiceName = c.DeprecatedConsul.RestCluster
-		c.RestDiscovery.ServiceHost = c.DeprecatedConsul.RestServiceAddr
-		c.RestDiscovery.ServicePort = strconv.Itoa(c.DeprecatedConsul.RestServicePort)
+		if c.DeprecatedConsul.RestServicePort != 0 {
+			c.GrpcDiscovery.ServiceAddr = config.Address(net.JoinHostPort(c.DeprecatedConsul.RestServiceAddr, strconv.Itoa(c.DeprecatedConsul.RestServicePort)))
+		} else {
+			c.GrpcDiscovery.ServiceAddr = config.Address(c.DeprecatedConsul.RestServiceAddr)
+		}
+
 		c.RestDiscovery.Consul.HealthCheckTTL = c.DeprecatedConsul.RestHealthCheckTTL
 		c.RestDiscovery.Consul.DeregisterTTL = c.DeprecatedConsul.RestDeregisterTTL
 	}
