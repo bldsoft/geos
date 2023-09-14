@@ -122,7 +122,7 @@ func (c *Config) setFromDeprecated() {
 		if c.DeprecatedConsul.GrpcServicePort != 0 {
 			c.GrpcDiscovery.ServiceAddr = config.Address(net.JoinHostPort(c.DeprecatedConsul.GrpcServiceAddr, strconv.Itoa(c.DeprecatedConsul.GrpcServicePort)))
 		} else {
-			c.RestDiscovery.ServiceAddr = config.Address(c.DeprecatedConsul.GrpcServiceAddr)
+			c.GrpcDiscovery.ServiceAddr = config.Address(c.DeprecatedConsul.GrpcServiceAddr)
 		}
 
 		c.GrpcDiscovery.Consul.HealthCheckTTL = c.DeprecatedConsul.GrpcHealthCheckTTL
@@ -139,9 +139,9 @@ func (c *Config) setFromDeprecated() {
 		c.RestDiscovery.ServiceID = c.DeprecatedConsul.RestServiceID
 		c.RestDiscovery.ServiceName = c.DeprecatedConsul.RestCluster
 		if c.DeprecatedConsul.RestServicePort != 0 {
-			c.GrpcDiscovery.ServiceAddr = config.Address(net.JoinHostPort(c.DeprecatedConsul.RestServiceAddr, strconv.Itoa(c.DeprecatedConsul.RestServicePort)))
+			c.RestDiscovery.ServiceAddr = config.Address(net.JoinHostPort(c.DeprecatedConsul.RestServiceAddr, strconv.Itoa(c.DeprecatedConsul.RestServicePort)))
 		} else {
-			c.GrpcDiscovery.ServiceAddr = config.Address(c.DeprecatedConsul.RestServiceAddr)
+			c.RestDiscovery.ServiceAddr = config.Address(c.DeprecatedConsul.RestServiceAddr)
 		}
 
 		c.RestDiscovery.Consul.HealthCheckTTL = c.DeprecatedConsul.RestHealthCheckTTL
