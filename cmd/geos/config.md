@@ -27,7 +27,8 @@
 |DISCOVERY_GRPC_SERVICE_ID||The ID of the service. This must be unique in the cluster. If empty, a random one will be generated|
 |DISCOVERY_GRPC_SERVICE_NAME|grpc_geos|The name of the service to register|
 |DISCOVERY_GRPC_SERVICE_ADDRESS|http://0.0.0.0:3000|The address of the current service|
-|DISCOVERY_GRPC_INHOUSE_ADDRESS|0.0.0.0:3001|The address used for in-house discovery communication|
+|DISCOVERY_GRPC_INHOUSE_BIND_ADDRESS|0.0.0.0:3001|Configuration related to what address to bind to and ports to listen on.|
+|DISCOVERY_GRPC_INHOUSE_ADDRESS|0.0.0.0:3001|Configuration related to what address to advertise to other cluster members. The address used for in-house discovery communication|
 |DISCOVERY_GRPC_INHOUSE_CLUSTER_MEMBERS||Comma separated list of any existing member of the cluster to join it. Example: '127.0.0.1:3001'|
 |DISCOVERY_GRPC_CONSUL_ADDRESS|http://127.0.0.1:8500|Address of the Consul server|
 |DISCOVERY_GRPC_CONSUL_TOKEN|| Token is used to provide a per-request ACL token|
@@ -37,7 +38,8 @@
 |DISCOVERY_REST_SERVICE_ID||The ID of the service. This must be unique in the cluster. If empty, a random one will be generated|
 |DISCOVERY_REST_SERVICE_NAME|rest_geos|The name of the service to register|
 |DISCOVERY_REST_SERVICE_ADDRESS|http://0.0.0.0:3000|The address of the current service|
-|DISCOVERY_REST_INHOUSE_ADDRESS|0.0.0.0:3001|The address used for in-house discovery communication|
+|DISCOVERY_REST_INHOUSE_BIND_ADDRESS|0.0.0.0:3001|Configuration related to what address to bind to and ports to listen on.|
+|DISCOVERY_REST_INHOUSE_ADDRESS|0.0.0.0:3001|Configuration related to what address to advertise to other cluster members. The address used for in-house discovery communication|
 |DISCOVERY_REST_INHOUSE_CLUSTER_MEMBERS||Comma separated list of any existing member of the cluster to join it. Example: '127.0.0.1:3001'|
 |DISCOVERY_REST_CONSUL_ADDRESS|http://127.0.0.1:8500|Address of the Consul server|
 |DISCOVERY_REST_CONSUL_TOKEN|| Token is used to provide a per-request ACL token|
