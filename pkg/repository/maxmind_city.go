@@ -34,7 +34,7 @@ func (db *cityDB) WriteCSVTo(ctx context.Context, w io.Writer) error {
 		"registered_country_geoname_id",
 		"represented_country_geoname_id",
 		"is_anonymous_proxy",
-		"is_satelite_provider",
+		"is_satellite_provider",
 		"latitude",
 		"longitude",
 		"accuracy_radius",
