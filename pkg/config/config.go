@@ -2,9 +2,7 @@ package config
 
 import (
 	"fmt"
-	"net"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/bldsoft/gost/config"
@@ -15,22 +13,22 @@ import (
 )
 
 const (
-	ServiceName     = "geos"
-	GrpcServiceName = "grpc_" + ServiceName
-	RestServiceName = "rest_" + ServiceName
+	ServiceName = "geos"
 )
 
 type Config struct {
-	Server       server.Config
-	Log          log.Config
-	GrpcPort     int    `mapstructure:"GRPC_SERVICE_PORT" description:"gRPC service port (0 - disabled)"`
+	Server server.Config `mapstructure:"REST"`
+	Log    log.Config    `mapstructure:"REST"`
+
+	GRPCServiceBindAddress config.Address `mapstructure:"GRPC_SERVICE_BIND_ADDRESS" description:"Service configuration related to what address bind to and port to listen"`
+	GRPCServiceAddress     config.Address `mapstructure:"GRPC_SERVICE_ADDRESS" description:"GRPC public address"`
+
 	GeoDbPath    string `mapstructure:"GEOIP_DB_PATH" description:"Path to GeoLite2 or GeoIP2 city database"`
 	GeoDbISPPath string `mapstructure:"GEOIP_DB_ISP_PATH" description:"Path to GeoIP2 ISP database"`
 
 	DeprecatedConsul DeprecatedConsulConfig // TODO: remove
 
-	GrpcDiscovery common.Config `mapstructure:"DISCOVERY_GRPC"`
-	RestDiscovery common.Config `mapstructure:"DISCOVERY_REST"`
+	Discovery common.Config `mapstructure:"DISCOVERY"`
 
 	GeoNameDumpDirPath  string `mapstructure:"GEONAME_DUMP_DIR" description:"The path to the directory where the GeoNames dumps are located (countryInfo.txt, admin1CodesASKII.txt, cities5000.zip). If variable isn't set, GeoNames api will be disabled. The dumps will be loaded when service starts, if something is missing"`
 	GeoIPCsvDumpDirPath string `mapstructure:"GEOIP_DUMP_DIR" description:"The path to the directory where the csv ip database is located. If the variable is set and the csv file is missing, the service will generate it from the mmdb when it starts."`
@@ -38,21 +36,17 @@ type Config struct {
 }
 
 func (c *Config) NeedGrpc() bool {
-	return c.GrpcPort != 0
-}
-
-func (c *Config) GrpcAddr() string {
-	return fmt.Sprintf("%s:%d", c.Server.Host, c.GrpcPort)
+	return len(c.GRPCServiceBindAddress) > 0
 }
 
 // SetDefaults ...
 func (c *Config) SetDefaults() {
-	c.Server.Port = 8505
+	c.Server.ServiceName = ServiceName
+	c.Server.ServiceBindAddress = "0.0.0.0:8505"
+	c.GRPCServiceAddress = "0.0.0.0:8506"
+
 	c.Log.Color = false
 	c.GeoDbPath = "../../db.mmdb"
-
-	c.GrpcDiscovery.ServiceName = GrpcServiceName
-	c.RestDiscovery.ServiceName = RestServiceName
 
 	c.ApiKey = "Dfga4pBfeRsMnxesWmY8eNBCW2Zf46kL"
 }
@@ -91,13 +85,9 @@ type DeprecatedConsulConfig struct {
 func (c *DeprecatedConsulConfig) SetDefaults() {
 	c.ConsulScheme = "http"
 
-	c.GrpcCluster = GrpcServiceName
+	c.GrpcCluster = ServiceName
 	c.GrpcHealthCheckTTL = 30 * time.Second
 	c.GrpcDeregisterTTL = 30 * time.Second
-
-	c.RestCluster = RestServiceName
-	c.RestHealthCheckTTL = 30 * time.Second
-	c.RestDeregisterTTL = 30 * time.Second
 }
 
 func (c *DeprecatedConsulConfig) Validate() error {
@@ -111,41 +101,13 @@ func (c *DeprecatedConsulConfig) Validate() error {
 }
 
 func (c *Config) setFromDeprecated() {
-	if c.DeprecatedConsul.GrpcServiceAddr != "" {
-		c.GrpcDiscovery.DiscoveryType = common.DiscoveryTypeConsul
-
-		c.GrpcDiscovery.Consul.ConsulAddr = config.HttpAddress(fmt.Sprintf("%s://%s", c.DeprecatedConsul.ConsulScheme, c.DeprecatedConsul.ConsulAddr))
-		c.GrpcDiscovery.Consul.Token = c.DeprecatedConsul.Token
-
-		c.GrpcDiscovery.ServiceID = c.DeprecatedConsul.GrpcServiceID
-		c.GrpcDiscovery.ServiceName = c.DeprecatedConsul.GrpcCluster
-		if c.DeprecatedConsul.GrpcServicePort != 0 {
-			c.GrpcDiscovery.ServiceAddr = config.Address(net.JoinHostPort(c.DeprecatedConsul.GrpcServiceAddr, strconv.Itoa(c.DeprecatedConsul.GrpcServicePort)))
-		} else {
-			c.GrpcDiscovery.ServiceAddr = config.Address(c.DeprecatedConsul.GrpcServiceAddr)
-		}
-
-		c.GrpcDiscovery.Consul.HealthCheckTTL = c.DeprecatedConsul.GrpcHealthCheckTTL
-		c.GrpcDiscovery.Consul.DeregisterTTL = c.DeprecatedConsul.GrpcDeregisterTTL
-	}
-
 	if c.DeprecatedConsul.RestServiceAddr != "" {
-		c.RestDiscovery.DiscoveryType = common.DiscoveryTypeConsul
+		c.Discovery.DiscoveryType = common.DiscoveryTypeConsul
 
-		c.RestDiscovery.Consul.ConsulAddr = config.HttpAddress(fmt.Sprintf("%s://%s", c.DeprecatedConsul.ConsulScheme, c.DeprecatedConsul.ConsulAddr))
+		c.Discovery.Consul.ConsulAddr = config.HttpAddress(fmt.Sprintf("%s://%s", c.DeprecatedConsul.ConsulScheme, c.DeprecatedConsul.ConsulAddr))
+		c.Discovery.Consul.Token = c.DeprecatedConsul.Token
 
-		c.RestDiscovery.Consul.Token = c.DeprecatedConsul.Token
-
-		c.RestDiscovery.ServiceID = c.DeprecatedConsul.RestServiceID
-		c.RestDiscovery.ServiceName = c.DeprecatedConsul.RestCluster
-		if c.DeprecatedConsul.RestServicePort != 0 {
-			c.RestDiscovery.ServiceAddr = config.Address(net.JoinHostPort(c.DeprecatedConsul.RestServiceAddr, strconv.Itoa(c.DeprecatedConsul.RestServicePort)))
-		} else {
-			c.RestDiscovery.ServiceAddr = config.Address(c.DeprecatedConsul.RestServiceAddr)
-		}
-
-		c.RestDiscovery.Consul.HealthCheckTTL = c.DeprecatedConsul.RestHealthCheckTTL
-		c.RestDiscovery.Consul.DeregisterTTL = c.DeprecatedConsul.RestDeregisterTTL
+		c.Discovery.Consul.HealthCheckTTL = c.DeprecatedConsul.GrpcHealthCheckTTL
 	}
 
 }

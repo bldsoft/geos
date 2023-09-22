@@ -18,10 +18,10 @@ type restClient struct {
 
 func NewRestClient(d discovery.Discovery) *restClient {
 	c := &discoveredClient{clientLoader: newLoader[client.Client](
-		config.RestServiceName,
+		config.ServiceName,
 		d,
 		func(serviceInfo discovery.ServiceInstanceInfo) (client.Client, error) {
-			c, err := rest_client.NewClient(serviceInfo.Address())
+			c, err := rest_client.NewClient(string(serviceInfo.Address))
 			if err != nil {
 				return nil, err
 			}

@@ -11,16 +11,19 @@ import (
 	"github.com/bldsoft/geos/pkg/storage"
 	"github.com/bldsoft/gost/auth"
 	gost "github.com/bldsoft/gost/controller"
+	"github.com/bldsoft/gost/discovery"
 	"github.com/bldsoft/gost/discovery/common"
+	"github.com/bldsoft/gost/discovery/inhouse"
 	"github.com/bldsoft/gost/log"
 	"github.com/bldsoft/gost/server"
 	"github.com/go-chi/chi/v5"
 )
 
 const (
-	BaseApiPath   = "/geoip"
-	APIKey        = "GEOS-API-Key"
-	APIKeyMetaKey = "api-key"
+	BaseApiPath        = "/geoip"
+	APIKey             = "GEOS-API-Key"
+	APIKeyMetaKey      = "api-key"
+	GrpcAddressMetaKey = "grpc-address"
 )
 
 type Microservice struct {
@@ -28,6 +31,8 @@ type Microservice struct {
 
 	geoIpService   controller.GeoIpService
 	geoNameService controller.GeoNameService
+
+	discovery discovery.Discovery
 
 	asyncRunners []server.AsyncRunner
 }
@@ -48,22 +53,25 @@ func (m *Microservice) initServices() {
 	geoNameRep := repository.NewGeoNamesRepository(geoNameStorage)
 	m.geoNameService = service.NewGeoNameService(geoNameRep)
 
+	m.discovery = common.NewDiscovery(m.config.Server, m.config.Discovery)
+	m.discovery.SetMetadata(APIKeyMetaKey, m.config.ApiKey)
+	m.asyncRunners = append(m.asyncRunners, m.discovery)
+
 	if m.config.NeedGrpc() {
-		grpcService := NewGrpcMicroservice(m.config.GrpcAddr(), m.geoIpService, m.geoNameService)
+		grpcService := NewGrpcMicroservice(m.config.GRPCServiceBindAddress.HostPort(), m.geoIpService, m.geoNameService)
 		m.asyncRunners = append(m.asyncRunners, grpcService)
 
-		d := common.NewDiscovery(m.config.GrpcDiscovery)
-		m.asyncRunners = append(m.asyncRunners, d)
+		m.discovery.SetMetadata(GrpcAddressMetaKey, m.config.GRPCServiceAddress.String())
 	} else {
 		log.Info("gRPC is off")
 	}
 
-	m.config.RestDiscovery.AddMetadata(APIKeyMetaKey, m.config.ApiKey)
-	discovery := common.NewDiscovery(m.config.RestDiscovery)
-	m.asyncRunners = append(m.asyncRunners, discovery)
 }
 
 func (m *Microservice) BuildRoutes(router chi.Router) {
+	if d, ok := m.discovery.(*inhouse.Discovery); ok {
+		d.Mount(router)
+	}
 	router.Route(BaseApiPath, func(r chi.Router) {
 		r.Get("/ping", gost.GetPingHandler)
 		r.With(m.ApiKeyMiddleware()).Get("/env", gost.GetEnvHandler(m.config, nil))

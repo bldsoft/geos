@@ -3,7 +3,7 @@ module github.com/bldsoft/geos
 go 1.19
 
 require (
-	github.com/bldsoft/gost v0.0.0-20230914170018-2cd42be3e914
+	github.com/bldsoft/gost v0.0.0-20230922103652-7d2a7e14286e
 	github.com/derekparker/trie v0.0.0-20221221181808-1424fce0c981
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-resty/resty/v2 v2.7.0
@@ -42,6 +42,7 @@ require (
 	github.com/gorilla/schema v1.2.0 // indirect
 	github.com/gorilla/securecookie v1.1.1 // indirect
 	github.com/gorilla/sessions v1.2.1 // indirect
+	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/hashicorp/consul/api v1.20.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
