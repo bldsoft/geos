@@ -24,6 +24,7 @@ const (
 	APIKey             = "GEOS-API-Key"
 	APIKeyMetaKey      = "api-key"
 	GrpcAddressMetaKey = "grpc-address"
+	ServiceName        = config.ServiceName
 )
 
 type Microservice struct {
