@@ -1,15 +1,15 @@
 |**Environment variable**|**Value**|**Description**|
 |------------------------|---------|---------------|
-|REST_SERVICE_NAME|hostname|DEPRECATED. Unique service instance name. Use 'hostname' to set the hostname value. <br/>DEPRECATED. The name is used to identify the service in logs. |
-|REST_SERVICE_INSTANCE_NAME||Unique service instance name. Use 'hostname' to set the hostname value. <br/>The name is used to identify the service in logs. |
-|REST_SERVICE_HOST|0.0.0.0|DEPRECATED. IP address, or a host name that can be resolved to IP addresses|
-|REST_SERVICE_PORT|3000|DEPRECATED. Service port|
-|REST_SERVICE_BIND_ADDRESS|0.0.0.0:8505|Service configuration related to what address bind to and port to listen on|
-|REST_SERVICE_ADDRESS||Service public address|
-|REST_LOG_LEVEL|info|Log level|
-|REST_LOG_COLOR_ENABLED|false|Enable the colorized output|
-|GRPC_SERVICE_BIND_ADDRESS||Service configuration related to what address bind to and port to listen|
-|GRPC_SERVICE_ADDRESS|0.0.0.0:8506|GRPC public address|
+|SERVICE_NAME|hostname|DEPRECATED. Unique service instance name. Use 'hostname' to set the hostname value. <br/>DEPRECATED. The name is used to identify the service in logs. |
+|SERVICE_INSTANCE_NAME||Unique service instance name. Use 'hostname' to set the hostname value. <br/>The name is used to identify the service in logs. |
+|SERVICE_HOST|127.0.0.1|DEPRECATED. IP address, or a host name that can be resolved to IP addresses|
+|SERVICE_PORT|8505|DEPRECATED. Service port|
+|SERVICE_BIND_ADDRESS||Service configuration related to what address bind to and port to listen on|
+|SERVICE_ADDRESS||Service public address|
+|LOG_LEVEL|info|Log level|
+|LOG_COLOR_ENABLED|false|Enable the colorized output|
+|GRPC_SERVICE_BIND_ADDRESS|127.0.0.1:8506|Service configuration related to what address bind to and port to listen|
+|GRPC_SERVICE_ADDRESS|127.0.0.1:8506|GRPC public address|
 |GEOIP_DB_PATH|../../db.mmdb|Path to GeoLite2 or GeoIP2 city database|
 |GEOIP_DB_ISP_PATH||Path to GeoIP2 ISP database|
 |DISCOVERY_TYPE|none|Discovery type (none, in-house, consul)|

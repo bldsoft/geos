@@ -15,8 +15,8 @@ const (
 )
 
 type Config struct {
-	Server server.Config `mapstructure:"REST"`
-	Log    log.Config    `mapstructure:"REST"`
+	Server server.Config
+	Log    log.Config
 
 	GRPCServiceBindAddress config.Address `mapstructure:"GRPC_SERVICE_BIND_ADDRESS" description:"Service configuration related to what address bind to and port to listen"`
 	GRPCServiceAddress     config.Address `mapstructure:"GRPC_SERVICE_ADDRESS" description:"GRPC public address"`
@@ -38,12 +38,12 @@ func (c *Config) NeedGrpc() bool {
 // SetDefaults ...
 func (c *Config) SetDefaults() {
 	c.Server.ServiceName = ServiceName
-	c.Server.ServiceBindAddress = "0.0.0.0:8505"
-	c.GRPCServiceAddress = "0.0.0.0:8506"
-
+	c.Server.ServiceBindHost = "127.0.0.1"
+	c.Server.ServiceBindPort = 8505
+	c.GRPCServiceBindAddress = "127.0.0.1:8506"
+	c.GRPCServiceAddress = c.GRPCServiceBindAddress
 	c.Log.Color = false
 	c.GeoDbPath = "../../db.mmdb"
-
 	c.ApiKey = "Dfga4pBfeRsMnxesWmY8eNBCW2Zf46kL"
 }
 
