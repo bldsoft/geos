@@ -38,9 +38,9 @@ func (c *Config) NeedGrpc() bool {
 // SetDefaults ...
 func (c *Config) SetDefaults() {
 	c.Server.ServiceName = ServiceName
-	c.Server.ServiceBindHost = "127.0.0.1"
+	c.Server.ServiceBindHost = "0.0.0.0"
 	c.Server.ServiceBindPort = 8505
-	c.GRPCServiceBindAddress = "127.0.0.1:8506"
+	c.GRPCServiceBindAddress = "0.0.0.0:8506"
 	c.GRPCServiceAddress = c.GRPCServiceBindAddress
 	c.Log.Color = false
 	c.GeoDbPath = "../../db.mmdb"
