@@ -29,7 +29,11 @@ func (db *maxmindDBWithCachedCSVDump) initCSVDump(ctx context.Context, csvDumpPa
 		return
 	}
 
-	_ = os.Remove(csvDumpPath) // remove old uncompressed file
+	// TODO: remove
+	_ = os.Remove(csvDumpPath)          // remove old uncompressed file
+	_ = os.Remove(csvDumpPath + ".tmp") // remove old uncompressed file
+	// =============
+
 	csvDumpPath = csvDumpPath + ".gz"
 
 	if !db.Available() {
