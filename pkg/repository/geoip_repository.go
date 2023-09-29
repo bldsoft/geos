@@ -45,12 +45,12 @@ type maxmindDatabase interface {
 
 	Available() bool
 	Path() (string, error)
-	RawData() ([]byte, error) // mmdb
+	RawData() (io.Reader, error) // mmdb
 	MetaData() (*maxminddb.Metadata, error)
 }
 type csvDumper interface {
 	WriteCSVTo(ctx context.Context, w io.Writer) error
-	CSV(ctx context.Context, withColumnNames bool) ([]byte, error)
+	CSV(ctx context.Context, withColumnNames bool) (io.Reader, error)
 }
 
 type maxmindCSVDumper interface {
@@ -124,13 +124,13 @@ func (r *GeoIpRepository) Database(ctx context.Context, dbType MaxmindDBType, fo
 		return nil, err
 	}
 
-	var data []byte
+	var data io.Reader
 	ext := string(format)
 	switch format {
 	case DumpFormatCSV:
+		fallthrough
 	case DumpFormatCSVWithNames:
 		if csvDumper, ok := db.(csvDumper); ok {
-
 			data, err = csvDumper.CSV(ctx, format == DumpFormatCSVWithNames)
 			ext = string(DumpFormatCSV)
 		} else {

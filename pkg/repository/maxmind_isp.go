@@ -64,8 +64,8 @@ func (db *ispDB) WriteCSVTo(ctx context.Context, w io.Writer) error {
 	return nil
 }
 
-func (db *ispDB) CSV(ctx context.Context, withColumnNames bool) ([]byte, error) {
+func (db *ispDB) CSV(ctx context.Context, withColumnNames bool) (io.Reader, error) {
 	var buf bytes.Buffer
 	db.WriteCSVTo(ctx, &buf)
-	return buf.Bytes(), nil
+	return &buf, nil
 }

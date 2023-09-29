@@ -1,7 +1,9 @@
 package repository
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 
@@ -57,11 +59,11 @@ func (db *database) Path() (string, error) {
 	return db.path, nil
 }
 
-func (db *database) RawData() ([]byte, error) {
+func (db *database) RawData() (io.Reader, error) {
 	if !db.Available() {
 		return nil, ErrDBNotAvailable
 	}
-	return db.dbRaw, nil
+	return bytes.NewReader(db.dbRaw), nil
 }
 
 func (db *database) MetaData() (*maxminddb.Metadata, error) {

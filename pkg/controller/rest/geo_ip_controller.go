@@ -2,6 +2,7 @@ package rest
 
 import (
 	"errors"
+	"io"
 	"net/http"
 
 	"github.com/bldsoft/geos/pkg/controller"
@@ -104,7 +105,9 @@ func (c *GeoIpController) GetDumpHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	w.Header().Set("Content-Type", "text/csv")
-	w.Write(db.Data)
+	if _, err := io.Copy(w, db.Data); err != nil {
+		log.FromContext(ctx).ErrorWithFields(log.Fields{"err": err}, "Failed to send csv database")
+	}
 }
 
 // @Summary maxmind mmdb database
@@ -128,7 +131,9 @@ func (c *GeoIpController) GetMMDBDatabaseHandler(w http.ResponseWriter, r *http.
 	}
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Disposition", "attachment; filename="+database.FileName())
-	w.Write(database.Data)
+	if _, err := io.Copy(w, database.Data); err != nil {
+		log.FromContext(ctx).ErrorWithFields(log.Fields{"err": err}, "Failed to send csv database")
+	}
 }
 
 // @Summary maxmind csv database. It's generated from the mmdb file, so the result may differ from those that are officially supplied
@@ -158,7 +163,9 @@ func (c *GeoIpController) GetCSVDatabaseHandler(w http.ResponseWriter, r *http.R
 	}
 	w.Header().Set("Content-Type", "text/csv")
 	w.Header().Set("Content-Disposition", "attachment; filename="+database.FileName())
-	w.Write(database.Data)
+	if _, err := io.Copy(w, database.Data); err != nil {
+		log.FromContext(ctx).ErrorWithFields(log.Fields{"err": err}, "Failed to send csv database")
+	}
 }
 
 // @Summary maxmind database metadata
