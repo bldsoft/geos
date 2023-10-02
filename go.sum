@@ -70,6 +70,8 @@ github.com/bldsoft/gost v0.0.0-20230926103330-1827062f86da h1:0LP/VS5EtyXonmEziz
 github.com/bldsoft/gost v0.0.0-20230926103330-1827062f86da/go.mod h1:ThzFkKLZTXCTFuY/6neAv2rmtuoDzpp9BFFrD/qYEes=
 github.com/bldsoft/gost v0.0.0-20230928100623-699524b5d6e3 h1:bQ4d8Al4k200qt0gwFciT/9Yr0pz6u+3V8yRcx6DY5I=
 github.com/bldsoft/gost v0.0.0-20230928100623-699524b5d6e3/go.mod h1:ThzFkKLZTXCTFuY/6neAv2rmtuoDzpp9BFFrD/qYEes=
+github.com/bldsoft/gost v0.0.0-20231002100012-ce3db54e208c h1:fbmgVUBZvVrOvkUChHnfs5EgoEh36QTDepRK5GdxrQc=
+github.com/bldsoft/gost v0.0.0-20231002100012-ce3db54e208c/go.mod h1:ThzFkKLZTXCTFuY/6neAv2rmtuoDzpp9BFFrD/qYEes=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/cespare/xxhash/v2 v2.1.1/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
