@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/bldsoft/gost/clickhouse"
 	"github.com/bldsoft/gost/config"
 	"github.com/bldsoft/gost/discovery/common"
 	"github.com/bldsoft/gost/log"
@@ -17,6 +18,9 @@ const (
 type Config struct {
 	Server server.Config
 	Log    log.Config
+
+	Clickhouse clickhouse.Config `mapstructure:"CLICKHOUSE"`
+	LogExport  clickhouse.LogExporterConfig
 
 	GRPCServiceBindAddress config.Address `mapstructure:"GRPC_SERVICE_BIND_ADDRESS" description:"Service configuration related to what address bind to and port to listen"`
 	GRPCServiceAddress     config.Address `mapstructure:"GRPC_SERVICE_ADDRESS" description:"GRPC public address"`
@@ -45,6 +49,8 @@ func (c *Config) SetDefaults() {
 	c.Log.Color = false
 	c.GeoDbPath = "../../db.mmdb"
 	c.ApiKey = "Dfga4pBfeRsMnxesWmY8eNBCW2Zf46kL"
+
+	c.Clickhouse.Dsn = ""
 }
 
 // Validate ...

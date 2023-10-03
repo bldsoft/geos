@@ -2,6 +2,8 @@ package microservice
 
 import (
 	"net/http"
+	"sync"
+	"time"
 
 	"github.com/bldsoft/geos/pkg/config"
 	"github.com/bldsoft/geos/pkg/controller"
@@ -10,12 +12,14 @@ import (
 	"github.com/bldsoft/geos/pkg/service"
 	"github.com/bldsoft/geos/pkg/storage"
 	"github.com/bldsoft/gost/auth"
+	"github.com/bldsoft/gost/clickhouse"
 	gost "github.com/bldsoft/gost/controller"
 	"github.com/bldsoft/gost/discovery"
 	"github.com/bldsoft/gost/discovery/common"
 	"github.com/bldsoft/gost/discovery/inhouse"
 	"github.com/bldsoft/gost/log"
 	"github.com/bldsoft/gost/server"
+	gost_storage "github.com/bldsoft/gost/storage"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -46,7 +50,27 @@ func NewMicroservice(config config.Config) *Microservice {
 	return srv
 }
 
+func (srv *Microservice) getDbJobGroup(db gost_storage.IStorage) *server.AsyncJobGroup {
+	dbAsyncJobs := server.NewAsyncJobGroup()
+	dbAsyncJobChain := server.NewAsyncJobChain(server.NewAsyncJob(nil, db.Disconnect), dbAsyncJobs)
+	srv.asyncRunners = append(srv.asyncRunners, dbAsyncJobChain)
+	return dbAsyncJobs
+}
+
 func (m *Microservice) initServices() {
+	if len(m.config.Clickhouse.Dsn) != 0 {
+		var wg sync.WaitGroup
+		clickhouseDB := clickhouse.NewStorage(m.config.Clickhouse)
+		gost_storage.DBConnectAsync(&wg, clickhouseDB.Connect, -1, time.Second)
+		wg.Wait()
+
+		logExporter := clickhouse.NewLogExporter(clickhouseDB, m.config.LogExport)
+		log.Logger.AddExporter(logExporter, nil)
+		m.getDbJobGroup(clickhouseDB).Append(logExporter)
+	} else {
+		log.Debug("Log export to ClickHouse is off")
+	}
+
 	rep := repository.NewGeoIpRepository(m.config.GeoDbPath, m.config.GeoDbISPPath, m.config.GeoIPCsvDumpDirPath)
 	m.geoIpService = service.NewGeoIpService(rep)
 
