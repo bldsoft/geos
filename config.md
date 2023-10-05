@@ -8,6 +8,10 @@
 |SERVICE_ADDRESS||Service public address|
 |LOG_LEVEL|info|Log level|
 |LOG_COLOR_ENABLED|false|Enable the colorized output|
+|CLICKHOUSE_DSN||Clickhouse DSN|
+|CLICKHOUSE_LOG_EXPORT_FLUSH_TIME_MS|1000|Max time between log exporting|
+|CLICKHOUSE_LOG_EXPORT_MAX_BATCH_SIZE|1000|Max batch size for log insert query|
+|CLICKHOUSE_LOG_EXPORT_TABLE|LOG_RECORDS|Table name for log exporting|
 |GRPC_SERVICE_BIND_ADDRESS|0.0.0.0:8506|Service configuration related to what address bind to and port to listen|
 |GRPC_SERVICE_ADDRESS|0.0.0.0:8506|GRPC public address|
 |GEOIP_DB_PATH|../../db.mmdb|Path to GeoLite2 or GeoIP2 city database|

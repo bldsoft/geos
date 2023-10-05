@@ -25,7 +25,7 @@ import (
 func main() {
 	var cfg config.Config
 	gost.ReadConfig(&cfg, "")
-	log.InitLogger(&cfg.Log)
+	log.InitLogger(&cfg.Log, cfg.Server.LogExporterConfig())
 
 	log.Infof("Geos v%s", version.Version)
 	log.Logf("ENVIRONMENT:\n***\n%s***", gost.FormatEnv(&cfg))
