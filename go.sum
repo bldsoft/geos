@@ -170,8 +170,8 @@ github.com/bits-and-blooms/bitset v1.2.0/go.mod h1:gIdJ4wp64HaoK2YrL1Q5/N7Y16edY
 github.com/bkaradzic/go-lz4 v1.0.0/go.mod h1:0YdlkowM3VswSROI7qDxhRvJ3sLhlFrRRwjwegp5jy4=
 github.com/blang/semver v3.1.0+incompatible/go.mod h1:kRBLl5iJ+tD4TcOOxsy/0fnwebNt5EWlYSAyrTnjyyk=
 github.com/blang/semver v3.5.1+incompatible/go.mod h1:kRBLl5iJ+tD4TcOOxsy/0fnwebNt5EWlYSAyrTnjyyk=
-github.com/bldsoft/gost v0.0.0-20231006142315-9270e42f84f4 h1:nFHq0W5XDJFCRoVbo69/DqFao/3TcO3ykXGjSHo9SWE=
-github.com/bldsoft/gost v0.0.0-20231006142315-9270e42f84f4/go.mod h1:ThzFkKLZTXCTFuY/6neAv2rmtuoDzpp9BFFrD/qYEes=
+github.com/bldsoft/gost v0.0.0-20231009152035-c8b32aec138c h1:XIfNVzTyh14s8WEZsozQOUwYLlj/nzEddkB2KzzPfpE=
+github.com/bldsoft/gost v0.0.0-20231009152035-c8b32aec138c/go.mod h1:oWXJuMjUtFISdGGATtvranXMLXwDfn+OIUGW4zhfy+g=
 github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869/go.mod h1:Ekp36dRnpXw/yCqJaO+ZrUyxD+3VXMFFr56k5XYrpB4=
 github.com/boombuler/barcode v1.0.0/go.mod h1:paBWMcWSl3LHKBqUq+rly7CNSldXjb2rDl3JlRe0mD8=
 github.com/bshuster-repo/logrus-logstash-hook v0.4.1/go.mod h1:zsTqEiSzDgAa/8GZR7E1qaXrhYNDKBYy5/dWPTIflbk=
