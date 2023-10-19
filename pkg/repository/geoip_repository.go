@@ -22,9 +22,9 @@ var (
 type DumpFormat string
 
 const (
-	DumpFormatCSV          DumpFormat = "csv"
-	DumpFormatCSVWithNames DumpFormat = "csvWithNames"
-	DumpFormatMMDB         DumpFormat = "mmdb"
+	DumpFormatCSV        DumpFormat = "csv"
+	DumpFormatGzippedCSV DumpFormat = "csv.gz"
+	DumpFormatMMDB       DumpFormat = "mmdb"
 )
 
 type MaxmindDBType string
@@ -50,7 +50,7 @@ type maxmindDatabase interface {
 }
 type csvDumper interface {
 	WriteCSVTo(ctx context.Context, w io.Writer) error
-	CSV(ctx context.Context, withColumnNames bool) (io.Reader, error)
+	CSV(ctx context.Context, gzipCompress bool) (io.Reader, error)
 }
 
 type maxmindCSVDumper interface {
@@ -129,9 +129,9 @@ func (r *GeoIpRepository) Database(ctx context.Context, dbType MaxmindDBType, fo
 	switch format {
 	case DumpFormatCSV:
 		fallthrough
-	case DumpFormatCSVWithNames:
+	case DumpFormatGzippedCSV:
 		if csvDumper, ok := db.(csvDumper); ok {
-			data, err = csvDumper.CSV(ctx, format == DumpFormatCSVWithNames)
+			data, err = csvDumper.CSV(ctx, format == DumpFormatGzippedCSV)
 			ext = string(DumpFormatCSV)
 		} else {
 			return nil, fmt.Errorf("csv format for %s is not supported", dbType)
@@ -147,7 +147,7 @@ func (r *GeoIpRepository) Database(ctx context.Context, dbType MaxmindDBType, fo
 	return &entity.Database{
 		Data:     data,
 		MetaData: *meta,
-		Ext:      "." + ext,
+		Ext:      "." + string(ext),
 	}, nil
 }
 
@@ -158,6 +158,6 @@ func (r *GeoIpRepository) database(ctx context.Context, dbType MaxmindDBType) (m
 	case MaxmindDBTypeISP:
 		return r.dbISP, nil
 	default:
-		return nil, errors.New("Unknown database type")
+		return nil, errors.New("unknown database type")
 	}
 }

@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"bufio"
 	"bytes"
 	"compress/gzip"
 	"context"
@@ -108,7 +107,7 @@ func (db *maxmindDBWithCachedCSVDump) loadDumpFull(ctx context.Context, dumpPath
 	return buf.Bytes(), os.Rename(temp, dumpPath)
 }
 
-func (db *maxmindDBWithCachedCSVDump) CSV(ctx context.Context, withColumnNames bool) (io.Reader, error) {
+func (db *maxmindDBWithCachedCSVDump) CSV(ctx context.Context, gzipCompress bool) (io.Reader, error) {
 	select {
 	case <-db.dumpReady:
 		if !db.Available() {
@@ -118,20 +117,11 @@ func (db *maxmindDBWithCachedCSVDump) CSV(ctx context.Context, withColumnNames b
 			return nil, ErrGeoIPCSVDisabled
 		}
 
-		res, err := gzip.NewReader(bytes.NewReader(db.archivedCSVWithNamesDump))
-		if err != nil {
-			return nil, err
-		}
-		if withColumnNames {
+		res := bytes.NewReader(db.archivedCSVWithNamesDump)
+		if gzipCompress {
 			return res, nil
 		}
-		// skip first line
-		b := bufio.NewReader(res)
-		_, err = b.ReadSlice('\n')
-		if err != nil {
-			return nil, err
-		}
-		return b, nil
+		return gzip.NewReader(res)
 	default:
 		return nil, ErrGeoIPCSVNotReady
 	}

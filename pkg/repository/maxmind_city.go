@@ -2,6 +2,7 @@ package repository
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/csv"
 	"io"
@@ -74,9 +75,13 @@ func (db *cityDB) WriteCSVTo(ctx context.Context, w io.Writer) error {
 	return nil
 }
 
-func (db *cityDB) CSV(ctx context.Context, withColumnNames bool) (io.Reader, error) {
+func (db *cityDB) CSV(ctx context.Context, gzipCompress bool) (io.Reader, error) {
 	var buf bytes.Buffer
-	db.WriteCSVTo(ctx, &buf)
+	var w io.Writer = &buf
+	if gzipCompress {
+		w = gzip.NewWriter(w)
+	}
+	db.WriteCSVTo(ctx, w)
 	return &buf, nil
 }
 

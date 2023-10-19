@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/bldsoft/geos/pkg/controller"
 	_ "github.com/bldsoft/geos/pkg/entity"
@@ -90,7 +91,6 @@ func (c *GeoIpController) GetCityLiteHandler(w http.ResponseWriter, r *http.Requ
 // @Deprecated
 // @Produce text/csv
 // @Tags geo IP
-// @Param format query string false "format" "csvWithNames"
 // @Success 200 {object} string
 // @Failure 400 {string} string "error"
 // @Failure 500 {string} string "error"
@@ -98,7 +98,12 @@ func (c *GeoIpController) GetCityLiteHandler(w http.ResponseWriter, r *http.Requ
 // @Router /dump [get]
 func (c *GeoIpController) GetDumpHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	format, _ := gost.GetQueryOption(r, "format", repository.DumpFormatCSVWithNames)
+	format := repository.DumpFormatCSV
+	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		format = repository.DumpFormatGzippedCSV
+		w.Header().Set("Content-Encoding", "gzip")
+	}
+
 	db, err := c.geoIpService.Database(ctx, repository.MaxmindDBTypeCity, service.DumpFormat(format))
 	if err != nil {
 		c.responseError(w, r, err)
@@ -140,7 +145,6 @@ func (c *GeoIpController) GetMMDBDatabaseHandler(w http.ResponseWriter, r *http.
 // @Security ApiKeyAuth
 // @Produce text/csv
 // @Param db path string true "db type" Enums(city,isp)
-// @Param header query bool false "include header"
 // @Tags geo IP
 // @Success 200 {object} string
 // @Failure 400 {string} string "error"
@@ -151,10 +155,10 @@ func (c *GeoIpController) GetMMDBDatabaseHandler(w http.ResponseWriter, r *http.
 func (c *GeoIpController) GetCSVDatabaseHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	db := chi.URLParam(r, "db")
-	includeHeader, _ := gost.GetQueryOption(r, "header", true)
-	format := repository.DumpFormatCSVWithNames
-	if !includeHeader {
-		format = repository.DumpFormatCSV
+	format := repository.DumpFormatCSV
+	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		format = repository.DumpFormatGzippedCSV
+		w.Header().Set("Content-Encoding", "gzip")
 	}
 	database, err := c.geoIpService.Database(ctx, service.DBType(db), format)
 	if err != nil {
