@@ -1,33 +1,31 @@
-package consul
+package discovery
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/bldsoft/geos/pkg/client"
 	rest_client "github.com/bldsoft/geos/pkg/client/rest"
 	"github.com/bldsoft/geos/pkg/config"
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/microservice"
-	"github.com/bldsoft/gost/consul"
+	"github.com/bldsoft/gost/discovery"
 	"github.com/go-resty/resty/v2"
-	"github.com/hashicorp/consul/api"
 )
 
 type restClient struct {
 	*discoveredClient
 }
 
-func NewRestClient(discovery *consul.Discovery) *restClient {
+func NewRestClient(d discovery.Discovery) *restClient {
 	c := &discoveredClient{clientLoader: newLoader[client.Client](
-		config.ConsulRestClusterName,
-		discovery,
-		func(info api.AgentServiceChecksInfo) (client.Client, error) {
-			c, err := rest_client.NewClient(fmt.Sprintf("%s:%d", info.Service.Address, info.Service.Port))
+		config.ServiceName,
+		d,
+		func(serviceInfo discovery.ServiceInstanceInfo) (client.Client, error) {
+			c, err := rest_client.NewClient(string(serviceInfo.Address))
 			if err != nil {
 				return nil, err
 			}
-			return c.SetApiKey(info.Service.Meta[microservice.ConsulAPIMetaKey]), nil
+			return c.SetApiKey(serviceInfo.Meta[microservice.APIKeyMetaKey]), nil
 		},
 	)}
 	return &restClient{c}

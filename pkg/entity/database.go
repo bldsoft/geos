@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"io"
 	"strings"
 
 	"github.com/oschwald/maxminddb-golang"
@@ -9,7 +10,7 @@ import (
 type MetaData = maxminddb.Metadata
 
 type Database struct {
-	Data []byte
+	Data io.Reader
 	MetaData
 	Ext string
 }

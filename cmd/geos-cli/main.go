@@ -62,14 +62,14 @@ func commonFlags() []cli.Flag {
 		&cli.StringFlag{
 			Name:        "host",
 			Usage:       "Service host",
-			Value:       defaults.Server.Host,
+			Value:       defaults.Server.ServiceAddress.Host(),
 			Destination: &host,
 			Aliases:     []string{"H"},
 		},
 		&cli.UintFlag{
 			Name:        "port",
 			Usage:       "Service gRPC port",
-			Value:       uint(defaults.GrpcPort),
+			Value:       uint(defaults.GRPCServiceAddress.PortInt()),
 			Destination: &port,
 			Aliases:     []string{"p"},
 		},

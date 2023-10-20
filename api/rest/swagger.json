@@ -155,14 +155,6 @@
                 ],
                 "summary": "geoip database dump",
                 "deprecated": true,
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "format",
-                        "name": "format",
-                        "in": "query"
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -216,12 +208,6 @@
                         "name": "db",
                         "in": "path",
                         "required": true
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "include header",
-                        "name": "header",
-                        "in": "query"
                     }
                 ],
                 "responses": {

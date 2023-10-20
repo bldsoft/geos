@@ -2,7 +2,9 @@ package rest
 
 import (
 	"errors"
+	"io"
 	"net/http"
+	"strings"
 
 	"github.com/bldsoft/geos/pkg/controller"
 	_ "github.com/bldsoft/geos/pkg/entity"
@@ -89,7 +91,6 @@ func (c *GeoIpController) GetCityLiteHandler(w http.ResponseWriter, r *http.Requ
 // @Deprecated
 // @Produce text/csv
 // @Tags geo IP
-// @Param format query string false "format" "csvWithNames"
 // @Success 200 {object} string
 // @Failure 400 {string} string "error"
 // @Failure 500 {string} string "error"
@@ -97,14 +98,21 @@ func (c *GeoIpController) GetCityLiteHandler(w http.ResponseWriter, r *http.Requ
 // @Router /dump [get]
 func (c *GeoIpController) GetDumpHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	format, _ := gost.GetQueryOption(r, "format", repository.DumpFormatCSVWithNames)
+	format := repository.DumpFormatCSV
+	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		format = repository.DumpFormatGzippedCSV
+		w.Header().Set("Content-Encoding", "gzip")
+	}
+
 	db, err := c.geoIpService.Database(ctx, repository.MaxmindDBTypeCity, service.DumpFormat(format))
 	if err != nil {
 		c.responseError(w, r, err)
 		return
 	}
 	w.Header().Set("Content-Type", "text/csv")
-	w.Write(db.Data)
+	if _, err := io.Copy(w, db.Data); err != nil {
+		log.FromContext(ctx).ErrorWithFields(log.Fields{"err": err}, "Failed to send csv database")
+	}
 }
 
 // @Summary maxmind mmdb database
@@ -128,14 +136,15 @@ func (c *GeoIpController) GetMMDBDatabaseHandler(w http.ResponseWriter, r *http.
 	}
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Disposition", "attachment; filename="+database.FileName())
-	w.Write(database.Data)
+	if _, err := io.Copy(w, database.Data); err != nil {
+		log.FromContext(ctx).ErrorWithFields(log.Fields{"err": err}, "Failed to send csv database")
+	}
 }
 
 // @Summary maxmind csv database. It's generated from the mmdb file, so the result may differ from those that are officially supplied
 // @Security ApiKeyAuth
 // @Produce text/csv
 // @Param db path string true "db type" Enums(city,isp)
-// @Param header query bool false "include header"
 // @Tags geo IP
 // @Success 200 {object} string
 // @Failure 400 {string} string "error"
@@ -146,10 +155,10 @@ func (c *GeoIpController) GetMMDBDatabaseHandler(w http.ResponseWriter, r *http.
 func (c *GeoIpController) GetCSVDatabaseHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	db := chi.URLParam(r, "db")
-	includeHeader, _ := gost.GetQueryOption(r, "header", true)
-	format := repository.DumpFormatCSVWithNames
-	if !includeHeader {
-		format = repository.DumpFormatCSV
+	format := repository.DumpFormatCSV
+	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		format = repository.DumpFormatGzippedCSV
+		w.Header().Set("Content-Encoding", "gzip")
 	}
 	database, err := c.geoIpService.Database(ctx, service.DBType(db), format)
 	if err != nil {
@@ -158,7 +167,9 @@ func (c *GeoIpController) GetCSVDatabaseHandler(w http.ResponseWriter, r *http.R
 	}
 	w.Header().Set("Content-Type", "text/csv")
 	w.Header().Set("Content-Disposition", "attachment; filename="+database.FileName())
-	w.Write(database.Data)
+	if _, err := io.Copy(w, database.Data); err != nil {
+		log.FromContext(ctx).ErrorWithFields(log.Fields{"err": err}, "Failed to send csv database")
+	}
 }
 
 // @Summary maxmind database metadata

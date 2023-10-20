@@ -1,4 +1,4 @@
-package consul
+package discovery
 
 import (
 	"context"
@@ -7,15 +7,14 @@ import (
 	"github.com/bldsoft/geos/pkg/client"
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage"
-	"github.com/bldsoft/gost/consul"
-	"github.com/hashicorp/consul/api"
+	"github.com/bldsoft/gost/discovery"
 )
 
 type discoveredClient struct {
 	clientLoader *loader[client.Client]
 }
 
-func newDiscoveredClient(serviceCluster string, discovery *consul.Discovery, makeClient func(ci api.AgentServiceChecksInfo) (client.Client, error)) *discoveredClient {
+func newDiscoveredClient(serviceCluster string, discovery discovery.Discovery, makeClient func(serviceInfo discovery.ServiceInstanceInfo) (client.Client, error)) *discoveredClient {
 	return &discoveredClient{clientLoader: newLoader[client.Client](
 		serviceCluster,
 		discovery,
@@ -55,10 +54,10 @@ func (c *discoveredClient) Country(ctx context.Context, address string) (*entity
 		})
 }
 
-func (c *discoveredClient) City(ctx context.Context, address string) (*entity.City, error) {
+func (c *discoveredClient) City(ctx context.Context, address string, includeISP bool) (*entity.City, error) {
 	return doWithClientLoader[client.Client, *entity.City](c.clientLoader, true,
 		func(client client.Client) (res *entity.City, err error) {
-			return client.City(ctx, address)
+			return client.City(ctx, address, includeISP)
 		})
 }
 

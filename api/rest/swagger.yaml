@@ -436,11 +436,6 @@ paths:
   /dump:
     get:
       deprecated: true
-      parameters:
-      - description: format
-        in: query
-        name: format
-        type: string
       produces:
       - text/csv
       responses:
@@ -476,10 +471,6 @@ paths:
         name: db
         required: true
         type: string
-      - description: include header
-        in: query
-        name: header
-        type: boolean
       produces:
       - text/csv
       responses:

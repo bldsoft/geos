@@ -2,10 +2,10 @@ package repository
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -14,8 +14,8 @@ import (
 
 type maxmindDBWithCachedCSVDump struct {
 	maxmindCSVDumper
-	csvWithNamesDump []byte
-	dumpReady        chan struct{}
+	archivedCSVWithNamesDump []byte
+	dumpReady                chan struct{}
 }
 
 func withCachedCSVDump(db maxmindCSVDumper) *maxmindDBWithCachedCSVDump {
@@ -28,6 +28,13 @@ func (db *maxmindDBWithCachedCSVDump) initCSVDump(ctx context.Context, csvDumpPa
 		return
 	}
 
+	// TODO: remove
+	_ = os.Remove(csvDumpPath)          // remove old uncompressed file
+	_ = os.Remove(csvDumpPath + ".tmp") // remove old uncompressed file
+	// =============
+
+	csvDumpPath = csvDumpPath + ".gz"
+
 	if !db.Available() {
 		log.FromContext(ctx).InfoWithFields(log.Fields{"path": csvDumpPath}, "Skipping csv dump load")
 		return
@@ -39,11 +46,11 @@ func (db *maxmindDBWithCachedCSVDump) initCSVDump(ctx context.Context, csvDumpPa
 	}
 
 	var err error
-	db.csvWithNamesDump, err = db.getCSVDumpFromDisk(ctx, csvDumpPath)
+	db.archivedCSVWithNamesDump, err = db.getCSVDumpFromDisk(ctx, csvDumpPath)
 	if err != nil {
 		panic(fmt.Errorf("failed to load GeoIP dump: %w", err))
 	}
-	log.FromContext(ctx).InfoWithFields(log.Fields{"path": csvDumpPath, "size MB": len(db.csvWithNamesDump) / 1024 / 1024}, "Dump loaded to memory")
+	log.FromContext(ctx).InfoWithFields(log.Fields{"path": csvDumpPath, "size MB": len(db.archivedCSVWithNamesDump) / 1024 / 1024}, "Dump loaded to memory")
 }
 
 func (db *maxmindDBWithCachedCSVDump) getCSVDumpFromDisk(ctx context.Context, dumpPath string) ([]byte, error) {
@@ -57,7 +64,7 @@ func (db *maxmindDBWithCachedCSVDump) getCSVDumpFromDisk(ctx context.Context, du
 		return nil, err
 	}
 	if !needUpdate {
-		return ioutil.ReadFile(dumpPath)
+		return os.ReadFile(dumpPath)
 	}
 
 	log.FromContext(ctx).InfoWithFields(log.Fields{"db": path, "csv": dumpPath}, "Updating CSV")
@@ -88,36 +95,34 @@ func (db *maxmindDBWithCachedCSVDump) loadDumpFull(ctx context.Context, dumpPath
 		return nil, err
 	}
 	defer file.Close()
+
 	w := io.MultiWriter(&buf, file)
 
-	if err := db.maxmindCSVDumper.WriteCSVTo(ctx, w); err != nil {
+	gw := gzip.NewWriter(w)
+	defer gw.Close()
+
+	if err := db.maxmindCSVDumper.WriteCSVTo(ctx, gw); err != nil {
 		return nil, os.Remove(temp)
 	}
 	return buf.Bytes(), os.Rename(temp, dumpPath)
 }
 
-func (db *maxmindDBWithCachedCSVDump) CSV(ctx context.Context, withColumnNames bool) ([]byte, error) {
+func (db *maxmindDBWithCachedCSVDump) CSV(ctx context.Context, gzipCompress bool) (io.Reader, error) {
 	select {
 	case <-db.dumpReady:
 		if !db.Available() {
 			return nil, ErrDBNotAvailable
 		}
-		if db.csvWithNamesDump == nil {
+		if db.archivedCSVWithNamesDump == nil {
 			return nil, ErrGeoIPCSVDisabled
 		}
-		if !withColumnNames {
-			return db.withoutColumnNames(), nil
+
+		res := bytes.NewReader(db.archivedCSVWithNamesDump)
+		if gzipCompress {
+			return res, nil
 		}
-		return db.csvWithNamesDump, nil
+		return gzip.NewReader(res)
 	default:
 		return nil, ErrGeoIPCSVNotReady
 	}
-}
-
-func (db *maxmindDBWithCachedCSVDump) withoutColumnNames() []byte {
-	i := bytes.Index(db.csvWithNamesDump, []byte("\n"))
-	if i == -1 {
-		return nil
-	}
-	return db.csvWithNamesDump[i+1:]
 }

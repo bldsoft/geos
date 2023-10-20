@@ -2,6 +2,8 @@ package microservice
 
 import (
 	"net/http"
+	"sync"
+	"time"
 
 	"github.com/bldsoft/geos/pkg/config"
 	"github.com/bldsoft/geos/pkg/controller"
@@ -10,17 +12,23 @@ import (
 	"github.com/bldsoft/geos/pkg/service"
 	"github.com/bldsoft/geos/pkg/storage"
 	"github.com/bldsoft/gost/auth"
-	"github.com/bldsoft/gost/consul"
+	"github.com/bldsoft/gost/clickhouse"
 	gost "github.com/bldsoft/gost/controller"
+	"github.com/bldsoft/gost/discovery"
+	"github.com/bldsoft/gost/discovery/common"
+	"github.com/bldsoft/gost/discovery/inhouse"
 	"github.com/bldsoft/gost/log"
 	"github.com/bldsoft/gost/server"
+	gost_storage "github.com/bldsoft/gost/storage"
 	"github.com/go-chi/chi/v5"
 )
 
 const (
-	BaseApiPath      = "/geoip"
-	APIKey           = "GEOS-API-Key"
-	ConsulAPIMetaKey = "api-key"
+	BaseApiPath        = "/geoip"
+	APIKey             = "GEOS-API-Key"
+	APIKeyMetaKey      = "api-key"
+	GrpcAddressMetaKey = "grpc-address"
+	ServiceName        = config.ServiceName
 )
 
 type Microservice struct {
@@ -28,6 +36,8 @@ type Microservice struct {
 
 	geoIpService   controller.GeoIpService
 	geoNameService controller.GeoNameService
+
+	discovery discovery.Discovery
 
 	asyncRunners []server.AsyncRunner
 }
@@ -40,7 +50,27 @@ func NewMicroservice(config config.Config) *Microservice {
 	return srv
 }
 
+func (srv *Microservice) getDbJobGroup(db gost_storage.IStorage) *server.AsyncJobGroup {
+	dbAsyncJobs := server.NewAsyncJobGroup()
+	dbAsyncJobChain := server.NewAsyncJobChain(server.NewAsyncJob(nil, db.Disconnect), dbAsyncJobs)
+	srv.asyncRunners = append(srv.asyncRunners, dbAsyncJobChain)
+	return dbAsyncJobs
+}
+
 func (m *Microservice) initServices() {
+	if len(m.config.Clickhouse.Dsn) != 0 {
+		var wg sync.WaitGroup
+		clickhouseDB := clickhouse.NewStorage(m.config.Clickhouse)
+		gost_storage.DBConnectAsync(&wg, clickhouseDB.Connect, -1, time.Second)
+		wg.Wait()
+
+		logExporter := clickhouse.NewLogExporter(clickhouseDB, m.config.LogExport)
+		log.Logger.AddExporter(logExporter, nil)
+		m.getDbJobGroup(clickhouseDB).Append(logExporter)
+	} else {
+		log.Debug("Log export to ClickHouse is off")
+	}
+
 	rep := repository.NewGeoIpRepository(m.config.GeoDbPath, m.config.GeoDbISPPath, m.config.GeoIPCsvDumpDirPath)
 	m.geoIpService = service.NewGeoIpService(rep)
 
@@ -48,26 +78,25 @@ func (m *Microservice) initServices() {
 	geoNameRep := repository.NewGeoNamesRepository(geoNameStorage)
 	m.geoNameService = service.NewGeoNameService(geoNameRep)
 
+	m.discovery = common.NewDiscovery(m.config.Server, m.config.Discovery)
+	m.discovery.SetMetadata(APIKeyMetaKey, m.config.ApiKey)
+	m.asyncRunners = append(m.asyncRunners, m.discovery)
+
 	if m.config.NeedGrpc() {
-		grpcService := NewGrpcMicroservice(m.config.GrpcAddr(), m.geoIpService, m.geoNameService)
+		grpcService := NewGrpcMicroservice(m.config.GRPCServiceBindAddress.HostPort(), m.geoIpService, m.geoNameService)
 		m.asyncRunners = append(m.asyncRunners, grpcService)
 
-		if m.config.ConsulEnabled() {
-			discovery := consul.NewDiscovery(m.config.GrpcConsulConfig())
-			m.asyncRunners = append(m.asyncRunners, discovery)
-		}
+		m.discovery.SetMetadata(GrpcAddressMetaKey, m.config.GRPCServiceAddress.String())
 	} else {
 		log.Info("gRPC is off")
 	}
 
-	if m.config.ConsulEnabled() {
-		discovery := consul.NewDiscovery(m.config.RestConsulConfig())
-		m.asyncRunners = append(m.asyncRunners, discovery)
-		discovery.SetMetadata(ConsulAPIMetaKey, m.config.ApiKey)
-	}
 }
 
 func (m *Microservice) BuildRoutes(router chi.Router) {
+	if d, ok := m.discovery.(*inhouse.Discovery); ok {
+		d.Mount(router)
+	}
 	router.Route(BaseApiPath, func(r chi.Router) {
 		r.Get("/ping", gost.GetPingHandler)
 		r.With(m.ApiKeyMiddleware()).Get("/env", gost.GetEnvHandler(m.config, nil))

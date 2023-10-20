@@ -160,14 +160,6 @@ const docTemplate = `{
                 ],
                 "summary": "geoip database dump",
                 "deprecated": true,
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "format",
-                        "name": "format",
-                        "in": "query"
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -221,12 +213,6 @@ const docTemplate = `{
                         "name": "db",
                         "in": "path",
                         "required": true
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "include header",
-                        "name": "header",
-                        "in": "query"
                     }
                 ],
                 "responses": {
