@@ -98,12 +98,15 @@ func (db *maxmindDBWithCachedCSVDump) loadDumpFull(ctx context.Context, dumpPath
 
 	w := io.MultiWriter(&buf, file)
 
-	gw := gzip.NewWriter(w)
-	defer gw.Close()
-
-	if err := db.maxmindCSVDumper.WriteCSVTo(ctx, gw); err != nil {
+	err = func() error {
+		gw := gzip.NewWriter(w)
+		defer gw.Close()
+		return db.maxmindCSVDumper.WriteCSVTo(ctx, gw)
+	}()
+	if err != nil {
 		return nil, os.Remove(temp)
 	}
+
 	return buf.Bytes(), os.Rename(temp, dumpPath)
 }
 
