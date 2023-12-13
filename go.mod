@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/bldsoft/gost v0.0.0-20231110143438-4449e7763eed
 	github.com/derekparker/trie v0.0.0-20221221181808-1424fce0c981
-	github.com/go-chi/chi/v5 v5.0.7
+	github.com/go-chi/chi/v5 v5.0.10
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/hashicorp/go-multierror v1.1.1
