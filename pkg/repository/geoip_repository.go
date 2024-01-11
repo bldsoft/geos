@@ -17,6 +17,8 @@ import (
 var (
 	ErrGeoIPCSVNotReady = fmt.Errorf("geoip csv dump is %w", utils.ErrNotReady)
 	ErrGeoIPCSVDisabled = fmt.Errorf("geoip csv dump is %w", utils.ErrDisabled)
+	ErrUnknownFormat    = errors.New("unknown format")
+	ErrCSVNotSupported  = fmt.Errorf("%w: csv format", errors.ErrUnsupported)
 )
 
 type DumpFormat string
@@ -48,6 +50,7 @@ type maxmindDatabase interface {
 	RawData() (io.Reader, error) // mmdb
 	MetaData() (*maxminddb.Metadata, error)
 }
+
 type csvDumper interface {
 	WriteCSVTo(ctx context.Context, w io.Writer) error
 	CSV(ctx context.Context, gzipCompress bool) (io.Reader, error)
@@ -58,13 +61,13 @@ type maxmindCSVDumper interface {
 	csvDumper
 }
 
-type GeoIpRepository struct {
+type GeoIPRepository struct {
 	dbCity *maxmindDBWithCachedCSVDump
 	dbISP  *maxmindDBWithCachedCSVDump
 }
 
-func NewGeoIpRepository(dbCityPath, dbISPPath string, csvDirPath string) *GeoIpRepository {
-	rep := &GeoIpRepository{
+func NewGeoIPRepository(dbCityPath, dbISPPath string, csvDirPath string) *GeoIPRepository {
+	rep := &GeoIPRepository{
 		dbCity: withCachedCSVDump(openCityDB(dbCityPath, true)),
 		dbISP:  withCachedCSVDump(openISPDB(dbISPPath, false)),
 	}
@@ -73,11 +76,10 @@ func NewGeoIpRepository(dbCityPath, dbISPPath string, csvDirPath string) *GeoIpR
 	return rep
 }
 
-func (r *GeoIpRepository) initCSVDumps(csvDirPath string) {
+func (r *GeoIPRepository) initCSVDumps(csvDirPath string) {
 	ctx := context.Background()
 	r.dbCity.initCSVDump(ctx, filepath.Join(csvDirPath, "dump.csv"))
 	r.dbISP.initCSVDump(ctx, filepath.Join(csvDirPath, "isp.csv"))
-
 }
 
 func lookup[T any](db maxmindDatabase, ip net.IP) (*T, error) {
@@ -85,11 +87,11 @@ func lookup[T any](db maxmindDatabase, ip net.IP) (*T, error) {
 	return &obj, db.Lookup(ip, &obj)
 }
 
-func (r *GeoIpRepository) Country(ctx context.Context, ip net.IP) (*entity.Country, error) {
+func (r *GeoIPRepository) Country(ctx context.Context, ip net.IP) (*entity.Country, error) {
 	return lookup[entity.Country](r.dbCity, ip)
 }
 
-func (r *GeoIpRepository) City(ctx context.Context, ip net.IP, includeISP bool) (*entity.City, error) {
+func (r *GeoIPRepository) City(ctx context.Context, ip net.IP, includeISP bool) (*entity.City, error) {
 	city, err := lookup[entity.City](r.dbCity, ip)
 	if err != nil {
 		return nil, err
@@ -106,15 +108,15 @@ func (r *GeoIpRepository) City(ctx context.Context, ip net.IP, includeISP bool) 
 	return city, nil
 }
 
-func (r *GeoIpRepository) CityLite(ctx context.Context, ip net.IP, lang string) (*entity.CityLite, error) {
-	cityLiteDb, err := lookup[entity.CityLiteDb](r.dbCity, ip)
+func (r *GeoIPRepository) CityLite(ctx context.Context, ip net.IP, lang string) (*entity.CityLite, error) {
+	cityLiteDB, err := lookup[entity.CityLiteDb](r.dbCity, ip)
 	if err != nil {
 		return nil, err
 	}
-	return entity.DbToCityLite(cityLiteDb, lang), nil
+	return entity.DbToCityLite(cityLiteDB, lang), nil
 }
 
-func (r *GeoIpRepository) Database(ctx context.Context, dbType MaxmindDBType, format DumpFormat) (*entity.Database, error) {
+func (r *GeoIPRepository) Database(ctx context.Context, dbType MaxmindDBType, format DumpFormat) (*entity.Database, error) {
 	db, err := r.database(ctx, dbType)
 	if err != nil {
 		return nil, err
@@ -134,12 +136,12 @@ func (r *GeoIpRepository) Database(ctx context.Context, dbType MaxmindDBType, fo
 			data, err = csvDumper.CSV(ctx, format == DumpFormatGzippedCSV)
 			ext = string(DumpFormatCSV)
 		} else {
-			return nil, fmt.Errorf("csv format for %s is not supported", dbType)
+			return nil, fmt.Errorf("%s: %w", dbType, ErrCSVNotSupported)
 		}
 	case DumpFormatMMDB:
 		data, err = db.RawData()
 	default:
-		return nil, errors.New("unknown format")
+		return nil, ErrUnknownFormat
 	}
 	if err != nil {
 		return nil, err
@@ -147,11 +149,11 @@ func (r *GeoIpRepository) Database(ctx context.Context, dbType MaxmindDBType, fo
 	return &entity.Database{
 		Data:     data,
 		MetaData: *meta,
-		Ext:      "." + string(ext),
+		Ext:      "." + ext,
 	}, nil
 }
 
-func (r *GeoIpRepository) database(ctx context.Context, dbType MaxmindDBType) (maxmindDatabase, error) {
+func (r *GeoIPRepository) database(ctx context.Context, dbType MaxmindDBType) (maxmindDatabase, error) {
 	switch dbType {
 	case MaxmindDBTypeCity:
 		return r.dbCity, nil
