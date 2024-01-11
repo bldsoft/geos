@@ -5,7 +5,6 @@ import (
 	"compress/gzip"
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"net"
 
@@ -13,10 +12,6 @@ import (
 	"github.com/maxmind/mmdbwriter"
 	"github.com/maxmind/mmdbwriter/inserter"
 	"github.com/oschwald/maxminddb-golang"
-)
-
-var (
-	ErrDBNotAvailable = fmt.Errorf("db %w", utils.ErrNotAvailable)
 )
 
 type MultiMaxMindDB struct {
@@ -107,6 +102,22 @@ func (db *MultiMaxMindDB) RawData() (io.Reader, error) {
 		return nil, err
 	}
 	return &buf, nil
+}
+
+func (db *MultiMaxMindDB) Reader() (*maxminddb.Reader, error) {
+	reader, err := db.RawData()
+	if err != nil {
+		return nil, err
+	}
+	return maxminddb.FromBytes(reader.(*bytes.Buffer).Bytes())
+}
+
+func (db *MultiMaxMindDB) Networks(options ...maxminddb.NetworksOption) (*maxminddb.Networks, error) {
+	reader, err := db.Reader()
+	if err != nil {
+		return nil, err
+	}
+	return reader.Networks(options...), nil
 }
 
 func (db *MultiMaxMindDB) MetaData() (*maxminddb.Metadata, error) {

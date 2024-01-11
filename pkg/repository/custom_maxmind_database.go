@@ -73,6 +73,10 @@ func (db *CustomMaxMindDB) Lookup(ip net.IP, result interface{}) error {
 	return db.db.Lookup(ip, result)
 }
 
+func (db *CustomMaxMindDB) Networks(options ...maxminddb.NetworksOption) (*maxminddb.Networks, error) {
+	return db.db.Networks(options...), nil
+}
+
 func (db *CustomMaxMindDB) RawData() (io.Reader, error) {
 	return bytes.NewReader(db.dbRaw), nil
 }
