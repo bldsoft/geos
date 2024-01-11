@@ -2,180 +2,137 @@ package repository
 
 import (
 	"bytes"
+	"compress/gzip"
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
 
 	"github.com/bldsoft/geos/pkg/utils"
-	"github.com/bldsoft/gost/log"
 	"github.com/maxmind/mmdbwriter"
 	"github.com/maxmind/mmdbwriter/inserter"
-	"github.com/maxmind/mmdbwriter/mmdbtype"
 	"github.com/oschwald/maxminddb-golang"
 )
 
-var ErrDBNotAvailable = fmt.Errorf("db %w", utils.ErrNotAvailable)
+var (
+	ErrDBNotAvailable = fmt.Errorf("db %w", utils.ErrNotAvailable)
+)
 
-type database struct {
-	path  string
-	db    *maxminddb.Reader
-	dbRaw []byte
+type MultiMaxMindDB struct {
+	dbs []maxmindDatabase
 }
 
-func openDB(path string, dbType MaxmindDBType, required bool) *database {
-	handleErr := func(err error) {
-		if err != nil {
-			if required {
-				log.Fatalf("Failed to read %s db: %s", dbType, err)
-			}
-			log.Warnf("Failed to read %s db: %s", dbType, err)
+func NewMultiMaxMindDB(dbs ...maxmindDatabase) *MultiMaxMindDB {
+	res := &MultiMaxMindDB{dbs: dbs}
+	return res
+}
+
+func (db *MultiMaxMindDB) Add(dbs ...maxmindDatabase) *MultiMaxMindDB {
+	db.dbs = append(db.dbs, dbs...)
+	return db
+}
+
+func (db *MultiMaxMindDB) Available() bool {
+	for _, db := range db.dbs {
+		if !db.Available() {
+			return false
 		}
 	}
+	return true
+}
 
-	// dbRaw, err := ioutil.ReadFile(path)
-	var tree *mmdbwriter.Tree
-	var err error
-	log.Logger.WithFuncDuration(func() {
+func (db *MultiMaxMindDB) Lookup(ip net.IP, result interface{}) error {
+	var multiErr error
+	for i := len(db.dbs) - 1; i >= 0; i-- {
+		err := db.dbs[i].Lookup(ip, result)
+		if err == nil {
+			return nil
+		}
+		multiErr = errors.Join(multiErr, err)
+	}
+	return errors.Join(utils.ErrNotFound, multiErr)
+}
 
-		tree, err = mmdbwriter.Load(path, mmdbwriter.Options{IncludeReservedNetworks: true})
-
-	}).Info("loading " + path)
+func (db *MultiMaxMindDB) dbReader(index int) (*maxminddb.Reader, error) {
+	database := db.dbs[index]
+	reader, err := database.RawData()
 	if err != nil {
-		handleErr(err)
-		return nil
+		return nil, err
 	}
 
-	log.Logger.WithFuncDuration(func() {
-		err = enrichDB(path, tree)
-	}).Info("enriching " + path)
+	bytes, err := io.ReadAll(reader)
 	if err != nil {
-		handleErr(err)
-		return nil
+		return nil, err
+	}
+
+	return maxminddb.FromBytes(bytes)
+}
+
+func (db *MultiMaxMindDB) RawData() (io.Reader, error) {
+	opts := mmdbwriter.Options{IncludeReservedNetworks: true}
+	tree, err := mmdbwriter.New(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	for i, _ := range db.dbs {
+		dbReader, err := db.dbReader(i)
+		if err != nil {
+			return nil, err
+		}
+
+		networks := dbReader.Networks(maxminddb.SkipAliasedNetworks)
+
+		for networks.Next() {
+			var rec MMDBRecord
+			network, err := networks.Network(&rec.Data)
+			if err != nil {
+				return nil, err
+			}
+
+			err = tree.InsertFunc(network, inserter.ReplaceWith(rec.Data))
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		if err := networks.Err(); err != nil {
+			return nil, err
+		}
 	}
 
 	var buf bytes.Buffer
 	if _, err := tree.WriteTo(&buf); err != nil {
-		handleErr(err)
-		return nil
+		return nil, err
 	}
-	dbRaw := buf.Bytes()
-
-	// db, err := maxminddb.FromBytes(dbRaw)
-	db, err := maxminddb.FromBytes(dbRaw)
-	if err != nil {
-		handleErr(err)
-		return nil
-	}
-
-	return &database{
-		path: path,
-		db:   db,
-		// dbRaw: dbRaw.Bytes(),
-		dbRaw: dbRaw,
-	}
+	return &buf, nil
 }
 
-func enrichDB(path string, tree *mmdbwriter.Tree) error {
-	for _, priv := range []string{"10.10.0.0/8", "192.168.0.0/16", "172.16.0.0/12"} {
-		_, private, _ := net.ParseCIDR(priv)
-		log.Infof("Inserting %s", priv)
-		data := mmdbtype.Map{
-			"city":               mmdbtype.Map{"geoname_id": mmdbtype.Int32(9999999)},
-			"continent":          mmdbtype.Map{"geoname_id": mmdbtype.Int32(9999999)},
-			"country":            mmdbtype.Map{"geoname_id": mmdbtype.Int32(9999999)},
-			"registered_country": mmdbtype.Map{"geoname_id": mmdbtype.Int32(9999999)},
-			"location": mmdbtype.Map{
-				"accuracy_radius": mmdbtype.Int32(1000),
-				"latitude":        mmdbtype.Float64(32.751),
-				"longitude":       mmdbtype.Float64(32.751),
-				"time_zone":       mmdbtype.String("America/Chicago"),
-			},
-			"isp": mmdbtype.String("private network"),
-		}
-		if err := tree.InsertFunc(private, inserter.TopLevelMergeWith(data)); err != nil {
-			return err
+func (db *MultiMaxMindDB) MetaData() (*maxminddb.Metadata, error) {
+	if len(db.dbs) == 0 {
+		return nil, errors.New("no databases")
+	}
+	return db.dbs[0].MetaData()
+}
+
+func (db *MultiMaxMindDB) WriteCSVTo(ctx context.Context, w io.Writer) error {
+	for _, db := range db.dbs {
+		if dumper, ok := db.(csvDumper); ok {
+			if err := dumper.WriteCSVTo(ctx, w); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
 }
 
-func (db *database) Available() bool {
-	return db != nil
-}
-
-func (db *database) Path() (string, error) {
-	if !db.Available() {
-		return "", ErrDBNotAvailable
+func (db *MultiMaxMindDB) CSV(ctx context.Context, gzipCompress bool) (io.Reader, error) {
+	var buf bytes.Buffer
+	var w io.Writer = &buf
+	if gzipCompress {
+		w = gzip.NewWriter(w)
 	}
-	return db.path, nil
-}
-
-func (db *database) RawData() (io.Reader, error) {
-	if !db.Available() {
-		return nil, ErrDBNotAvailable
-	}
-	return bytes.NewReader(db.dbRaw), nil
-}
-
-func (db *database) MetaData() (*maxminddb.Metadata, error) {
-	if !db.Available() {
-		return nil, ErrDBNotAvailable
-	}
-	return &db.db.Metadata, nil
-}
-
-func (db *database) Close() error {
-	if !db.Available() {
-		return ErrDBNotAvailable
-	}
-	return db.db.Close()
-}
-
-func (db *database) Decode(offset uintptr, result interface{}) error {
-	if !db.Available() {
-		return ErrDBNotAvailable
-	}
-	return db.db.Decode(offset, result)
-}
-
-func (db *database) Lookup(ip net.IP, result interface{}) error {
-	if !db.Available() {
-		return ErrDBNotAvailable
-	}
-	return db.db.Lookup(ip, result)
-}
-
-func (db *database) LookupNetwork(ip net.IP, result interface{}) (network *net.IPNet, ok bool, err error) {
-	if !db.Available() {
-		return nil, false, ErrDBNotAvailable
-	}
-	return db.db.LookupNetwork(ip, result)
-}
-
-func (db *database) LookupOffset(ip net.IP) (uintptr, error) {
-	if !db.Available() {
-		return 0, ErrDBNotAvailable
-	}
-	return db.db.LookupOffset(ip)
-}
-
-func (db *database) Networks(options ...maxminddb.NetworksOption) (*maxminddb.Networks, error) {
-	if !db.Available() {
-		return nil, ErrDBNotAvailable
-	}
-	return db.db.Networks(), nil
-}
-
-func (db *database) NetworksWithin(network *net.IPNet, options ...maxminddb.NetworksOption) (*maxminddb.Networks, error) {
-	if !db.Available() {
-		return nil, ErrDBNotAvailable
-	}
-	return db.db.NetworksWithin(network, options...), nil
-}
-
-func (db *database) Verify() error {
-	if !db.Available() {
-		return ErrDBNotAvailable
-	}
-	return db.db.Verify()
+	db.WriteCSVTo(ctx, w)
+	return &buf, nil
 }
