@@ -36,15 +36,15 @@ const (
 
 type maxmindDatabase interface {
 	Lookup(ip net.IP, result interface{}) error
-	LookupNetwork(ip net.IP, result interface{}) (network *net.IPNet, ok bool, err error)
-	LookupOffset(ip net.IP) (uintptr, error)
-	Networks(options ...maxminddb.NetworksOption) (*maxminddb.Networks, error)
-	NetworksWithin(network *net.IPNet, options ...maxminddb.NetworksOption) (*maxminddb.Networks, error)
-	Verify() error
-	Close() error
+	// LookupNetwork(ip net.IP, result interface{}) (network *net.IPNet, ok bool, err error)
+	// LookupOffset(ip net.IP) (uintptr, error)
+	// Networks(options ...maxminddb.NetworksOption) (*maxminddb.Networks, error)
+	// NetworksWithin(network *net.IPNet, options ...maxminddb.NetworksOption) (*maxminddb.Networks, error)
+	// Verify() error
+	// Close() error
 
-	Available() bool
 	Path() (string, error)
+	Available() bool
 	RawData() (io.Reader, error) // mmdb
 	MetaData() (*maxminddb.Metadata, error)
 }
