@@ -11,6 +11,7 @@ import (
 	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/maxmind/mmdbwriter"
 	"github.com/maxmind/mmdbwriter/inserter"
+	"github.com/maxmind/mmdbwriter/mmdbtype"
 	"github.com/oschwald/maxminddb-golang"
 )
 
@@ -81,10 +82,13 @@ func (db *MultiMaxMindDB) RawData() (io.Reader, error) {
 
 		for networks.Next() {
 			var rec MMDBRecord
-			network, err := networks.Network(&rec.Data)
+
+			m := make(map[string]interface{})
+			network, err := networks.Network(&m)
 			if err != nil {
 				return nil, err
 			}
+			rec.Data = toMMDBType(m).(mmdbtype.Map)
 
 			err = tree.InsertFunc(network, inserter.ReplaceWith(rec.Data))
 			if err != nil {
