@@ -103,6 +103,20 @@ func (r *GeoNameRepository) Dump(ctx context.Context, format DumpFormat) ([]byte
 			return nil, err
 		}
 	}
+
+	if err := csvWriter.Write([]string{
+		"9999999",
+		"PRIVATE",
+		"Private",
+		"PRIVATE",
+		"PRIVATE",
+		"Private",
+		"PRIVATE",
+		"Africa/Harare",
+	}); err != nil {
+		return nil, err
+	}
+
 	csvWriter.Flush()
 	return buf.Bytes(), nil
 }

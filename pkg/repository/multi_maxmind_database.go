@@ -71,7 +71,7 @@ func (db *MultiMaxMindDB) RawData() (io.Reader, error) {
 		return nil, err
 	}
 
-	for i, _ := range db.dbs {
+	for i := range db.dbs {
 		dbReader, err := db.dbReader(i)
 		if err != nil {
 			return nil, err
@@ -124,7 +124,21 @@ func (db *MultiMaxMindDB) MetaData() (*maxminddb.Metadata, error) {
 	if len(db.dbs) == 0 {
 		return nil, errors.New("no databases")
 	}
-	return db.dbs[0].MetaData()
+
+	mainMeta, err := db.dbs[0].MetaData()
+	if err != nil {
+		return nil, err
+	}
+
+	var res maxminddb.Metadata
+	res = *mainMeta
+	res.Description = make(map[string]string)
+	for key, value := range mainMeta.Description {
+		res.Description[key] = value
+	}
+	res.Description["custom"] = "database patched by geos service"
+
+	return &res, nil
 }
 
 func (db *MultiMaxMindDB) WriteCSVTo(ctx context.Context, w io.Writer) error {

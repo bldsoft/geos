@@ -45,7 +45,6 @@ type maxmindDatabase interface {
 	// Verify() error
 	// Close() error
 
-	Path() (string, error)
 	Available() bool
 	RawData() (io.Reader, error) // mmdb
 	MetaData() (*maxminddb.Metadata, error)

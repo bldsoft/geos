@@ -52,13 +52,6 @@ func (db *database) Available() bool {
 	return db != nil
 }
 
-func (db *database) Path() (string, error) {
-	if !db.Available() {
-		return "", ErrDBNotAvailable
-	}
-	return db.path, nil
-}
-
 func (db *database) RawData() (io.Reader, error) {
 	if !db.Available() {
 		return nil, ErrDBNotAvailable
