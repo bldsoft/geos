@@ -124,6 +124,9 @@ func (db *MultiMaxMindDB) MetaData() (*maxminddb.Metadata, error) {
 	if len(db.dbs) == 0 {
 		return nil, errors.New("no databases")
 	}
+	if len(db.dbs) == 1 {
+		return db.dbs[0].MetaData()
+	}
 
 	mainMeta, err := db.dbs[0].MetaData()
 	if err != nil {
@@ -136,7 +139,7 @@ func (db *MultiMaxMindDB) MetaData() (*maxminddb.Metadata, error) {
 	for key, value := range mainMeta.Description {
 		res.Description[key] = value
 	}
-	res.Description["custom"] = "database patched by geos service"
+	res.Description["en"] += "Database patched by geos service."
 
 	return &res, nil
 }

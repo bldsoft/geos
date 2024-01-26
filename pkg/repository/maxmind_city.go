@@ -13,11 +13,11 @@ import (
 )
 
 type cityDB struct {
-	*database
+	maxmindDatabase
 }
 
-func openCityDB(path string, required bool) *cityDB {
-	return &cityDB{openDB(path, MaxmindDBTypeCity, required)}
+func newCityDB(db maxmindDatabase) *cityDB {
+	return &cityDB{maxmindDatabase: db}
 }
 
 func (db *cityDB) WriteCSVTo(ctx context.Context, w io.Writer) error {

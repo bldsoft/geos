@@ -4,8 +4,13 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"io/fs"
 	"net"
+	"os"
+	"path/filepath"
+	"strings"
 
+	"github.com/bldsoft/gost/log"
 	"github.com/maxmind/mmdbwriter"
 	"github.com/maxmind/mmdbwriter/inserter"
 	"github.com/maxmind/mmdbwriter/mmdbtype"
@@ -25,6 +30,55 @@ type CustomMaxMindDB struct {
 	tree  *mmdbwriter.Tree
 	dbRaw []byte
 	db    *maxminddb.Reader
+}
+
+func NewCustomDatabasesFromDir(dir, customDBPrefix string) []maxmindDatabase {
+	var customDBs []maxmindDatabase
+	err := filepath.WalkDir(dir, func(s string, d fs.DirEntry, e error) error {
+		if e != nil {
+			return e
+		}
+		if !d.Type().IsRegular() && !strings.HasPrefix(d.Name(), customDBPrefix) {
+			return nil
+		}
+
+		path := filepath.Join(dir, d.Name())
+		custom, err := NewCustomMaxMindDBFromFile(path)
+		if err != nil {
+			if errors.Is(err, ErrUnknownFormat) {
+				return nil
+			}
+			return err
+		}
+		customDBs = append(customDBs, custom)
+
+		return nil
+	})
+	if err != nil {
+		log.WarnWithFields(log.Fields{"err": err}, "failed to read custom databases")
+	}
+	return customDBs
+}
+
+func NewCustomMaxMindDBFromFile(path string) (*CustomMaxMindDB, error) {
+	file, err := os.OpenFile(path, os.O_RDONLY, 0666)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var reader MMDBRecordReader
+	switch filepath.Ext(path) {
+	case ".json":
+		reader, err = NewJSONRecordReader(file)
+	default:
+		return nil, ErrUnknownFormat
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return NewCustomMaxMindDB(reader)
 }
 
 func NewCustomMaxMindDB(reader MMDBRecordReader) (*CustomMaxMindDB, error) {

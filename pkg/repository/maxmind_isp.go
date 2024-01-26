@@ -13,11 +13,11 @@ import (
 )
 
 type ispDB struct {
-	*database
+	maxmindDatabase
 }
 
-func openISPDB(path string, required bool) *ispDB {
-	return &ispDB{openDB(path, MaxmindDBTypeISP, required)}
+func newISPDB(db maxmindDatabase) *ispDB {
+	return &ispDB{maxmindDatabase: db}
 }
 
 func (db *ispDB) WriteCSVTo(ctx context.Context, w io.Writer) error {
