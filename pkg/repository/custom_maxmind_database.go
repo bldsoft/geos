@@ -3,6 +3,7 @@ package repository
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"net"
@@ -78,7 +79,26 @@ func NewCustomMaxMindDBFromFile(path string) (*CustomMaxMindDB, error) {
 		return nil, err
 	}
 
-	return NewCustomMaxMindDB(reader)
+	db, err := NewCustomMaxMindDB(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	stat, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
+	return db.WithMetadata(maxminddb.Metadata{
+		Description:              map[string]string{"en": fmt.Sprintf("path = %s", path)},
+		DatabaseType:             db.db.Metadata.DatabaseType,
+		Languages:                db.db.Metadata.Languages,
+		BinaryFormatMajorVersion: db.db.Metadata.BinaryFormatMajorVersion,
+		BinaryFormatMinorVersion: db.db.Metadata.BinaryFormatMinorVersion,
+		BuildEpoch:               uint(stat.ModTime().Unix()),
+		IPVersion:                db.db.Metadata.IPVersion,
+		NodeCount:                db.db.Metadata.NodeCount,
+		RecordSize:               db.db.Metadata.RecordSize,
+	}), nil
 }
 
 func NewCustomMaxMindDB(reader MMDBRecordReader) (*CustomMaxMindDB, error) {
@@ -117,6 +137,11 @@ func NewCustomMaxMindDB(reader MMDBRecordReader) (*CustomMaxMindDB, error) {
 		dbRaw: dbRaw,
 		db:    db,
 	}, nil
+}
+
+func (db *CustomMaxMindDB) WithMetadata(meta maxminddb.Metadata) *CustomMaxMindDB {
+	db.db.Metadata = meta
+	return db
 }
 
 func (db *CustomMaxMindDB) Available() bool {

@@ -9,6 +9,7 @@ import (
 	"net"
 
 	"github.com/bldsoft/geos/pkg/utils"
+	"github.com/bldsoft/gost/log"
 	"github.com/maxmind/mmdbwriter"
 	"github.com/maxmind/mmdbwriter/inserter"
 	"github.com/maxmind/mmdbwriter/mmdbtype"
@@ -79,7 +80,6 @@ func (db *MultiMaxMindDB) RawData() (io.Reader, error) {
 		}
 
 		networks := dbReader.Networks(maxminddb.SkipAliasedNetworks)
-
 		for networks.Next() {
 			var rec MMDBRecord
 
@@ -143,7 +143,16 @@ func (db *MultiMaxMindDB) MetaData() (*maxminddb.Metadata, error) {
 	for key, value := range mainMeta.Description {
 		res.Description[key] = value
 	}
-	res.Description["en"] += "Database patched by geos service."
+	res.Description["en"] += " patched by GEOS service."
+
+	for _, db := range db.dbs {
+		meta, err := db.MetaData()
+		if err != nil {
+			log.Logger.WarnWithFields(log.Fields{"err": err}, "failed to get db metadata")
+			continue
+		}
+		res.BuildEpoch = max(res.BuildEpoch, meta.BuildEpoch)
+	}
 
 	return &res, nil
 }
