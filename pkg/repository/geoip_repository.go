@@ -125,6 +125,14 @@ func (r *GeoIPRepository) CityLite(ctx context.Context, ip net.IP, lang string) 
 	return entity.DbToCityLite(cityLiteDB, lang), nil
 }
 
+func (r *GeoIPRepository) MetaData(ctx context.Context, dbType MaxmindDBType) (*entity.MetaData, error) {
+	db, err := r.database(ctx, dbType)
+	if err != nil {
+		return nil, err
+	}
+	return db.MetaData()
+}
+
 func (r *GeoIPRepository) Database(ctx context.Context, dbType MaxmindDBType, format DumpFormat) (*entity.Database, error) {
 	db, err := r.database(ctx, dbType)
 	if err != nil {
@@ -134,7 +142,6 @@ func (r *GeoIPRepository) Database(ctx context.Context, dbType MaxmindDBType, fo
 	if err != nil {
 		return nil, err
 	}
-
 	var data io.Reader
 	ext := string(format)
 	switch format {
