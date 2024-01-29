@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
 	"github.com/maxmind/mmdbwriter"
 	"github.com/maxmind/mmdbwriter/inserter"
@@ -149,7 +150,14 @@ func (db *CustomMaxMindDB) Available() bool {
 }
 
 func (db *CustomMaxMindDB) Lookup(ip net.IP, result interface{}) error {
-	return db.db.Lookup(ip, result)
+	_, ok, err := db.db.LookupNetwork(ip, result)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return utils.ErrNotFound
+	}
+	return nil
 }
 
 func (db *CustomMaxMindDB) Networks(options ...maxminddb.NetworksOption) (*maxminddb.Networks, error) {

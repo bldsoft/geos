@@ -88,7 +88,7 @@ func (db *MultiMaxMindDB) RawData() (io.Reader, error) {
 			if err != nil {
 				return nil, err
 			}
-			rec.Data = toMMDBType(m).(mmdbtype.Map)
+			rec.Data, _ = toMMDBType(m).(mmdbtype.Map)
 
 			err = tree.InsertFunc(network, inserter.ReplaceWith(rec.Data))
 			if err != nil {
