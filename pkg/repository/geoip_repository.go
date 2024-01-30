@@ -68,12 +68,12 @@ type GeoIPRepository struct {
 func NewGeoIPRepository(dbCityPath, dbISPPath string, csvDirPath string) *GeoIPRepository {
 	cityOrigDB := openDB(dbCityPath, MaxmindDBTypeCity, true)
 	cityCustomDBs := NewCustomDatabasesFromDir(filepath.Dir(dbCityPath), "city")
-	patchedCityDB := NewMultiMaxMindDB(cityOrigDB).Add(cityCustomDBs...)
+	patchedCityDB := NewMultiMaxMindDB(cityOrigDB).Add(cityCustomDBs...).WithLogger(*log.Logger.WithFields(log.Fields{"db": "city"}))
 	cityDB := newCityDB(patchedCityDB)
 
 	ispOrigDB := openDB(dbISPPath, MaxmindDBTypeISP, false)
 	ispCustomDBs := NewCustomDatabasesFromDir(filepath.Dir(dbCityPath), "isp")
-	patchedISPDB := NewMultiMaxMindDB(ispOrigDB).Add(ispCustomDBs...)
+	patchedISPDB := NewMultiMaxMindDB(ispOrigDB).Add(ispCustomDBs...).WithLogger(*log.Logger.WithFields(log.Fields{"db": "isp"}))
 	ispDB := newISPDB(patchedISPDB)
 
 	rep := &GeoIPRepository{

@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
+	"os"
 
 	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
@@ -29,7 +29,7 @@ func openDB(path string, dbType MaxmindDBType, required bool) *database {
 			log.Warnf("Failed to read %s db: %s", dbType, err)
 		}
 	}
-	dbRaw, err := ioutil.ReadFile(path)
+	dbRaw, err := os.ReadFile(path)
 	if err != nil {
 		handleErr(err)
 		return nil
@@ -56,7 +56,7 @@ func (db *database) RawData() (io.Reader, error) {
 	if !db.Available() {
 		return nil, ErrDBNotAvailable
 	}
-	return bytes.NewReader(db.dbRaw), nil
+	return bytes.NewBuffer(db.dbRaw), nil
 }
 
 func (db *database) MetaData() (*maxminddb.Metadata, error) {
