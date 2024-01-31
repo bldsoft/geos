@@ -35,15 +35,6 @@ func (db *MultiMaxMindDB) Add(dbs ...maxmindDatabase) *MultiMaxMindDB {
 	return db
 }
 
-func (db *MultiMaxMindDB) Available() bool {
-	for _, db := range db.dbs {
-		if !db.Available() {
-			return false
-		}
-	}
-	return true
-}
-
 func (db *MultiMaxMindDB) Lookup(ip net.IP, result interface{}) error {
 	var multiErr error
 	for i := len(db.dbs) - 1; i >= 0; i-- {

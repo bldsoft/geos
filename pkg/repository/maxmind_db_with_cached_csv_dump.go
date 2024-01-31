@@ -39,11 +39,6 @@ func (db *maxmindDBWithCachedCSVDump) initCSVDump(ctx context.Context, csvDumpPa
 
 	csvDumpPath = csvDumpPath + ".gz"
 
-	if !db.Available() {
-		log.FromContext(ctx).InfoWithFields(log.Fields{"path": csvDumpPath}, "Skipping csv dump load")
-		return
-	}
-
 	dir := filepath.Dir(csvDumpPath)
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		panic(fmt.Errorf("failed to create dir for csv dump: %w", err))
@@ -155,9 +150,6 @@ func (db *maxmindDBWithCachedCSVDump) writeDumpMetadata(dumpPath string) error {
 func (db *maxmindDBWithCachedCSVDump) CSV(ctx context.Context, gzipCompress bool) (io.Reader, error) {
 	select {
 	case <-db.dumpReady:
-		if !db.Available() {
-			return nil, ErrDBNotAvailable
-		}
 		if db.archivedCSVWithNamesDump == nil {
 			return nil, ErrGeoIPCSVDisabled
 		}
