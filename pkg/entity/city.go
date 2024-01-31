@@ -2,6 +2,8 @@ package entity
 
 import (
 	"strconv"
+
+	"github.com/maxmind/mmdbwriter/mmdbtype"
 )
 
 // type City = geoip2.City
@@ -56,6 +58,97 @@ type City struct {
 	} `maxminddb:"traits" json:"traits,omitempty"`
 
 	ISP *ISP `json:"ISP,omitempty"`
+}
+
+func (city City) ToMMDBType() mmdbtype.Map {
+	res := make(mmdbtype.Map)
+
+	cityNames := make(mmdbtype.Map)
+	for key, value := range city.City.Names {
+		cityNames[mmdbtype.String(key)] = mmdbtype.String(value)
+	}
+	res[mmdbtype.String("city")] = mmdbtype.Map{
+		mmdbtype.String("geoname_id"): mmdbtype.Uint64(city.City.GeoNameID),
+		mmdbtype.String("names"):      cityNames,
+	}
+
+	continentNames := make(mmdbtype.Map)
+	for key, value := range city.Continent.Names {
+		continentNames[mmdbtype.String(key)] = mmdbtype.String(value)
+	}
+	res[mmdbtype.String("continent")] = mmdbtype.Map{
+		mmdbtype.String("code"):       mmdbtype.String(city.Continent.Code),
+		mmdbtype.String("geoname_id"): mmdbtype.Uint64(city.Continent.GeoNameID),
+		mmdbtype.String("names"):      continentNames,
+	}
+
+	countryNames := make(mmdbtype.Map)
+	for key, value := range city.Country.Names {
+		countryNames[mmdbtype.String(key)] = mmdbtype.String(value)
+	}
+	res[mmdbtype.String("country")] = mmdbtype.Map{
+		mmdbtype.String("geoname_id"):           mmdbtype.Uint64(city.Country.GeoNameID),
+		mmdbtype.String("is_in_european_union"): mmdbtype.Bool(city.Country.IsInEuropeanUnion),
+		mmdbtype.String("iso_code"):             mmdbtype.String(city.Country.IsoCode),
+		mmdbtype.String("names"):                countryNames,
+	}
+
+	res[mmdbtype.String("location")] = mmdbtype.Map{
+		mmdbtype.String("accuracy_radius"): mmdbtype.Uint16(city.Location.AccuracyRadius),
+		mmdbtype.String("latitude"):        mmdbtype.Float64(city.Location.Latitude),
+		mmdbtype.String("longitude"):       mmdbtype.Float64(city.Location.Longitude),
+		mmdbtype.String("metro_code"):      mmdbtype.Uint64(city.Location.MetroCode),
+		mmdbtype.String("time_zone"):       mmdbtype.String(city.Location.TimeZone),
+	}
+
+	res[mmdbtype.String("postal")] = mmdbtype.Map{
+		mmdbtype.String("code"): mmdbtype.String(city.Postal.Code),
+	}
+
+	registeredCountryNames := make(mmdbtype.Map)
+	for key, value := range city.RegisteredCountry.Names {
+		registeredCountryNames[mmdbtype.String(key)] = mmdbtype.String(value)
+	}
+	res[mmdbtype.String("registered_country")] = mmdbtype.Map{
+		mmdbtype.String("geoname_id"):           mmdbtype.Uint64(city.RegisteredCountry.GeoNameID),
+		mmdbtype.String("is_in_european_union"): mmdbtype.Bool(city.RegisteredCountry.IsInEuropeanUnion),
+		mmdbtype.String("iso_code"):             mmdbtype.String(city.RegisteredCountry.IsoCode),
+		mmdbtype.String("names"):                registeredCountryNames,
+	}
+
+	representedCountryNames := make(mmdbtype.Map)
+	for key, value := range city.RepresentedCountry.Names {
+		representedCountryNames[mmdbtype.String(key)] = mmdbtype.String(value)
+	}
+	res[mmdbtype.String("represented_country")] = mmdbtype.Map{
+		mmdbtype.String("geoname_id"):           mmdbtype.Uint64(city.RepresentedCountry.GeoNameID),
+		mmdbtype.String("is_in_european_union"): mmdbtype.Bool(city.RepresentedCountry.IsInEuropeanUnion),
+		mmdbtype.String("iso_code"):             mmdbtype.String(city.RepresentedCountry.IsoCode),
+		mmdbtype.String("names"):                representedCountryNames,
+	}
+
+	if l := len(city.Subdivisions); l > 0 {
+		s := make(mmdbtype.Slice, 0, l)
+		res[mmdbtype.String("subdivisions")] = s
+		for _, sd := range city.Subdivisions {
+			sdNames := make(mmdbtype.Map)
+			for key, value := range sd.Names {
+				sdNames[mmdbtype.String(key)] = mmdbtype.String(value)
+			}
+			s = append(s, mmdbtype.Map{
+				mmdbtype.String("geoname_id"): mmdbtype.Uint64(sd.GeoNameID),
+				mmdbtype.String("iso_code"):   mmdbtype.String(sd.IsoCode),
+				mmdbtype.String("names"):      sdNames,
+			})
+		}
+	}
+
+	res[mmdbtype.String("traits")] = mmdbtype.Map{
+		mmdbtype.String("is_anonymous_proxy"):    mmdbtype.Bool(city.Traits.IsAnonymousProxy),
+		mmdbtype.String("is_satellite_provider"): mmdbtype.Bool(city.Traits.IsSatelliteProvider),
+	}
+
+	return res
 }
 
 func (record City) MarshalCSV() (names, row []string, err error) {

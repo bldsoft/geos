@@ -5,7 +5,7 @@ import (
 	"io"
 	"net"
 
-	"github.com/maxmind/mmdbwriter/mmdbtype"
+	"github.com/bldsoft/geos/pkg/entity"
 )
 
 type JSONRecordReader struct {
@@ -14,7 +14,8 @@ type JSONRecordReader struct {
 }
 
 func NewJSONRecordReader(r io.Reader) (recordReader *JSONRecordReader, err error) {
-	m := make(map[string]interface{})
+	m := make(map[string]entity.City)
+	// m := make(map[string]interface{})
 	dec := json.NewDecoder(r)
 	if err := dec.Decode(&m); err != nil {
 		return nil, err
@@ -29,7 +30,8 @@ func NewJSONRecordReader(r io.Reader) (recordReader *JSONRecordReader, err error
 		if err != nil {
 			return nil, err
 		}
-		record.Data = toMMDBType(value).(mmdbtype.Map)
+		record.Data = value.ToMMDBType()
+		// record.Data = toMMDBType(value).(mmdbtype.Map)
 		records = append(records, record)
 	}
 
