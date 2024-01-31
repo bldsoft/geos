@@ -1,4 +1,4 @@
-package repository
+package maxmind
 
 import (
 	"bytes"
@@ -8,13 +8,13 @@ import (
 	"github.com/oschwald/maxminddb-golang"
 )
 
-type database struct {
+type MaxmindDatabase struct {
 	path string
 	*maxminddb.Reader
 	dbRaw []byte
 }
 
-func openDB(path string) (*database, error) {
+func Open(path string) (*MaxmindDatabase, error) {
 	dbRaw, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -25,21 +25,21 @@ func openDB(path string) (*database, error) {
 		return nil, err
 	}
 
-	return &database{
+	return &MaxmindDatabase{
 		path:   path,
 		Reader: db,
 		dbRaw:  dbRaw,
 	}, nil
 }
 
-func (db *database) RawData() (io.Reader, error) {
+func (db *MaxmindDatabase) RawData() (io.Reader, error) {
 	return bytes.NewBuffer(db.dbRaw), nil
 }
 
-func (db *database) MetaData() (*maxminddb.Metadata, error) {
+func (db *MaxmindDatabase) MetaData() (*maxminddb.Metadata, error) {
 	return &db.Reader.Metadata, nil
 }
 
-func (db *database) Networks(options ...maxminddb.NetworksOption) (*maxminddb.Networks, error) {
+func (db *MaxmindDatabase) Networks(options ...maxminddb.NetworksOption) (*maxminddb.Networks, error) {
 	return db.Reader.Networks(), nil
 }

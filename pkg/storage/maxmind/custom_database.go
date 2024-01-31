@@ -1,4 +1,4 @@
-package repository
+package maxmind
 
 import (
 	"bytes"
@@ -34,8 +34,8 @@ type CustomMaxMindDB struct {
 	db    *maxminddb.Reader
 }
 
-func NewCustomDatabasesFromDir(dir, customDBPrefix string) []maxmindDatabase {
-	var customDBs []maxmindDatabase
+func NewCustomDatabasesFromDir(dir, customDBPrefix string) []Database {
+	var customDBs []Database
 	err := filepath.WalkDir(dir, func(s string, d fs.DirEntry, e error) error {
 		if e != nil {
 			return e
@@ -47,7 +47,7 @@ func NewCustomDatabasesFromDir(dir, customDBPrefix string) []maxmindDatabase {
 		path := filepath.Join(dir, d.Name())
 		custom, err := NewCustomMaxMindDBFromFile(path)
 		if err != nil {
-			if errors.Is(err, ErrUnknownFormat) {
+			if errors.Is(err, utils.ErrUnknownFormat) {
 				return nil
 			}
 			return err
@@ -74,7 +74,7 @@ func NewCustomMaxMindDBFromFile(path string) (*CustomMaxMindDB, error) {
 	case ".json":
 		reader, err = NewJSONRecordReader(file)
 	default:
-		return nil, ErrUnknownFormat
+		return nil, utils.ErrUnknownFormat
 	}
 	if err != nil {
 		return nil, err

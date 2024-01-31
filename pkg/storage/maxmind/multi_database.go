@@ -1,4 +1,4 @@
-package repository
+package maxmind
 
 import (
 	"bytes"
@@ -16,11 +16,11 @@ import (
 )
 
 type MultiMaxMindDB struct {
-	dbs    []maxmindDatabase
+	dbs    []Database
 	logger log.ServiceLogger
 }
 
-func NewMultiMaxMindDB(dbs ...maxmindDatabase) *MultiMaxMindDB {
+func NewMultiMaxMindDB(dbs ...Database) *MultiMaxMindDB {
 	res := &MultiMaxMindDB{dbs: dbs, logger: log.Logger}
 	return res
 }
@@ -30,7 +30,7 @@ func (db *MultiMaxMindDB) WithLogger(logger log.ServiceLogger) *MultiMaxMindDB {
 	return db
 }
 
-func (db *MultiMaxMindDB) Add(dbs ...maxmindDatabase) *MultiMaxMindDB {
+func (db *MultiMaxMindDB) Add(dbs ...Database) *MultiMaxMindDB {
 	db.dbs = append(db.dbs, dbs...)
 	return db
 }

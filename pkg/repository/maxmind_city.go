@@ -9,15 +9,16 @@ import (
 	"strconv"
 
 	"github.com/bldsoft/geos/pkg/entity"
+	"github.com/bldsoft/geos/pkg/storage/maxmind"
 	"github.com/oschwald/maxminddb-golang"
 )
 
 type cityDB struct {
-	maxmindDatabase
+	maxmind.Database
 }
 
-func newCityDB(db maxmindDatabase) *cityDB {
-	return &cityDB{maxmindDatabase: db}
+func newCityDB(db maxmind.Database) *cityDB {
+	return &cityDB{Database: db}
 }
 
 func (db *cityDB) WriteCSVTo(ctx context.Context, w io.Writer) error {

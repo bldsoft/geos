@@ -1,4 +1,4 @@
-package repository
+package maxmind
 
 import (
 	"encoding/json"

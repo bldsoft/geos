@@ -12,18 +12,19 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bldsoft/geos/pkg/storage/maxmind"
 	"github.com/bldsoft/gost/log"
 	"github.com/oschwald/maxminddb-golang"
 )
 
 type maxmindDBWithCachedCSVDump struct {
-	maxmindCSVDumper
+	maxmind.CSVDumper
 	archivedCSVWithNamesDump []byte
 	dumpReady                chan struct{}
 }
 
-func withCachedCSVDump(db maxmindCSVDumper) *maxmindDBWithCachedCSVDump {
-	return &maxmindDBWithCachedCSVDump{maxmindCSVDumper: db, dumpReady: make(chan struct{})}
+func withCachedCSVDump(db maxmind.CSVDumper) *maxmindDBWithCachedCSVDump {
+	return &maxmindDBWithCachedCSVDump{CSVDumper: db, dumpReady: make(chan struct{})}
 }
 
 func (db *maxmindDBWithCachedCSVDump) initCSVDump(ctx context.Context, csvDumpPath string) {
@@ -104,7 +105,7 @@ func (db *maxmindDBWithCachedCSVDump) loadDumpFull(ctx context.Context, dumpPath
 	err = func() error {
 		gw := gzip.NewWriter(w)
 		defer gw.Close()
-		return db.maxmindCSVDumper.WriteCSVTo(ctx, gw)
+		return db.CSVDumper.WriteCSVTo(ctx, gw)
 	}()
 	if err != nil {
 		return nil, os.Remove(temp)
