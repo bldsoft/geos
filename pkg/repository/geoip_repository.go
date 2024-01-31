@@ -37,45 +37,42 @@ const (
 	MaxmindDBTypeISP  MaxmindDBType = "isp"
 )
 
+func openPatchedDB[T maxmind.CSVEntity](path string, customPrefix string, required bool) *maxmindDBWithCachedCSVDump {
+	originalDB, err := maxmind.Open(path)
+	if err != nil {
+		if required {
+			log.Fatalf("Failed to read %s db: %s", path, err)
+		}
+		log.Warnf("Failed to read %s db: %s", path, err)
+		return nil
+	}
+	customDBs := maxmind.NewCustomDatabasesFromDir(filepath.Dir(path), customPrefix)
+	patchedDB := maxmind.NewMultiMaxMindDB(originalDB).Add(customDBs...)
+	patchedDB = patchedDB.WithLogger(*log.Logger.WithFields(log.Fields{"db": customPrefix}))
+	return withCachedCSVDump[T](patchedDB)
+}
+
 type GeoIPRepository struct {
-	dbCity *maxmindDBWithCachedCSVDump
-	dbISP  *maxmindDBWithCachedCSVDump
+	dbCity  *maxmindDBWithCachedCSVDump
+	dbISP   *maxmindDBWithCachedCSVDump
+	ispPath string
 }
 
 func NewGeoIPRepository(dbCityPath, dbISPPath string, csvDirPath string) *GeoIPRepository {
-	rep := GeoIPRepository{}
-
-	cityOrigDB, err := maxmind.Open(dbCityPath)
-	if err != nil {
-		log.Fatalf("Failed to read %s db: %s", dbCityPath, err)
-	}
-	cityCustomDBs := maxmind.NewCustomDatabasesFromDir(filepath.Dir(dbCityPath), "city")
-	patchedCityDB := maxmind.NewMultiMaxMindDB(cityOrigDB).Add(cityCustomDBs...).WithLogger(*log.Logger.WithFields(log.Fields{"db": "city"}))
-	cityDB := newCityDB(patchedCityDB)
-	rep.dbCity = withCachedCSVDump(cityDB)
-
-	var ispDB maxmind.CSVDumper
-	ispOrigDB, err := maxmind.Open(dbISPPath)
-	if err != nil {
-		log.Warnf("Failed to read %s db: %s", dbISPPath, err)
-	} else {
-		ispCustomDBs := maxmind.NewCustomDatabasesFromDir(filepath.Dir(dbCityPath), "isp")
-		patchedISPDB := maxmind.NewMultiMaxMindDB(ispOrigDB).Add(ispCustomDBs...).WithLogger(*log.Logger.WithFields(log.Fields{"db": "isp"}))
-		ispDB = newISPDB(patchedISPDB)
-		rep.dbISP = withCachedCSVDump(ispDB)
+	rep := GeoIPRepository{
+		dbCity:  openPatchedDB[entity.City](dbCityPath, string(MaxmindDBTypeCity), true),
+		dbISP:   openPatchedDB[entity.ISP](dbISPPath, string(MaxmindDBTypeISP), false),
+		ispPath: dbISPPath,
 	}
 
-	go rep.initCSVDumps(csvDirPath)
+	go rep.initCSVDumps(context.Background(), csvDirPath)
 	return &rep
 }
 
-func (r *GeoIPRepository) initCSVDumps(csvDirPath string) {
-	ctx := context.Background()
+func (r *GeoIPRepository) initCSVDumps(ctx context.Context, csvDirPath string) {
 	r.dbCity.initCSVDump(ctx, filepath.Join(csvDirPath, "dump.csv"))
 	if r.dbISP != nil {
 		r.dbISP.initCSVDump(ctx, filepath.Join(csvDirPath, "isp.csv"))
-	} else {
-		log.FromContext(ctx).InfoWithFields(log.Fields{"path": csvDirPath}, "Skipping csv dump load")
 	}
 }
 
@@ -163,6 +160,9 @@ func (r *GeoIPRepository) database(ctx context.Context, dbType MaxmindDBType) (m
 	case MaxmindDBTypeCity:
 		db = r.dbCity
 	case MaxmindDBTypeISP:
+		if len(r.ispPath) == 0 {
+			return nil, ErrGeoIPCSVDisabled
+		}
 		db = r.dbISP
 	default:
 		return nil, errors.New("unknown database type")

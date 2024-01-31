@@ -23,8 +23,8 @@ type maxmindDBWithCachedCSVDump struct {
 	dumpReady                chan struct{}
 }
 
-func withCachedCSVDump(db maxmind.CSVDumper) *maxmindDBWithCachedCSVDump {
-	return &maxmindDBWithCachedCSVDump{CSVDumper: db, dumpReady: make(chan struct{})}
+func withCachedCSVDump[T maxmind.CSVEntity](db maxmind.Database) *maxmindDBWithCachedCSVDump {
+	return &maxmindDBWithCachedCSVDump{CSVDumper: maxmind.NewCSVDumper[T](db), dumpReady: make(chan struct{})}
 }
 
 func (db *maxmindDBWithCachedCSVDump) initCSVDump(ctx context.Context, csvDumpPath string) {
@@ -151,10 +151,6 @@ func (db *maxmindDBWithCachedCSVDump) writeDumpMetadata(dumpPath string) error {
 func (db *maxmindDBWithCachedCSVDump) CSV(ctx context.Context, gzipCompress bool) (io.Reader, error) {
 	select {
 	case <-db.dumpReady:
-		if db.archivedCSVWithNamesDump == nil {
-			return nil, ErrGeoIPCSVDisabled
-		}
-
 		res := bytes.NewReader(db.archivedCSVWithNamesDump)
 		if gzipCompress {
 			return res, nil

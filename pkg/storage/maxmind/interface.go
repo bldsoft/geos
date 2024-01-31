@@ -26,3 +26,7 @@ type CSVDumper interface {
 	WriteCSVTo(ctx context.Context, w io.Writer) error
 	CSV(ctx context.Context, gzipCompress bool) (io.Reader, error)
 }
+
+type CSVEntity interface {
+	MarshalCSV() (names, row []string, err error)
+}
