@@ -38,6 +38,9 @@ func main() {
 						Value:   "city_custom.json",
 						Aliases: []string{"file"},
 					},
+					&cli.BoolFlag{
+						Name: "private",
+					},
 				},
 				Action: func(ctx *cli.Context) error {
 					filename := ctx.String("file")
@@ -53,29 +56,21 @@ func main() {
 						return err
 					}
 
+					var dbCity *entity.City
+
+					if ctx.Bool("private") {
+						dbCity = &entity.PrivateCity
+					} else {
+						dbCity, err = readCityInput(ctx, geoNameStorage)
+						if err != nil {
+							return err
+						}
+					}
+
 					geoNameStorage.WaitReady()
 
-					country, err := selectCountry(ctx.Context, geoNameStorage)
-					if err != nil {
-						return err
-					}
-
-					continent := getContinent(ctx.Context, geoNameStorage, country)
-
-					city, err := selectCity(ctx.Context, geoNameStorage, country)
-					if err != nil {
-						return err
-					}
-
-					subdivisions, err := getSubdivisions(ctx.Context, geoNameStorage, city)
-					if err != nil {
-						return err
-					}
-
-					dbCity := buildDBCity(continent, country, subdivisions, city)
-
 					// log
-					maxmindRecord := map[string]entity.City{
+					maxmindRecord := map[string]*entity.City{
 						network: dbCity,
 					}
 					data, err := json.MarshalIndent(maxmindRecord, "", "    ")
@@ -99,7 +94,28 @@ func main() {
 	}
 }
 
-func readCurrentDB(ctx context.Context, filename string) (map[string]entity.City, error) {
+func readCityInput(ctx *cli.Context, storage *storage.GeoNameStorage) (*entity.City, error) {
+	country, err := selectCountry(ctx.Context, storage)
+	if err != nil {
+		return nil, err
+	}
+
+	continent := getContinent(ctx.Context, storage, country)
+
+	city, err := selectCity(ctx.Context, storage, country)
+	if err != nil {
+		return nil, err
+	}
+
+	subdivisions, err := getSubdivisions(ctx.Context, storage, city)
+	if err != nil {
+		return nil, err
+	}
+
+	return buildDBCity(continent, country, subdivisions, city), nil
+}
+
+func readCurrentDB(ctx context.Context, filename string) (map[string]*entity.City, error) {
 	file, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
 	if err != nil {
 		return nil, err
@@ -111,7 +127,7 @@ func readCurrentDB(ctx context.Context, filename string) (map[string]entity.City
 		return nil, err
 	}
 
-	res := make(map[string]entity.City)
+	res := make(map[string]*entity.City)
 	if len(currentDB) == 0 {
 		return res, nil
 	}
@@ -122,7 +138,7 @@ func readCurrentDB(ctx context.Context, filename string) (map[string]entity.City
 	return res, nil
 }
 
-func writeFile(ctx context.Context, filename string, db map[string]entity.City) error {
+func writeFile(ctx context.Context, filename string, db map[string]*entity.City) error {
 	file, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
 	if err != nil {
 		return err
@@ -236,7 +252,7 @@ func buildDBCity(
 	country *entity.GeoNameCountry,
 	subdivisions []entity.GeoNameAdminSubdivision,
 	city *entity.GeoName,
-) entity.City {
+) *entity.City {
 	var res entity.City
 	res.Continent.Code = continent.Code()
 	res.Continent.GeoNameID = uint(continent.GeoNameID())
@@ -272,5 +288,5 @@ func buildDBCity(
 	// res.Location.Traits
 
 	// res.ISP *ISP `json:"ISP,omitempty"`
-	return res
+	return &res
 }

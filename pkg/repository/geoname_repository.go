@@ -62,6 +62,7 @@ func (r *GeoNameRepository) Dump(ctx context.Context, format DumpFormat) ([]byte
 	if err != nil {
 		return nil, err
 	}
+
 	for _, city := range cities {
 		countries, err := r.Countries(ctx, entity.GeoNameFilter{CountryCodes: []string{city.CountryCode()}})
 		if err != nil {
@@ -105,14 +106,14 @@ func (r *GeoNameRepository) Dump(ctx context.Context, format DumpFormat) ([]byte
 	}
 
 	if err := csvWriter.Write([]string{
-		"9999999",
-		"PRIVATE",
-		"Private",
-		"PRIVATE",
-		"PRIVATE",
-		"Private",
-		"PRIVATE",
-		"Africa/Harare",
+		strconv.FormatUint(uint64(entity.PrivateCity.City.GeoNameID), 10),
+		entity.PrivateCity.Continent.Code,
+		entity.PrivateCity.Continent.Names["en"],
+		entity.PrivateCity.Country.IsoCode,
+		entity.PrivateCity.Country.Names["en"],
+		entity.PrivateCity.Subdivisions[0].Names["en"],
+		entity.PrivateCity.City.Names["en"],
+		entity.PrivateCity.Location.TimeZone,
 	}); err != nil {
 		return nil, err
 	}
