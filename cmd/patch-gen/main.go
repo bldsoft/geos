@@ -156,7 +156,7 @@ func writeFile(ctx context.Context, filename string, db map[string]*entity.City)
 
 func promptNetwork(ctx context.Context) (string, error) {
 	networkPrompt := promptui.Prompt{
-		Label: "network",
+		Label: "network (CIDR)",
 		Validate: func(s string) error {
 			_, _, err := net.ParseCIDR(s)
 			return err
