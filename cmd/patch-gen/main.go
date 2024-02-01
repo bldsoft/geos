@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -61,13 +62,12 @@ func main() {
 					if ctx.Bool("private") {
 						dbCity = &entity.PrivateCity
 					} else {
+						geoNameStorage.WaitReady()
 						dbCity, err = readCityInput(ctx, geoNameStorage)
 						if err != nil {
 							return err
 						}
 					}
-
-					geoNameStorage.WaitReady()
 
 					// log
 					maxmindRecord := map[string]*entity.City{
@@ -77,13 +77,15 @@ func main() {
 					if err != nil {
 						return err
 					}
+					println(string(data))
 					//
 
+					if !areYouSure(filename) {
+						return nil
+					}
+
 					currentDB[network] = dbCity
-
-					println(string(data))
 					return writeFile(ctx.Context, filename, currentDB)
-
 				},
 			},
 		},
@@ -92,6 +94,26 @@ func main() {
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func areYouSure(filename string) bool {
+	yes := []string{"yes", "y"}
+	no := []string{"no", "n"}
+	surePrompt := promptui.Prompt{
+		Label: "Sure want to add record to " + filename + "? (yes/no)",
+		Validate: func(s string) error {
+			if slices.Contains(append(yes, no...), s) {
+				return nil
+			}
+			return fmt.Errorf("type 'yes' or 'no'")
+		},
+		HideEntered: true,
+	}
+	res, err := surePrompt.Run()
+	if err == nil {
+		return false
+	}
+	return slices.Contains(yes, res)
 }
 
 func readCityInput(ctx *cli.Context, storage *storage.GeoNameStorage) (*entity.City, error) {
@@ -156,7 +178,7 @@ func writeFile(ctx context.Context, filename string, db map[string]*entity.City)
 
 func promptNetwork(ctx context.Context) (string, error) {
 	networkPrompt := promptui.Prompt{
-		Label: "network (CIDR)",
+		Label: "Enter network (IP/CIDR)",
 		Validate: func(s string) error {
 			_, _, err := net.ParseCIDR(s)
 			return err
@@ -171,7 +193,7 @@ func selectCountry(ctx context.Context, storage *storage.GeoNameStorage) (*entit
 		return nil, err
 	}
 	countrySelect := promptui.Select{
-		Label:             "country",
+		Label:             "Choose country",
 		Items:             countries,
 		Templates:         selectTemplates,
 		StartInSearchMode: true,
@@ -209,7 +231,7 @@ func selectCity(ctx context.Context, storage *storage.GeoNameStorage, country *e
 		}
 	}
 	citySelect := promptui.Select{
-		Label:             "city",
+		Label:             "Choose city",
 		Items:             filteredCities,
 		Templates:         selectTemplates,
 		StartInSearchMode: true,
@@ -234,6 +256,9 @@ func getSubdivisions(ctx context.Context, storage *storage.GeoNameStorage, city 
 		i := slices.IndexFunc(subdivisions, func(sd *entity.GeoNameAdminSubdivision) bool {
 			return adminCode == sd.AdminCode()
 		})
+		if i < 0 {
+			return nil
+		}
 		return subdivisions[i]
 	}
 
@@ -242,7 +267,9 @@ func getSubdivisions(ctx context.Context, storage *storage.GeoNameStorage, city 
 		if len(code) == 0 {
 			break
 		}
-		res = append(res, *subdivisionByCode(code))
+		if sd := subdivisionByCode(code); sd != nil {
+			res = append(res, *sd)
+		}
 	}
 	return res, nil
 }
