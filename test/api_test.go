@@ -44,7 +44,7 @@ func requests() []ClientRequest {
 	var requests []ClientRequest
 
 	requests = append(requests, ClientRequest{"city", func(client client.GeoIPClient, address string) (interface{}, error) {
-		return client.City(context.Background(), address)
+		return client.City(context.Background(), address, false)
 	}})
 	requests = append(requests, ClientRequest{"country", func(client client.GeoIPClient, address string) (interface{}, error) {
 		return client.Country(context.Background(), address)

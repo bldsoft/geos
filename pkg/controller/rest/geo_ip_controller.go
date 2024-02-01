@@ -185,12 +185,12 @@ func (c *GeoIpController) GetCSVDatabaseHandler(w http.ResponseWriter, r *http.R
 func (c *GeoIpController) GetDatabaseMetaHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	db := chi.URLParam(r, "db")
-	database, err := c.geoIpService.Database(ctx, service.DBType(db), repository.DumpFormatMMDB)
+	metadata, err := c.geoIpService.MetaData(ctx, service.DBType(db))
 	if err != nil {
 		c.responseError(w, r, err)
 		return
 	}
-	c.ResponseJson(w, r, database.MetaData)
+	c.ResponseJson(w, r, metadata)
 }
 
 func (c *GeoIpController) responseError(w http.ResponseWriter, r *http.Request, err error) {

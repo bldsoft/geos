@@ -10,10 +10,12 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jellydator/ttlcache/v3 v3.0.1
+	github.com/manifoldco/promptui v0.9.0
+	github.com/maxmind/mmdbwriter v1.0.0
 	github.com/mkrou/geonames v1.0.0
-	github.com/oschwald/maxminddb-golang v1.10.0
+	github.com/oschwald/maxminddb-golang v1.12.0
 	github.com/rs/zerolog v1.29.0
-	github.com/stretchr/testify v1.8.2
+	github.com/stretchr/testify v1.8.4
 	github.com/swaggo/swag v1.8.6
 	github.com/urfave/cli/v2 v2.17.1
 	google.golang.org/grpc v1.52.0
@@ -32,6 +34,7 @@ require (
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/aws/aws-sdk-go v1.38.20 // indirect
 	github.com/bldsoft/memberlist v0.0.0-20231108153136-87acdac036f5 // indirect
+	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/fatih/color v1.13.0 // indirect
@@ -98,6 +101,7 @@ require (
 	go.opentelemetry.io/otel v1.13.0 // indirect
 	go.opentelemetry.io/otel/trace v1.13.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
+	go4.org/netipx v0.0.0-20220812043211-3cc044ffd68d // indirect
 	golang.org/x/crypto v0.14.0 // indirect
 	golang.org/x/exp v0.0.0-20220929160808-de9c53c655b9 // indirect
 	golang.org/x/mod v0.14.0 // indirect

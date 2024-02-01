@@ -71,7 +71,7 @@ func (m *Microservice) initServices() {
 		log.Debug("Log export to ClickHouse is off")
 	}
 
-	rep := repository.NewGeoIpRepository(m.config.GeoDbPath, m.config.GeoDbISPPath, m.config.GeoIPCsvDumpDirPath)
+	rep := repository.NewGeoIPRepository(m.config.GeoDbPath, m.config.GeoDbISPPath, m.config.GeoIPCsvDumpDirPath)
 	m.geoIpService = service.NewGeoIpService(rep)
 
 	geoNameStorage := storage.NewGeoNamesStorage(m.config.GeoNameDumpDirPath)
