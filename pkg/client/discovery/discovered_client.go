@@ -6,7 +6,7 @@ import (
 
 	"github.com/bldsoft/geos/pkg/client"
 	"github.com/bldsoft/geos/pkg/entity"
-	"github.com/bldsoft/geos/pkg/storage"
+	"github.com/bldsoft/geos/pkg/storage/geonames"
 	"github.com/bldsoft/gost/discovery"
 )
 
@@ -23,7 +23,7 @@ func newDiscoveredClient(serviceCluster string, discovery discovery.Discovery, m
 }
 
 func (c *discoveredClient) GeoNameContinents(ctx context.Context) []*entity.GeoNameContinent {
-	return storage.GeoNameContinents()
+	return geonames.GeoNameContinents()
 }
 
 func doWithClientLoader[C any, R any](loader *loader[C], stopOnErr bool, doRequest func(client C) (res R, err error)) (R, error) {

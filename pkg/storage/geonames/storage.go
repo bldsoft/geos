@@ -1,4 +1,4 @@
-package storage
+package geonames
 
 import (
 	"context"
@@ -38,7 +38,7 @@ type GeoNameStorage struct {
 	cities       *geonameEntityStorage[*entity.GeoName]
 }
 
-func NewGeoNamesStorage(dir string) *GeoNameStorage {
+func NewStorage(dir string) *GeoNameStorage {
 	s := &GeoNameStorage{
 		countries: newGeonameEntityStorage(dir, func(parser geonames.Parser) ([]*entity.GeoNameCountry, error) {
 			var countries []*entity.GeoNameCountry

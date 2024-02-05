@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/bldsoft/geos/pkg/entity"
-	"github.com/bldsoft/geos/pkg/storage"
+	"github.com/bldsoft/geos/pkg/storage/geonames"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/exp/slices"
 
@@ -50,7 +50,7 @@ func main() {
 						return err
 					}
 
-					geoNameStorage := storage.NewGeoNamesStorage("/tmp/")
+					geoNameStorage := geonames.NewStorage("/tmp/")
 
 					network, err := promptNetwork(ctx.Context)
 					if err != nil {
@@ -116,7 +116,7 @@ func areYouSure(filename string) bool {
 	return slices.Contains(yes, res)
 }
 
-func readCityInput(ctx *cli.Context, storage *storage.GeoNameStorage) (*entity.City, error) {
+func readCityInput(ctx *cli.Context, storage geonames.Storage) (*entity.City, error) {
 	country, err := selectCountry(ctx.Context, storage)
 	if err != nil {
 		return nil, err
@@ -187,7 +187,7 @@ func promptNetwork(ctx context.Context) (string, error) {
 	return networkPrompt.Run()
 }
 
-func selectCountry(ctx context.Context, storage *storage.GeoNameStorage) (*entity.GeoNameCountry, error) {
+func selectCountry(ctx context.Context, storage geonames.Storage) (*entity.GeoNameCountry, error) {
 	countries, err := storage.Countries(ctx, entity.GeoNameFilter{})
 	if err != nil {
 		return nil, err
@@ -208,7 +208,7 @@ func selectCountry(ctx context.Context, storage *storage.GeoNameStorage) (*entit
 	return countries[index], nil
 }
 
-func getContinent(ctx context.Context, storage *storage.GeoNameStorage, country *entity.GeoNameCountry) *entity.GeoNameContinent {
+func getContinent(ctx context.Context, storage geonames.Storage, country *entity.GeoNameCountry) *entity.GeoNameContinent {
 	for _, continent := range storage.Continents(ctx) {
 		if continent.Code() == country.Continent {
 			return continent
@@ -217,7 +217,7 @@ func getContinent(ctx context.Context, storage *storage.GeoNameStorage, country 
 	return nil
 }
 
-func selectCity(ctx context.Context, storage *storage.GeoNameStorage, country *entity.GeoNameCountry) (*entity.GeoName, error) {
+func selectCity(ctx context.Context, storage geonames.Storage, country *entity.GeoNameCountry) (*entity.GeoName, error) {
 	cities, err := storage.Cities(ctx, entity.GeoNameFilter{
 		CountryCodes: []string{country.CountryCode()},
 	})
@@ -246,7 +246,7 @@ func selectCity(ctx context.Context, storage *storage.GeoNameStorage, country *e
 	return filteredCities[index], nil
 }
 
-func getSubdivisions(ctx context.Context, storage *storage.GeoNameStorage, city *entity.GeoName) ([]entity.GeoNameAdminSubdivision, error) {
+func getSubdivisions(ctx context.Context, storage geonames.Storage, city *entity.GeoName) ([]entity.GeoNameAdminSubdivision, error) {
 	subdivisions, err := storage.Subdivisions(ctx, entity.GeoNameFilter{CountryCodes: []string{city.CountryCode()}})
 	if err != nil {
 		return nil, err
