@@ -2,6 +2,8 @@ package entity
 
 import (
 	"encoding/json"
+	"slices"
+	"strings"
 
 	"github.com/mkrou/geonames/models"
 )
@@ -168,6 +170,22 @@ type GeoNameFilter struct {
 	CountryCodes []string `schema:"country-codes"`
 	NamePrefix   string   `schema:"name-prefix"`
 	Limit        uint32   `schema:"limit"`
+}
+
+func (f *GeoNameFilter) Match(e GeoNameEntity) bool {
+	if len(f.GeoNameIDs) > 0 && !slices.Contains(f.GeoNameIDs, uint32(e.GeoNameID())) {
+		return false
+	}
+
+	if len(f.CountryCodes) > 0 && !slices.Contains(f.CountryCodes, e.CountryCode()) {
+		return false
+	}
+
+	if len(f.NamePrefix) > 0 && !strings.HasPrefix(e.Name(), f.NamePrefix) {
+		return false
+	}
+
+	return true
 }
 
 type GeoNameContinent struct {

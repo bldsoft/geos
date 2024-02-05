@@ -40,7 +40,7 @@ func NewCustomDatabasesFromDir(dir, customDBPrefix string) []Database {
 		if e != nil {
 			return e
 		}
-		if !d.Type().IsRegular() && !strings.HasPrefix(d.Name(), customDBPrefix) {
+		if !d.Type().IsRegular() || !strings.HasPrefix(d.Name(), customDBPrefix) {
 			return nil
 		}
 

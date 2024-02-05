@@ -2,6 +2,7 @@ package microservice
 
 import (
 	"net/http"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -94,7 +95,9 @@ func (m *Microservice) initServices() {
 }
 
 func (m *Microservice) geonamesStorage() geonames.Storage {
-	return geonames.NewStorage(m.config.GeoNameDumpDirPath)
+	original := geonames.NewStorage(m.config.GeoNameDumpDirPath)
+	customs := geonames.NewCustomStoragesFromDir(filepath.Dir(m.config.GeoDbPath), "geonames")
+	return geonames.NewMultiStorage(original).Add(customs...)
 }
 
 func (m *Microservice) BuildRoutes(router chi.Router) {
