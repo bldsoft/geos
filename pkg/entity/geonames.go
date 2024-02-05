@@ -87,17 +87,15 @@ func (s GeoNameAdminSubdivision) Name() string {
 }
 
 func (s GeoNameAdminSubdivision) AdminCode() string {
-	if len(s.AdminDivision.Code) < 3 {
-		return ""
+	splitted := strings.SplitN(s.AdminDivision.Code, ".", 2)
+	if len(splitted) < 2 {
+		return splitted[0]
 	}
-	return s.AdminDivision.Code[3:]
+	return splitted[1]
 }
 
 func (s GeoNameAdminSubdivision) CountryCode() string {
-	if len(s.AdminDivision.Code) < 2 {
-		return ""
-	}
-	return s.AdminDivision.Code[:2]
+	return strings.SplitN(s.AdminDivision.Code, ".", 2)[0]
 }
 
 func (s GeoNameAdminSubdivision) MarshalJSON() ([]byte, error) {

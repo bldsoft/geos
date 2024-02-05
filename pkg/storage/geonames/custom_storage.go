@@ -68,7 +68,7 @@ func (rec CustomGeonamesRecord) SubdivisionEntity() *entity.GeoNameAdminSubdivis
 		AdminDivision: &models.AdminDivision{
 			GeonameId: rec.Subdivision.GeoNameID,
 			Name:      rec.Subdivision.Name,
-			Code:      rec.Subdivision.Name,
+			Code:      rec.Country.Name + "." + rec.Subdivision.Name,
 		},
 	}
 }
