@@ -110,7 +110,7 @@ func areYouSure(filename string) bool {
 		HideEntered: true,
 	}
 	res, err := surePrompt.Run()
-	if err == nil {
+	if err != nil {
 		return false
 	}
 	return slices.Contains(yes, res)
