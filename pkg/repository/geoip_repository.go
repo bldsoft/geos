@@ -41,9 +41,9 @@ func openPatchedDB[T maxmind.CSVEntity](path string, customPrefix string, requir
 	originalDB, err := maxmind.Open(path)
 	if err != nil {
 		if required {
-			log.Fatalf("Failed to read %s db: %s", path, err)
+			log.Fatalf("Failed to read %s db: %s", customPrefix, err)
 		}
-		log.Warnf("Failed to read %s db: %s", path, err)
+		log.Warnf("Failed to read %s db: %s", customPrefix, err)
 		return nil
 	}
 	customDBs := maxmind.NewCustomDatabasesFromDir(filepath.Dir(path), customPrefix)

@@ -28,6 +28,9 @@ func withCachedCSVDump[T maxmind.CSVEntity](db maxmind.Database) *maxmindDBWithC
 }
 
 func (db *maxmindDBWithCachedCSVDump) initCSVDump(ctx context.Context, csvDumpPath string) {
+	logger := log.FromContext(ctx).WithFields(log.Fields{"db type": db.metadata().DatabaseType})
+	ctx = context.WithValue(ctx, log.LoggerCtxKey, logger)
+
 	defer close(db.dumpReady)
 	if filepath.Dir(csvDumpPath) == "." {
 		return

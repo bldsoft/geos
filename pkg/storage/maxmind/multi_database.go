@@ -15,6 +15,8 @@ import (
 	"github.com/oschwald/maxminddb-golang"
 )
 
+var ErrNoDatabases = errors.New("no databases")
+
 type MultiMaxMindDB struct {
 	dbs    []Database
 	logger log.ServiceLogger
@@ -76,6 +78,13 @@ func (db *MultiMaxMindDB) totalNodes() int {
 }
 
 func (db *MultiMaxMindDB) RawData() (io.Reader, error) {
+	if len(db.dbs) == 0 {
+		return nil, ErrNoDatabases
+	}
+	if len(db.dbs) == 1 {
+		return db.dbs[0].RawData()
+	}
+
 	opts := mmdbwriter.Options{IncludeReservedNetworks: true}
 	tree, err := mmdbwriter.New(opts)
 	if err != nil {
@@ -174,7 +183,7 @@ func (db *MultiMaxMindDB) Networks(options ...maxminddb.NetworksOption) (*maxmin
 
 func (db *MultiMaxMindDB) MetaData() (*maxminddb.Metadata, error) {
 	if len(db.dbs) == 0 {
-		return nil, errors.New("no databases")
+		return nil, ErrNoDatabases
 	}
 	if len(db.dbs) == 1 {
 		return db.dbs[0].MetaData()
@@ -191,9 +200,7 @@ func (db *MultiMaxMindDB) MetaData() (*maxminddb.Metadata, error) {
 	for key, value := range mainMeta.Description {
 		res.Description[key] = value
 	}
-	if len(db.dbs) > 0 {
-		res.Description["en"] += " patched by GEOS service."
-	}
+	res.Description["en"] += " patched by GEOS service."
 
 	for _, db := range db.dbs {
 		meta, err := db.MetaData()
