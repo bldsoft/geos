@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/bldsoft/geos/pkg/entity"
@@ -17,6 +18,10 @@ import (
 
 	"github.com/manifoldco/promptui"
 )
+
+const FirstCustomGeonameID = 1_000_000_000
+
+var ErrGeonameIDAlreadyInUse = fmt.Errorf("geoname already in use")
 
 var selectTemplates = &promptui.SelectTemplates{
 	Inactive: "{{ .Name }}",
@@ -31,26 +36,27 @@ func main() {
 		EnableBashCompletion: true,
 		Commands: []*cli.Command{
 			{
-				Name:  "add",
-				Usage: "add record to custom db file",
+				Name:  "city",
+				Usage: "add record to custom city db file",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
-						Name:    "f",
-						Value:   "city_custom.json",
-						Aliases: []string{"file"},
+						Name:  "f",
+						Value: "city_custom.json",
 					},
-					&cli.BoolFlag{
-						Name: "private",
+					&cli.StringFlag{
+						Name:    "geonames",
+						Value:   "geonames_custom.json",
+						Aliases: []string{"geonames-patch"},
 					},
 				},
 				Action: func(ctx *cli.Context) error {
-					filename := ctx.String("file")
-					currentDB, err := readCurrentDB(ctx.Context, filename)
-					if err != nil {
+					filename := ctx.String("f")
+					currentDB := make(map[string]*entity.City)
+					if err := readCurrentDB(ctx.Context, filename, &currentDB); err != nil {
 						return err
 					}
 
-					geoNameStorage := geonames.NewStorage("/tmp/")
+					geonameStorage := geonamesStorage(ctx.Context, ctx.String("geonames"))
 
 					network, err := promptNetwork(ctx.Context)
 					if err != nil {
@@ -59,14 +65,9 @@ func main() {
 
 					var dbCity *entity.City
 
-					if ctx.Bool("private") {
-						dbCity = &entity.PrivateCity
-					} else {
-						geoNameStorage.WaitReady()
-						dbCity, err = readCityInput(ctx, geoNameStorage)
-						if err != nil {
-							return err
-						}
+					dbCity, err = readCityInput(ctx, geonameStorage)
+					if err != nil {
+						return err
 					}
 
 					// log
@@ -88,12 +89,161 @@ func main() {
 					return writeFile(ctx.Context, filename, currentDB)
 				},
 			},
+			{
+				Name:  "geonames",
+				Usage: "add custom geonames to a patch file",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:  "f",
+						Value: "geonames_custom.json",
+					},
+					&cli.UintFlag{
+						Name:  "id",
+						Value: 0,
+					},
+				},
+				Action: func(ctx *cli.Context) (err error) {
+					filename := ctx.String("f")
+					var records []geonames.CustomGeonamesRecord
+					if err := readCurrentDB(ctx.Context, filename, &records); err != nil {
+						return err
+					}
+
+					geonameStorage := geonamesStorage(ctx.Context, filename)
+
+					geoname := ctx.Args().First()
+					geonameID := ctx.Uint64("id")
+
+					if len(geoname) > 0 && geonameID == 0 {
+						geonameID = generateGeonameID(records)
+					}
+
+					if len(geoname) == 0 {
+						geoname, err = geonameInput()
+						if err != nil {
+							return err
+						}
+					}
+
+					if geonameID == 0 {
+						geonameID, err = geonameIDInput(ctx.Context, geonameStorage, records)
+						if err != nil {
+							return err
+						}
+					}
+
+					// log
+					rec := geonames.NewCustomGeonamesRecord(geoname, int(geonameID))
+					data, err := json.MarshalIndent(rec, "", "    ")
+					if err != nil {
+						return err
+					}
+					println(string(data))
+					//
+
+					if !areYouSure(filename) {
+						return nil
+					}
+
+					records = append(records, rec)
+					return writeFile(ctx.Context, filename, records)
+				},
+			},
 		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func geonamesStorage(ctx context.Context, customFilePath string) geonames.Storage {
+	originalStorage := geonames.NewStorage("/tmp/")
+	geonameStorage := geonames.NewMultiStorage(originalStorage)
+
+	if customStorage, err := geonames.NewCustomStorageFromFile(customFilePath); err == nil {
+		return geonameStorage.Add(customStorage)
+	}
+	originalStorage.WaitReady()
+	return geonameStorage
+}
+
+func isGeoNameIDAlradyInUse(ctx context.Context, storage geonames.Storage, id uint64) error {
+	for _, contient := range storage.Continents(ctx) {
+		if contient.GeoNameID() == int(id) {
+			return ErrGeonameIDAlreadyInUse
+		}
+	}
+
+	subdivisions, err := storage.Subdivisions(ctx, entity.GeoNameFilter{})
+	if err != nil {
+		return err
+	}
+	for _, sd := range subdivisions {
+		if sd.GeoNameID() == int(id) {
+			return ErrGeonameIDAlreadyInUse
+		}
+	}
+
+	countries, err := storage.Countries(ctx, entity.GeoNameFilter{})
+	if err != nil {
+		return err
+	}
+	for _, country := range countries {
+		if country.GeoNameID() == int(id) {
+			return ErrGeonameIDAlreadyInUse
+		}
+	}
+	cities, err := storage.Cities(ctx, entity.GeoNameFilter{})
+	if err != nil {
+		return err
+	}
+	for _, city := range cities {
+		if city.GeoNameID() == int(id) {
+			return ErrGeonameIDAlreadyInUse
+		}
+	}
+	return nil
+}
+
+func generateGeonameID(records []geonames.CustomGeonamesRecord) uint64 {
+	geonameID := uint64(FirstCustomGeonameID)
+	for _, rec := range records {
+		geonameID = max(geonameID, uint64(rec.City.GeoNameID)+1)
+	}
+	return geonameID
+}
+
+func geonameIDInput(ctx context.Context, storage geonames.Storage, records []geonames.CustomGeonamesRecord) (uint64, error) {
+	prompt := promptui.Prompt{
+		Label: "Enter geoname id (leave empty for auto generation)",
+		Validate: func(idStr string) error {
+			if len(idStr) == 0 {
+				return nil
+			}
+			id, err := strconv.ParseUint(idStr, 10, 64)
+			if err != nil {
+				return err
+			}
+
+			return isGeoNameIDAlradyInUse(ctx, storage, id)
+		},
+	}
+	idStr, err := prompt.Run()
+	if err != nil {
+		return 0, err
+	}
+	if idStr == "" {
+		return generateGeonameID(records), nil
+	}
+	return strconv.ParseUint(idStr, 10, 64)
+}
+
+func geonameInput() (string, error) {
+	prompt := promptui.Prompt{
+		Label: "Enter geoname",
+	}
+	return prompt.Run()
 }
 
 func areYouSure(filename string) bool {
@@ -137,42 +287,38 @@ func readCityInput(ctx *cli.Context, storage geonames.Storage) (*entity.City, er
 	return buildDBCity(continent, country, subdivisions, city), nil
 }
 
-func readCurrentDB(ctx context.Context, filename string) (map[string]*entity.City, error) {
+func readCurrentDB[T any](ctx context.Context, filename string, out T) (err error) {
 	file, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer file.Close()
 
-	currentDB, err := io.ReadAll(file)
+	data, err := io.ReadAll(file)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	res := make(map[string]*entity.City)
-	if len(currentDB) == 0 {
-		return res, nil
+	if len(data) == 0 {
+		return nil
 	}
 
-	if err := json.Unmarshal(currentDB, &res); err != nil {
-		return nil, err
-	}
-	return res, nil
+	return json.Unmarshal(data, out)
 }
 
-func writeFile(ctx context.Context, filename string, db map[string]*entity.City) error {
+func writeFile[T any](ctx context.Context, filename string, data T) error {
 	file, err := os.OpenFile(filename, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
-	data, err := json.MarshalIndent(db, "", "    ")
+	dataBytes, err := json.MarshalIndent(data, "", "    ")
 	if err != nil {
 		return err
 	}
 
-	_, err = file.Write(data)
+	_, err = file.Write(dataBytes)
 	return err
 }
 
@@ -230,6 +376,11 @@ func selectCity(ctx context.Context, storage geonames.Storage, country *entity.G
 			filteredCities = append(filteredCities, city)
 		}
 	}
+
+	if len(filteredCities) == 1 {
+		return filteredCities[0], nil
+	}
+
 	citySelect := promptui.Select{
 		Label:             "Choose city",
 		Items:             filteredCities,
