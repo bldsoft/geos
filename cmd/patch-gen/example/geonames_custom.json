@@ -1,0 +1,74 @@
+[
+    {
+        "city": {
+            "geoNameID": 1000000000,
+            "name": "Localhost"
+        },
+        "subdivision": {
+            "geoNameID": 1000000000,
+            "name": "Localhost"
+        },
+        "country": {
+            "geoNameID": 1000000000,
+            "name": "Localhost"
+        },
+        "continent": {
+            "geoNameID": 1000000000,
+            "name": "Localhost"
+        }
+    },
+    {
+        "city": {
+            "geoNameID": 1000000001,
+            "name": "Private Network (A)"
+        },
+        "subdivision": {
+            "geoNameID": 1000000001,
+            "name": "Private Network (A)"
+        },
+        "country": {
+            "geoNameID": 1000000001,
+            "name": "Private Network (A)"
+        },
+        "continent": {
+            "geoNameID": 1000000001,
+            "name": "Private Network (A)"
+        }
+    },
+    {
+        "city": {
+            "geoNameID": 1000000002,
+            "name": "Private Network (B)"
+        },
+        "subdivision": {
+            "geoNameID": 1000000002,
+            "name": "Private Network (B)"
+        },
+        "country": {
+            "geoNameID": 1000000002,
+            "name": "Private Network (B)"
+        },
+        "continent": {
+            "geoNameID": 1000000002,
+            "name": "Private Network (B)"
+        }
+    },
+    {
+        "city": {
+            "geoNameID": 1000000003,
+            "name": "Private Network (C)"
+        },
+        "subdivision": {
+            "geoNameID": 1000000003,
+            "name": "Private Network (C)"
+        },
+        "country": {
+            "geoNameID": 1000000003,
+            "name": "Private Network (C)"
+        },
+        "continent": {
+            "geoNameID": 1000000003,
+            "name": "Private Network (C)"
+        }
+    }
+]

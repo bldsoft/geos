@@ -1,0 +1,110 @@
+{
+    "127.0.0.0/8": {
+        "city": {
+            "geoNameID": 1000000000,
+            "names": {
+                "en": "Localhost"
+            }
+        },
+        "continent": {
+            "code": "Localhost",
+            "geoNameID": 1000000000,
+            "names": {
+                "en": "Localhost"
+            }
+        },
+        "country": {
+            "geoNameID": 1000000000,
+            "isoCode": "Localhost",
+            "names": {
+                "en": "Localhost"
+            }
+        },
+        "location": {},
+        "postal": {},
+        "registeredCountry": {},
+        "representedCountry": {},
+        "traits": {}
+    },
+    "10.0.0.0/8": {
+        "city": {
+            "geoNameID": 1000000001,
+            "names": {
+                "en": "Private Network (A)"
+            }
+        },
+        "continent": {
+            "code": "Private Network (A)",
+            "geoNameID": 1000000001,
+            "names": {
+                "en": "Private Network (A)"
+            }
+        },
+        "country": {
+            "geoNameID": 1000000001,
+            "isoCode": "Private Network (A)",
+            "names": {
+                "en": "Private Network (A)"
+            }
+        },
+        "location": {},
+        "postal": {},
+        "registeredCountry": {},
+        "representedCountry": {},
+        "traits": {}
+    },
+    "172.16.0.0/12": {
+        "city": {
+            "geoNameID": 1000000002,
+            "names": {
+                "en": "Private Network (B)"
+            }
+        },
+        "continent": {
+            "code": "Private Network (B)",
+            "geoNameID": 1000000002,
+            "names": {
+                "en": "Private Network (B)"
+            }
+        },
+        "country": {
+            "geoNameID": 1000000002,
+            "isoCode": "Private Network (B)",
+            "names": {
+                "en": "Private Network (B)"
+            }
+        },
+        "location": {},
+        "postal": {},
+        "registeredCountry": {},
+        "representedCountry": {},
+        "traits": {}
+    },
+    "192.168.0.0/16": {
+        "city": {
+            "geoNameID": 1000000003,
+            "names": {
+                "en": "Private Network (C)"
+            }
+        },
+        "continent": {
+            "code": "Private Network (C)",
+            "geoNameID": 1000000003,
+            "names": {
+                "en": "Private Network (C)"
+            }
+        },
+        "country": {
+            "geoNameID": 1000000003,
+            "isoCode": "Private Network (C)",
+            "names": {
+                "en": "Private Network (C)"
+            }
+        },
+        "location": {},
+        "postal": {},
+        "registeredCountry": {},
+        "representedCountry": {},
+        "traits": {}
+    }
+}

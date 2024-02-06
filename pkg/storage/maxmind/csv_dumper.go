@@ -7,6 +7,7 @@ import (
 	"encoding/csv"
 	"io"
 
+	"github.com/bldsoft/gost/log"
 	"github.com/oschwald/maxminddb-golang"
 )
 
@@ -17,14 +18,29 @@ type MaxmindCSVDumper[T CSVEntity] struct {
 func NewCSVDumper[T CSVEntity](db Database) *MaxmindCSVDumper[T] {
 	return &MaxmindCSVDumper[T]{db}
 }
-
 func (db MaxmindCSVDumper[T]) WriteCSVTo(ctx context.Context, w io.Writer) error {
 	networks, err := db.Networks(maxminddb.SkipAliasedNetworks)
 	if err != nil {
 		return err
 	}
 
+	meta, err := db.MetaData()
+	if err != nil {
+		return err
+	}
+	writtenRows := 0
+	precent := 1 + int(meta.NodeCount)/100
+
 	csvWriter := csv.NewWriter(w)
+	writeRow := func(row []string) error {
+		err := csvWriter.Write(row)
+		writtenRows++
+		if writtenRows%(precent) == 0 {
+			percents := writtenRows / (precent)
+			log.FromContext(ctx).Debugf("CSV writing: %d%%", percents)
+		}
+		return err
+	}
 
 	if !networks.Next() {
 		return nil
@@ -49,7 +65,7 @@ func (db MaxmindCSVDumper[T]) WriteCSVTo(ctx context.Context, w io.Writer) error
 	csvRow := header
 	csvRow[0] = subnet.String()
 	copy(csvRow[1:], row)
-	if err := csvWriter.Write(csvRow); err != nil {
+	if err := writeRow(csvRow); err != nil {
 		return err
 	}
 
@@ -65,13 +81,15 @@ func (db MaxmindCSVDumper[T]) WriteCSVTo(ctx context.Context, w io.Writer) error
 		csvRow[0] = subnet.String()
 		copy(csvRow[1:], row)
 
-		err = csvWriter.Write(csvRow)
+		err = writeRow(csvRow)
 		if err != nil {
 			return err
 		}
 	}
 
 	csvWriter.Flush()
+
+	log.FromContext(ctx).Debugf("CSV writing: 100%%")
 	return nil
 }
 

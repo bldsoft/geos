@@ -5,12 +5,12 @@ import (
 	"testing"
 
 	"github.com/bldsoft/geos/pkg/entity"
-	"github.com/bldsoft/geos/pkg/storage"
+	"github.com/bldsoft/geos/pkg/storage/geonames"
 	"github.com/stretchr/testify/assert"
 )
 
 func BenchmarkGeonamesCity(b *testing.B) {
-	storage := storage.NewGeoNamesStorage(b.TempDir())
+	storage := geonames.NewStorage(b.TempDir())
 	storage.WaitReady()
 	tests := []struct {
 		Name   string

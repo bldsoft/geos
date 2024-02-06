@@ -1,4 +1,4 @@
-package storage
+package geonames
 
 import (
 	"context"
@@ -38,7 +38,7 @@ type GeoNameStorage struct {
 	cities       *geonameEntityStorage[*entity.GeoName]
 }
 
-func NewGeoNamesStorage(dir string) *GeoNameStorage {
+func NewStorage(dir string) *GeoNameStorage {
 	s := &GeoNameStorage{
 		countries: newGeonameEntityStorage(dir, func(parser geonames.Parser) ([]*entity.GeoNameCountry, error) {
 			var countries []*entity.GeoNameCountry
@@ -79,13 +79,28 @@ func (r *GeoNameStorage) Continents(ctx context.Context) []*entity.GeoNameContin
 }
 
 func (r *GeoNameStorage) Countries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error) {
-	return r.countries.GetEntities(ctx, filter)
+	select {
+	case <-r.countries.readyC:
+		return r.countries.GetEntities(ctx, filter)
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
 }
 
 func (r *GeoNameStorage) Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameAdminSubdivision, error) {
-	return r.subdivisions.GetEntities(ctx, filter)
+	select {
+	case <-r.subdivisions.readyC:
+		return r.subdivisions.GetEntities(ctx, filter)
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
 }
 
 func (r *GeoNameStorage) Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error) {
-	return r.cities.GetEntities(ctx, filter)
+	select {
+	case <-r.cities.readyC:
+		return r.cities.GetEntities(ctx, filter)
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
 }

@@ -7,20 +7,14 @@ import (
 	"strconv"
 
 	"github.com/bldsoft/geos/pkg/entity"
+	"github.com/bldsoft/geos/pkg/storage/geonames"
 )
 
-type GeoNameStorage interface {
-	Continents(ctx context.Context) []*entity.GeoNameContinent
-	Countries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error)
-	Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameAdminSubdivision, error)
-	Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error)
-}
-
 type GeoNameRepository struct {
-	storage GeoNameStorage
+	storage geonames.Storage
 }
 
-func NewGeoNamesRepository(storage GeoNameStorage) *GeoNameRepository {
+func NewGeoNamesRepository(storage geonames.Storage) *GeoNameRepository {
 	return &GeoNameRepository{storage: storage}
 }
 

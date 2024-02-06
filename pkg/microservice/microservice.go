@@ -2,6 +2,7 @@ package microservice
 
 import (
 	"net/http"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -10,7 +11,7 @@ import (
 	"github.com/bldsoft/geos/pkg/controller/rest"
 	"github.com/bldsoft/geos/pkg/repository"
 	"github.com/bldsoft/geos/pkg/service"
-	"github.com/bldsoft/geos/pkg/storage"
+	"github.com/bldsoft/geos/pkg/storage/geonames"
 	"github.com/bldsoft/gost/auth"
 	"github.com/bldsoft/gost/clickhouse"
 	gost "github.com/bldsoft/gost/controller"
@@ -74,7 +75,7 @@ func (m *Microservice) initServices() {
 	rep := repository.NewGeoIPRepository(m.config.GeoDbPath, m.config.GeoDbISPPath, m.config.GeoIPCsvDumpDirPath)
 	m.geoIpService = service.NewGeoIpService(rep)
 
-	geoNameStorage := storage.NewGeoNamesStorage(m.config.GeoNameDumpDirPath)
+	geoNameStorage := m.geonamesStorage()
 	geoNameRep := repository.NewGeoNamesRepository(geoNameStorage)
 	m.geoNameService = service.NewGeoNameService(geoNameRep)
 
@@ -91,6 +92,12 @@ func (m *Microservice) initServices() {
 		log.Info("gRPC is off")
 	}
 
+}
+
+func (m *Microservice) geonamesStorage() geonames.Storage {
+	original := geonames.NewStorage(m.config.GeoNameDumpDirPath)
+	customs := geonames.NewCustomStoragesFromDir(filepath.Dir(m.config.GeoDbPath), "geonames")
+	return geonames.NewMultiStorage(original).Add(customs...)
 }
 
 func (m *Microservice) BuildRoutes(router chi.Router) {

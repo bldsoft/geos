@@ -2,6 +2,8 @@ package entity
 
 import (
 	"encoding/json"
+	"slices"
+	"strings"
 
 	"github.com/mkrou/geonames/models"
 )
@@ -85,17 +87,15 @@ func (s GeoNameAdminSubdivision) Name() string {
 }
 
 func (s GeoNameAdminSubdivision) AdminCode() string {
-	if len(s.AdminDivision.Code) < 3 {
-		return ""
+	splitted := strings.SplitN(s.AdminDivision.Code, ".", 2)
+	if len(splitted) < 2 {
+		return splitted[0]
 	}
-	return s.AdminDivision.Code[3:]
+	return splitted[1]
 }
 
 func (s GeoNameAdminSubdivision) CountryCode() string {
-	if len(s.AdminDivision.Code) < 2 {
-		return ""
-	}
-	return s.AdminDivision.Code[:2]
+	return strings.SplitN(s.AdminDivision.Code, ".", 2)[0]
 }
 
 func (s GeoNameAdminSubdivision) MarshalJSON() ([]byte, error) {
@@ -168,6 +168,22 @@ type GeoNameFilter struct {
 	CountryCodes []string `schema:"country-codes"`
 	NamePrefix   string   `schema:"name-prefix"`
 	Limit        uint32   `schema:"limit"`
+}
+
+func (f *GeoNameFilter) Match(e GeoNameEntity) bool {
+	if len(f.GeoNameIDs) > 0 && !slices.Contains(f.GeoNameIDs, uint32(e.GeoNameID())) {
+		return false
+	}
+
+	if len(f.CountryCodes) > 0 && !slices.Contains(f.CountryCodes, e.CountryCode()) {
+		return false
+	}
+
+	if len(f.NamePrefix) > 0 && !strings.HasPrefix(e.Name(), f.NamePrefix) {
+		return false
+	}
+
+	return true
 }
 
 type GeoNameContinent struct {

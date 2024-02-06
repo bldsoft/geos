@@ -3,15 +3,16 @@ package maxmind
 import (
 	"bytes"
 	"io"
+	"net"
 	"os"
 
 	"github.com/oschwald/maxminddb-golang"
 )
 
 type MaxmindDatabase struct {
-	path string
-	*maxminddb.Reader
-	dbRaw []byte
+	path   string
+	reader *maxminddb.Reader
+	dbRaw  []byte
 }
 
 func Open(path string) (*MaxmindDatabase, error) {
@@ -19,7 +20,6 @@ func Open(path string) (*MaxmindDatabase, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	db, err := maxminddb.FromBytes(dbRaw)
 	if err != nil {
 		return nil, err
@@ -27,9 +27,13 @@ func Open(path string) (*MaxmindDatabase, error) {
 
 	return &MaxmindDatabase{
 		path:   path,
-		Reader: db,
+		reader: db,
 		dbRaw:  dbRaw,
 	}, nil
+}
+
+func (db *MaxmindDatabase) Lookup(ip net.IP, result interface{}) error {
+	return db.reader.Lookup(ip, result)
 }
 
 func (db *MaxmindDatabase) RawData() (io.Reader, error) {
@@ -37,9 +41,9 @@ func (db *MaxmindDatabase) RawData() (io.Reader, error) {
 }
 
 func (db *MaxmindDatabase) MetaData() (*maxminddb.Metadata, error) {
-	return &db.Reader.Metadata, nil
+	return &db.reader.Metadata, nil
 }
 
 func (db *MaxmindDatabase) Networks(options ...maxminddb.NetworksOption) (*maxminddb.Networks, error) {
-	return db.Reader.Networks(), nil
+	return db.reader.Networks(), nil
 }
