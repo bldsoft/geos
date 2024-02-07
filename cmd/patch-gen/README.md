@@ -1,7 +1,7 @@
 # Patch-gen
 Create/Update GEOS patch for MaxMind database:
 `
-go run github.com/bldsoft/geos/cmd/patch-gen city
+go run github.com/bldsoft/geos/cmd/patch-gen@latest city
 `
 The tool will ask you to enter:
 - Net. Example input: "127.0.0.1/32"
@@ -12,7 +12,7 @@ Then it will display a preview of the entry being added and ask for confirmation
 
 To add a new geoname entity: 
 `
-go run github.com/bldsoft/geos/cmd/patch-gen geonames "name"
+go run github.com/bldsoft/geos/cmd/patch-gen@latest geonames "name"
 `
 Generated geonames patch can be used in the city command via --geonames flag.
 
