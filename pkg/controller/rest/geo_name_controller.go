@@ -23,7 +23,8 @@ func NewGeoNameController(geoNameService controller.GeoNameService) *GeoNameCont
 }
 
 func (c *GeoNameController) getGeoNameFilter(r *http.Request) entity.GeoNameFilter {
-	return *gostUtils.FromRequest[entity.GeoNameFilter](r)
+	filter, _ := gostUtils.FromRequest[entity.GeoNameFilter](r)
+	return *filter
 }
 
 // @Summary continent
