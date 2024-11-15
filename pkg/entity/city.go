@@ -155,8 +155,10 @@ func (record City) MarshalCSV() (names, row []string, err error) {
 	names = []string{
 		"city_geoname_id",
 		"subdivision_geoname_id",
+		"country_geoname_id",
 		"registered_country_geoname_id",
 		"represented_country_geoname_id",
+		"continent_geoname_id",
 		"is_anonymous_proxy",
 		"is_satellite_provider",
 		"latitude",
@@ -171,8 +173,10 @@ func (record City) MarshalCSV() (names, row []string, err error) {
 	row = []string{
 		strconv.FormatUint(uint64(record.City.GeoNameID), 10),
 		strconv.FormatUint(subdivisionGeonameID, 10),
+		strconv.FormatUint(uint64(record.Country.GeoNameID), 10),
 		strconv.FormatUint(uint64(record.RegisteredCountry.GeoNameID), 10),
 		strconv.FormatUint(uint64(record.RepresentedCountry.GeoNameID), 10),
+		strconv.FormatUint(uint64(record.Continent.GeoNameID), 10),
 		formatBool(record.Traits.IsAnonymousProxy),
 		formatBool(record.Traits.IsSatelliteProvider),
 		strconv.FormatFloat(record.Location.Latitude, 'f', 4, 64),
