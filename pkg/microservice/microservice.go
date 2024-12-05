@@ -1,6 +1,8 @@
 package microservice
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"path/filepath"
 	"sync"
@@ -25,11 +27,15 @@ import (
 )
 
 const (
-	BaseApiPath        = "/geoip"
-	APIKey             = "GEOS-API-Key"
-	APIKeyMetaKey      = "api-key"
-	GrpcAddressMetaKey = "grpc-address"
-	ServiceName        = config.ServiceName
+	BaseApiPath                 = "/geoip"
+	APIKey                      = "GEOS-API-Key"
+	APIKeyMetaKey               = "api-key"
+	MMDBCitiesVersionMetaKey    = "mmdb-cities-version"
+	MMDBCitiesBuildEpochMetaKey = "mmdb-cities-build-epoch"
+	MMDBIspVersionMetaKey       = "mmdb-isp-version"
+	MMDBIspBuildEpochMetaKey    = "mmdb-isp-build-epoch"
+	GrpcAddressMetaKey          = "grpc-address"
+	ServiceName                 = config.ServiceName
 )
 
 type Microservice struct {
@@ -58,6 +64,26 @@ func (srv *Microservice) getDbJobGroup(db gost_storage.IStorage) *server.AsyncJo
 	return dbAsyncJobs
 }
 
+func (m *Microservice) setDiscoveryMeta() {
+	if ispMeta, err := m.geoIpService.MetaData(context.Background(), repository.MaxmindDBTypeISP); err == nil {
+		ispVersion := fmt.Sprintf("%d.%d", ispMeta.BinaryFormatMajorVersion, ispMeta.BinaryFormatMinorVersion)
+		m.discovery.SetMetadata(MMDBIspVersionMetaKey, ispVersion)
+		m.discovery.SetMetadata(MMDBIspBuildEpochMetaKey, fmt.Sprintf("%d", ispMeta.BuildEpoch))
+	} else {
+		log.Logger.ErrorWithFields(log.Fields{"err": err}, "failed to get isp database metadata")
+	}
+
+	if citiesMeta, err := m.geoIpService.MetaData(context.Background(), repository.MaxmindDBTypeCity); err == nil {
+		citiesVersion := fmt.Sprintf("%d.%d", citiesMeta.BinaryFormatMajorVersion, citiesMeta.BinaryFormatMinorVersion)
+		m.discovery.SetMetadata(MMDBCitiesVersionMetaKey, citiesVersion)
+		m.discovery.SetMetadata(MMDBCitiesBuildEpochMetaKey, fmt.Sprintf("%d", citiesMeta.BuildEpoch))
+	} else {
+		log.Logger.ErrorWithFields(log.Fields{"err": err}, "failed to get cities database metadata")
+	}
+
+	m.discovery.SetMetadata(APIKeyMetaKey, m.config.ApiKey)
+}
+
 func (m *Microservice) initServices() {
 	if len(m.config.Clickhouse.Dsn) != 0 {
 		var wg sync.WaitGroup
@@ -80,7 +106,8 @@ func (m *Microservice) initServices() {
 	m.geoNameService = service.NewGeoNameService(geoNameRep)
 
 	m.discovery = common.NewDiscovery(m.config.Server, m.config.Discovery)
-	m.discovery.SetMetadata(APIKeyMetaKey, m.config.ApiKey)
+	m.setDiscoveryMeta()
+
 	m.asyncRunners = append(m.asyncRunners, m.discovery)
 
 	if m.config.NeedGrpc() {
