@@ -3,7 +3,7 @@ module github.com/bldsoft/geos
 go 1.21
 
 require (
-	github.com/bldsoft/gost v0.0.0-20240314153847-3ceb3879d634
+	github.com/bldsoft/gost v0.0.0-20241205145007-68cf7e4d93c3
 	github.com/derekparker/trie v0.0.0-20221221181808-1424fce0c981
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/go-resty/resty/v2 v2.7.0
