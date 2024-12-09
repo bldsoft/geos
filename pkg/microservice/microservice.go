@@ -30,10 +30,10 @@ const (
 	BaseApiPath                 = "/geoip"
 	APIKey                      = "GEOS-API-Key"
 	APIKeyMetaKey               = "api-key"
-	MMDBCitiesVersionMetaKey    = "mmdb-cities-version"
-	MMDBCitiesBuildEpochMetaKey = "mmdb-cities-build-epoch"
-	MMDBIspVersionMetaKey       = "mmdb-isp-version"
-	MMDBIspBuildEpochMetaKey    = "mmdb-isp-build-epoch"
+	MMDBCitiesVersionMetaKey    = "mmdbCV"
+	MMDBCitiesBuildEpochMetaKey = "mmdbCBE"
+	MMDBIspVersionMetaKey       = "mmdbIV"
+	MMDBIspBuildEpochMetaKey    = "mmdbIBE"
 	GrpcAddressMetaKey          = "grpc-address"
 	ServiceName                 = config.ServiceName
 )

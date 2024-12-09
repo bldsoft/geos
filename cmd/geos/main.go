@@ -7,7 +7,12 @@ import (
 	"github.com/bldsoft/gost/log"
 	"github.com/bldsoft/gost/server"
 	"github.com/bldsoft/gost/version"
+
+	_ "embed"
 )
+
+//go:embed VERSION
+var ver string
 
 //go:generate swag init -d ../.. --parseDependency -g cmd/geos/main.go -o ../../api/rest
 
@@ -23,6 +28,8 @@ import (
 // @name GEOS-API-Key
 
 func main() {
+	version.Version = ver
+
 	var cfg config.Config
 	gost.ReadConfig(&cfg, "")
 	log.InitLogger(&cfg.Log, cfg.Server.LogExporterConfig())

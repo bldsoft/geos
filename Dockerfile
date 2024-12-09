@@ -10,7 +10,7 @@ RUN go mod download
 COPY . .
 ARG COMMIT
 ARG BRANCH
-ARG VERSION_FILE=VERSION
+ARG VERSION_FILE=/cmd/geos/VERSION
 RUN go build -o geos -ldflags="\
     -X github.com/bldsoft/gost/version.GitCommit=${COMMIT} \
     -X github.com/bldsoft/gost/version.GitBranch=${BRANCH} \
