@@ -78,7 +78,7 @@ func (db *maxmindDBWithCachedCSVDump) csvDumpFromDisk(ctx context.Context, dumpP
 		return os.ReadFile(dumpPath)
 	}
 
-	db.writeCSVMetaData(ctx, csvMetaPath)
+	// db.writeCSVMetaData(ctx, csvMetaPath)
 
 	log.FromContext(ctx).InfoWithFields(log.Fields{"meta": db.metadata(), "csv": dumpPath}, "Updating CSV")
 	return db.loadDumpFull(ctx, dumpPath)
@@ -112,15 +112,15 @@ func (db *maxmindDBWithCachedCSVDump) needUpdateDump(ctx context.Context, dumpPa
 		return true, nil
 	}
 
-	csvMetaData, err := db.csvMetaData(csvMetaPath)
-	if err != nil {
-		log.FromContext(ctx).DebugWithFields(log.Fields{"err": err}, "Failed to get csv metadata, will update csv")
-		return true, nil
-	}
+	// csvMetaData, err := db.csvMetaData(csvMetaPath)
+	// if err != nil {
+	// 	log.FromContext(ctx).DebugWithFields(log.Fields{"err": err}, "Failed to get csv metadata, will update csv")
+	// 	return true, nil
+	// }
 
-	if csvMetaData.BuildVersion != version.Version {
-		return true, nil
-	}
+	// if csvMetaData.BuildVersion != version.Version {
+	// 	return true, nil
+	// }
 
 	dumpDBBuildTime := time.Unix(int64(dumpMetaData.BuildEpoch), 0)
 	dbBuildTime := time.Unix(int64(db.metadata().BuildEpoch), 0)
