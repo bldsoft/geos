@@ -20,8 +20,9 @@ import (
 	"github.com/oschwald/maxminddb-golang"
 )
 
-type csvMetaData struct {
-	BuildVersion string `json:"build_version"`
+type dumpMetaData struct {
+	*maxminddb.Metadata
+	BuildVersion string `json:"BuildVersion"`
 }
 
 type maxmindDBWithCachedCSVDump struct {
@@ -34,7 +35,7 @@ func withCachedCSVDump[T maxmind.CSVEntity](db maxmind.Database) *maxmindDBWithC
 	return &maxmindDBWithCachedCSVDump{CSVDumper: maxmind.NewCSVDumper[T](db), dumpReady: make(chan struct{})}
 }
 
-func (db *maxmindDBWithCachedCSVDump) initCSVDump(ctx context.Context, csvDumpPath, csvMetaPath string) {
+func (db *maxmindDBWithCachedCSVDump) initCSVDump(ctx context.Context, csvDumpPath string) {
 	logger := log.FromContext(ctx).WithFields(log.Fields{"db type": db.metadata().DatabaseType})
 	ctx = context.WithValue(ctx, log.LoggerCtxKey, logger)
 
@@ -56,7 +57,7 @@ func (db *maxmindDBWithCachedCSVDump) initCSVDump(ctx context.Context, csvDumpPa
 	}
 
 	var err error
-	db.archivedCSVWithNamesDump, err = db.csvDumpFromDisk(ctx, csvDumpPath, csvMetaPath)
+	db.archivedCSVWithNamesDump, err = db.csvDumpFromDisk(ctx, csvDumpPath)
 	if err != nil {
 		panic(fmt.Errorf("failed to load GeoIP dump: %w", err))
 	}
@@ -64,13 +65,13 @@ func (db *maxmindDBWithCachedCSVDump) initCSVDump(ctx context.Context, csvDumpPa
 	log.FromContext(ctx).InfoWithFields(log.Fields{"path": csvDumpPath, "size MB": len(db.archivedCSVWithNamesDump) / 1024 / 1024}, "Dump loaded to memory")
 }
 
-func (db *maxmindDBWithCachedCSVDump) metadata() *maxminddb.Metadata {
+func (db *maxmindDBWithCachedCSVDump) metadata() *dumpMetaData {
 	meta, _ := db.MetaData()
-	return meta
+	return &dumpMetaData{Metadata: meta, BuildVersion: version.Version}
 }
 
-func (db *maxmindDBWithCachedCSVDump) csvDumpFromDisk(ctx context.Context, dumpPath, csvMetaPath string) ([]byte, error) {
-	needUpdate, err := db.needUpdateDump(ctx, dumpPath, csvMetaPath)
+func (db *maxmindDBWithCachedCSVDump) csvDumpFromDisk(ctx context.Context, dumpPath string) ([]byte, error) {
+	needUpdate, err := db.needUpdateDump(ctx, dumpPath)
 	if err != nil {
 		return nil, err
 	}
@@ -78,26 +79,11 @@ func (db *maxmindDBWithCachedCSVDump) csvDumpFromDisk(ctx context.Context, dumpP
 		return os.ReadFile(dumpPath)
 	}
 
-	db.writeCSVMetaData(ctx, csvMetaPath)
-
 	log.FromContext(ctx).InfoWithFields(log.Fields{"meta": db.metadata(), "csv": dumpPath}, "Updating CSV")
 	return db.loadDumpFull(ctx, dumpPath)
 }
 
-func (db *maxmindDBWithCachedCSVDump) writeCSVMetaData(ctx context.Context, path string) {
-	meta := csvMetaData{BuildVersion: version.Version}
-
-	metaBytes, err := json.Marshal(meta)
-	if err != nil {
-		log.FromContext(ctx).ErrorWithFields(log.Fields{"err": err}, "Failed to marshal csv meta data")
-	}
-
-	if err := os.WriteFile(path, metaBytes, os.ModePerm); err != nil {
-		log.FromContext(ctx).ErrorWithFields(log.Fields{"err": err}, "Failed to write csv meta data")
-	}
-}
-
-func (db *maxmindDBWithCachedCSVDump) needUpdateDump(ctx context.Context, dumpPath, csvMetaPath string) (bool, error) {
+func (db *maxmindDBWithCachedCSVDump) needUpdateDump(ctx context.Context, dumpPath string) (bool, error) {
 	_, err := os.Stat(dumpPath)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
@@ -112,13 +98,7 @@ func (db *maxmindDBWithCachedCSVDump) needUpdateDump(ctx context.Context, dumpPa
 		return true, nil
 	}
 
-	csvMetaData, err := db.csvMetaData(csvMetaPath)
-	if err != nil {
-		log.FromContext(ctx).DebugWithFields(log.Fields{"err": err}, "Failed to get csv metadata, will update csv")
-		return true, nil
-	}
-
-	if csvMetaData.BuildVersion != version.Version {
+	if dumpMetaData.BuildVersion != version.Version {
 		return true, nil
 	}
 
@@ -155,26 +135,12 @@ func (db *maxmindDBWithCachedCSVDump) loadDumpFull(ctx context.Context, dumpPath
 	return buf.Bytes(), os.Rename(temp, dumpPath)
 }
 
-func (db *maxmindDBWithCachedCSVDump) csvMetaData(path string) (*csvMetaData, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
-	var csvMeta csvMetaData
-	if err := json.Unmarshal(data, &csvMeta); err != nil {
-		return nil, err
-	}
-
-	return &csvMeta, nil
-}
-
 func (db *maxmindDBWithCachedCSVDump) dumpMetaDataPath(dumpPath string) string {
 	ext := filepath.Ext(dumpPath)
 	return strings.TrimSuffix(dumpPath, ext) + ".meta"
 }
 
-func (db *maxmindDBWithCachedCSVDump) dumpMetaData(dumpPath string) (*maxminddb.Metadata, error) {
+func (db *maxmindDBWithCachedCSVDump) dumpMetaData(dumpPath string) (*dumpMetaData, error) {
 	dumpMetaDataPath := db.dumpMetaDataPath(dumpPath)
 
 	data, err := os.ReadFile(dumpMetaDataPath)
@@ -182,7 +148,7 @@ func (db *maxmindDBWithCachedCSVDump) dumpMetaData(dumpPath string) (*maxminddb.
 		return nil, err
 	}
 
-	var meta maxminddb.Metadata
+	var meta dumpMetaData
 	if err := json.Unmarshal(data, &meta); err != nil {
 		return nil, err
 	}

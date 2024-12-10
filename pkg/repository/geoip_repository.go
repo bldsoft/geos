@@ -70,10 +70,10 @@ func NewGeoIPRepository(dbCityPath, dbISPPath string, csvDirPath string) *GeoIPR
 }
 
 func (r *GeoIPRepository) initCSVDumps(ctx context.Context, csvDirPath string) {
-	r.dbCity.initCSVDump(ctx, filepath.Join(csvDirPath, "dump.csv"), filepath.Join(csvDirPath, "cities_gen.meta"))
+	r.dbCity.initCSVDump(ctx, filepath.Join(csvDirPath, "dump.csv"))
 
 	if r.dbISP != nil {
-		r.dbISP.initCSVDump(ctx, filepath.Join(csvDirPath, "isp.csv"), filepath.Join(csvDirPath, "isp_gen.meta"))
+		r.dbISP.initCSVDump(ctx, filepath.Join(csvDirPath, "isp.csv"))
 	}
 }
 
