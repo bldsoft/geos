@@ -7,8 +7,6 @@ import (
 	"github.com/bldsoft/gost/log"
 	"github.com/bldsoft/gost/server"
 	"github.com/bldsoft/gost/version"
-
-	_ "embed"
 )
 
 //go:generate swag init -d ../.. --parseDependency -g cmd/geos/main.go -o ../../api/rest

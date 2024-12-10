@@ -30,9 +30,7 @@ const (
 	BaseApiPath                 = "/geoip"
 	APIKey                      = "GEOS-API-Key"
 	APIKeyMetaKey               = "api-key"
-	MMDBCitiesVersionMetaKey    = "mmdbCV"
 	MMDBCitiesBuildEpochMetaKey = "mmdbCBE"
-	MMDBIspVersionMetaKey       = "mmdbIV"
 	MMDBIspBuildEpochMetaKey    = "mmdbIBE"
 	GrpcAddressMetaKey          = "grpc-address"
 	ServiceName                 = config.ServiceName
@@ -66,16 +64,12 @@ func (srv *Microservice) getDbJobGroup(db gost_storage.IStorage) *server.AsyncJo
 
 func (m *Microservice) setDiscoveryMeta() {
 	if ispMeta, err := m.geoIpService.MetaData(context.Background(), repository.MaxmindDBTypeISP); err == nil {
-		ispVersion := fmt.Sprintf("%d.%d", ispMeta.BinaryFormatMajorVersion, ispMeta.BinaryFormatMinorVersion)
-		m.discovery.SetMetadata(MMDBIspVersionMetaKey, ispVersion)
 		m.discovery.SetMetadata(MMDBIspBuildEpochMetaKey, fmt.Sprintf("%d", ispMeta.BuildEpoch))
 	} else {
 		log.Logger.ErrorWithFields(log.Fields{"err": err}, "failed to get isp database metadata")
 	}
 
 	if citiesMeta, err := m.geoIpService.MetaData(context.Background(), repository.MaxmindDBTypeCity); err == nil {
-		citiesVersion := fmt.Sprintf("%d.%d", citiesMeta.BinaryFormatMajorVersion, citiesMeta.BinaryFormatMinorVersion)
-		m.discovery.SetMetadata(MMDBCitiesVersionMetaKey, citiesVersion)
 		m.discovery.SetMetadata(MMDBCitiesBuildEpochMetaKey, fmt.Sprintf("%d", citiesMeta.BuildEpoch))
 	} else {
 		log.Logger.ErrorWithFields(log.Fields{"err": err}, "failed to get cities database metadata")
