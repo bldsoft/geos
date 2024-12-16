@@ -173,6 +173,8 @@ github.com/blang/semver v3.1.0+incompatible/go.mod h1:kRBLl5iJ+tD4TcOOxsy/0fnweb
 github.com/blang/semver v3.5.1+incompatible/go.mod h1:kRBLl5iJ+tD4TcOOxsy/0fnwebNt5EWlYSAyrTnjyyk=
 github.com/bldsoft/gost v0.0.0-20241205145007-68cf7e4d93c3 h1:w2FtLtnyWSl7jMRl1QcZGgwB7gntE8GJHF0tEO8nT8g=
 github.com/bldsoft/gost v0.0.0-20241205145007-68cf7e4d93c3/go.mod h1:ZmSFOGBarp5vVkdGq6tW1jLyHkMoIE/LTabX2CHVAF0=
+github.com/bldsoft/gost v0.0.0-20241216092733-2b060a03777f h1:poX+7glFCifoqjzuP2IKBYGw1wsP9iMGDoxN25CiYOQ=
+github.com/bldsoft/gost v0.0.0-20241216092733-2b060a03777f/go.mod h1:ZmSFOGBarp5vVkdGq6tW1jLyHkMoIE/LTabX2CHVAF0=
 github.com/bldsoft/memberlist v0.0.0-20231108153136-87acdac036f5 h1:ewhmYi2VuBTL/UdpbEQ69ZRAuGobPekIkzRgeXMHwX4=
 github.com/bldsoft/memberlist v0.0.0-20231108153136-87acdac036f5/go.mod h1:KKz4nceCPaaMYd97W4GEpTVSqB5dMFPNN8uQyaPAieY=
 github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869/go.mod h1:Ekp36dRnpXw/yCqJaO+ZrUyxD+3VXMFFr56k5XYrpB4=
