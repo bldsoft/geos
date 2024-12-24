@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -22,9 +23,18 @@ func NewGeoNameController(geoNameService controller.GeoNameService) *GeoNameCont
 	return &GeoNameController{geoNameService: geoNameService}
 }
 
-func (c *GeoNameController) getGeoNameFilter(r *http.Request) entity.GeoNameFilter {
+func (c *GeoNameController) getQueryGeoNameFilter(r *http.Request) *entity.GeoNameFilter {
 	filter, _ := gostUtils.FromRequest[entity.GeoNameFilter](r)
-	return *filter
+	return filter
+}
+
+func (c *GeoNameController) getBodyGeoNameFilter(r *http.Request) *entity.GeoNameFilter {
+	filter := &entity.GeoNameFilter{}
+	if err := json.NewDecoder(r.Body).Decode(filter); err != nil {
+		log.FromContext(r.Context()).Error(err.Error())
+		return nil
+	}
+	return filter
 }
 
 // @Summary continent
@@ -51,8 +61,8 @@ func (c *GeoNameController) GetGeoNameContinentsHandler(w http.ResponseWriter, r
 // @Router /geoname/country [get]
 func (c *GeoNameController) GetGeoNameCountriesHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	filter := c.getGeoNameFilter(r)
-	countries, err := c.geoNameService.Countries(ctx, filter)
+	filter := c.getQueryGeoNameFilter(r)
+	countries, err := c.geoNameService.Countries(ctx, *filter)
 	if err != nil {
 		c.responseError(w, r, err)
 		return
@@ -73,8 +83,17 @@ func (c *GeoNameController) GetGeoNameCountriesHandler(w http.ResponseWriter, r 
 // @Router /geoname/subdivision [get]
 func (c *GeoNameController) GetGeoNameSubdivisionsHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	filter := c.getGeoNameFilter(r)
-	subdivisions, err := c.geoNameService.Subdivisions(ctx, filter)
+	var filter *entity.GeoNameFilter
+	if r.Method == http.MethodPost {
+		filter = c.getBodyGeoNameFilter(r)
+	} else {
+		filter = c.getQueryGeoNameFilter(r)
+		if len(filter.GeoNameIDs) > 500 {
+			c.ResponseError(w, "too many query params", http.StatusBadRequest)
+			return
+		}
+	}
+	subdivisions, err := c.geoNameService.Subdivisions(ctx, *filter)
 	if err != nil {
 		c.responseError(w, r, err)
 		return
@@ -95,8 +114,18 @@ func (c *GeoNameController) GetGeoNameSubdivisionsHandler(w http.ResponseWriter,
 // @Router /geoname/city [get]
 func (c *GeoNameController) GetGeoNameCitiesHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	filter := c.getGeoNameFilter(r)
-	cities, err := c.geoNameService.Cities(ctx, filter)
+	var filter *entity.GeoNameFilter
+	if r.Method == http.MethodPost {
+		filter = c.getBodyGeoNameFilter(r)
+	} else {
+		filter = c.getQueryGeoNameFilter(r)
+		if len(filter.GeoNameIDs) > 100 {
+			c.ResponseError(w, "too many query params", http.StatusBadRequest)
+			return
+		}
+	}
+
+	cities, err := c.geoNameService.Cities(ctx, *filter)
 	if err != nil {
 		c.responseError(w, r, err)
 		return

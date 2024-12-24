@@ -20,6 +20,15 @@ type Client struct {
 	apiKey string
 }
 
+type RespError struct {
+	StatusCode int
+	Response   string
+}
+
+func (e *RespError) Error() string {
+	return fmt.Sprintf("status code: %d, response: %s", e.StatusCode, e.Response)
+}
+
 func NewClient(addr string) (*Client, error) {
 	return NewWithClient(addr, http.DefaultClient)
 }
@@ -62,6 +71,10 @@ func get[T any](ctx context.Context, client *resty.Client, path string, query ur
 		return nil, err
 	}
 
+	if resp.StatusCode() != http.StatusOK {
+		return nil, &RespError{StatusCode: resp.StatusCode(), Response: string(resp.Body())}
+	}
+
 	err = json.Unmarshal(resp.Body(), &obj)
 	if err != nil {
 		return nil, err
@@ -89,7 +102,26 @@ func (c *Client) GeoIPDump(ctx context.Context) (*resty.Response, error) {
 	return c.client.R().SetHeader(microservice.APIKey, c.APIKey()).Get("/dump")
 }
 
-func getMany[T any](ctx context.Context, client *resty.Client, path string, query url.Values) ([]*T, error) {
+func getManyWithBody[T any](ctx context.Context, client *resty.Client, path string, body any) ([]*T, error) {
+	request := client.R().SetContext(ctx)
+	if body != nil {
+		request = request.SetBody(body)
+	}
+
+	var obj []*T
+	resp, err := request.Post(path)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(resp.Body(), &obj)
+	if err != nil {
+		return nil, err
+	}
+	return obj, nil
+}
+
+func getManyWithQuery[T any](ctx context.Context, client *resty.Client, path string, query url.Values) ([]*T, error) {
 	request := client.R().SetContext(ctx)
 	if query != nil {
 		request = request.SetQueryParamsFromValues(query)
@@ -108,15 +140,15 @@ func getMany[T any](ctx context.Context, client *resty.Client, path string, quer
 }
 
 func (c *Client) GeoNameCountries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error) {
-	return getMany[entity.GeoNameCountry](ctx, c.client, "geoname/country", utils.Query(filter))
+	return getManyWithQuery[entity.GeoNameCountry](ctx, c.client, "geoname/country", utils.Query(filter))
 }
 
 func (c *Client) GeoNameSubdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameAdminSubdivision, error) {
-	return getMany[entity.GeoNameAdminSubdivision](ctx, c.client, "geoname/subdivision", utils.Query(filter))
+	return getManyWithBody[entity.GeoNameAdminSubdivision](ctx, c.client, "geoname/subdivision", filter)
 }
 
 func (c *Client) GeoNameCities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error) {
-	return getMany[entity.GeoName](ctx, c.client, "geoname/city", utils.Query(filter))
+	return getManyWithBody[entity.GeoName](ctx, c.client, "geoname/city", filter)
 }
 
 func (c *Client) GeoNameDump(ctx context.Context, filter entity.GeoNameFilter) (*resty.Response, error) {
