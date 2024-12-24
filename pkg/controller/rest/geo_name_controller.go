@@ -88,10 +88,6 @@ func (c *GeoNameController) GetGeoNameSubdivisionsHandler(w http.ResponseWriter,
 		filter = c.getBodyGeoNameFilter(r)
 	} else {
 		filter = c.getQueryGeoNameFilter(r)
-		if len(filter.GeoNameIDs) > 500 {
-			c.ResponseError(w, "too many query params", http.StatusBadRequest)
-			return
-		}
 	}
 	subdivisions, err := c.geoNameService.Subdivisions(ctx, *filter)
 	if err != nil {
@@ -119,10 +115,6 @@ func (c *GeoNameController) GetGeoNameCitiesHandler(w http.ResponseWriter, r *ht
 		filter = c.getBodyGeoNameFilter(r)
 	} else {
 		filter = c.getQueryGeoNameFilter(r)
-		if len(filter.GeoNameIDs) > 100 {
-			c.ResponseError(w, "too many query params", http.StatusBadRequest)
-			return
-		}
 	}
 
 	cities, err := c.geoNameService.Cities(ctx, *filter)
