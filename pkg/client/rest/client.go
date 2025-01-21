@@ -113,7 +113,7 @@ func getManyWithBody[T any](ctx context.Context, client *resty.Client, path stri
 		return nil, err
 	}
 
-	if resp.StatusCode() >= 300 {
+	if resp.StatusCode() >= 400 {
 		return nil, &RespError{StatusCode: resp.StatusCode(), Response: string(resp.Body())}
 	}
 
