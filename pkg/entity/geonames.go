@@ -164,10 +164,10 @@ func (s *GeoName) UnmarshalJSON(data []byte) error {
 }
 
 type GeoNameFilter struct {
-	GeoNameIDs   []uint32 `schema:"geoname-ids"`
-	CountryCodes []string `schema:"country-codes"`
-	NamePrefix   string   `schema:"name-prefix"`
-	Limit        uint32   `schema:"limit"`
+	GeoNameIDs   []uint32 `schema:"geoname-ids" json:"geoname-ids"`
+	CountryCodes []string `schema:"country-codes" json:"country-codes"`
+	NamePrefix   string   `schema:"name-prefix" json:"name-prefix"`
+	Limit        uint32   `schema:"limit" json:"limit"`
 }
 
 func (f *GeoNameFilter) Match(e GeoNameEntity) bool {

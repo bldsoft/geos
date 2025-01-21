@@ -147,6 +147,7 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 		r.Route("/geoname", func(r chi.Router) {
 			r.Get("/continent", geoNameController.GetGeoNameContinentsHandler)
 			r.Get("/country", geoNameController.GetGeoNameCountriesHandler)
+			r.Post("/country", geoNameController.GetGeoNameCountriesHandler)
 			r.Get("/subdivision", geoNameController.GetGeoNameSubdivisionsHandler)
 			r.Post("/subdivision", geoNameController.GetGeoNameSubdivisionsHandler)
 			r.Get("/city", geoNameController.GetGeoNameCitiesHandler)
