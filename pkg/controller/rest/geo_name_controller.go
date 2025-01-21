@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -22,9 +23,15 @@ func NewGeoNameController(geoNameService controller.GeoNameService) *GeoNameCont
 	return &GeoNameController{geoNameService: geoNameService}
 }
 
-func (c *GeoNameController) getGeoNameFilter(r *http.Request) entity.GeoNameFilter {
-	filter, _ := gostUtils.FromRequest[entity.GeoNameFilter](r)
-	return *filter
+func (c *GeoNameController) getGeoNameFilter(r *http.Request) (filter *entity.GeoNameFilter, err error) {
+	filter = &entity.GeoNameFilter{}
+	if r.Method == http.MethodPost {
+		err = json.NewDecoder(r.Body).Decode(filter)
+		return
+	}
+
+	filter, err = gostUtils.FromRequest[entity.GeoNameFilter](r)
+	return
 }
 
 // @Summary continent
@@ -51,8 +58,13 @@ func (c *GeoNameController) GetGeoNameContinentsHandler(w http.ResponseWriter, r
 // @Router /geoname/country [get]
 func (c *GeoNameController) GetGeoNameCountriesHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	filter := c.getGeoNameFilter(r)
-	countries, err := c.geoNameService.Countries(ctx, filter)
+	filter, err := c.getGeoNameFilter(r)
+	if err != nil {
+		c.responseError(w, r, err)
+		return
+	}
+
+	countries, err := c.geoNameService.Countries(ctx, *filter)
 	if err != nil {
 		c.responseError(w, r, err)
 		return
@@ -73,8 +85,13 @@ func (c *GeoNameController) GetGeoNameCountriesHandler(w http.ResponseWriter, r 
 // @Router /geoname/subdivision [get]
 func (c *GeoNameController) GetGeoNameSubdivisionsHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	filter := c.getGeoNameFilter(r)
-	subdivisions, err := c.geoNameService.Subdivisions(ctx, filter)
+	filter, err := c.getGeoNameFilter(r)
+	if err != nil {
+		c.responseError(w, r, err)
+		return
+	}
+
+	subdivisions, err := c.geoNameService.Subdivisions(ctx, *filter)
 	if err != nil {
 		c.responseError(w, r, err)
 		return
@@ -95,8 +112,13 @@ func (c *GeoNameController) GetGeoNameSubdivisionsHandler(w http.ResponseWriter,
 // @Router /geoname/city [get]
 func (c *GeoNameController) GetGeoNameCitiesHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	filter := c.getGeoNameFilter(r)
-	cities, err := c.geoNameService.Cities(ctx, filter)
+	filter, err := c.getGeoNameFilter(r)
+	if err != nil {
+		c.responseError(w, r, err)
+		return
+	}
+
+	cities, err := c.geoNameService.Cities(ctx, *filter)
 	if err != nil {
 		c.responseError(w, r, err)
 		return
