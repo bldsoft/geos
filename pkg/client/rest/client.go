@@ -70,7 +70,7 @@ func get[T any](ctx context.Context, client *resty.Client, path string, query ur
 		return nil, err
 	}
 
-	if resp.StatusCode() != http.StatusOK {
+	if resp.StatusCode() >= 300 {
 		return nil, &RespError{StatusCode: resp.StatusCode(), Response: string(resp.Body())}
 	}
 
@@ -111,6 +111,10 @@ func getManyWithBody[T any](ctx context.Context, client *resty.Client, path stri
 	resp, err := request.Post(path)
 	if err != nil {
 		return nil, err
+	}
+
+	if resp.StatusCode() >= 300 {
+		return nil, &RespError{StatusCode: resp.StatusCode(), Response: string(resp.Body())}
 	}
 
 	err = json.Unmarshal(resp.Body(), &obj)
