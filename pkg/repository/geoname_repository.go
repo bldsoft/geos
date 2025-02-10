@@ -34,6 +34,24 @@ func (r *GeoNameRepository) Cities(ctx context.Context, filter entity.GeoNameFil
 	return r.storage.Cities(ctx, filter)
 }
 
+func writeEntitiesToCSV[T entity.GeoNameEntity](w *csv.Writer, entities []T) error {
+	for _, e := range entities {
+		if err := w.Write([]string{
+			strconv.Itoa(e.GetGeoNameID()),
+			e.GetContinentCode(),
+			e.GetContinentName(),
+			e.GetCountryCode(),
+			e.GetCountryName(),
+			e.GetSubdivisionName(),
+			e.GetCityName(),
+			e.GetTimeZone(),
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (r *GeoNameRepository) Dump(ctx context.Context, format DumpFormat) ([]byte, error) {
 	var buf bytes.Buffer
 	csvWriter := csv.NewWriter(&buf)
@@ -57,46 +75,31 @@ func (r *GeoNameRepository) Dump(ctx context.Context, format DumpFormat) ([]byte
 		return nil, err
 	}
 
-	for _, city := range cities {
-		countries, err := r.Countries(ctx, entity.GeoNameFilter{CountryCodes: []string{city.CountryCode()}})
-		if err != nil {
-			return nil, err
-		}
-		country := countries[0]
+	if err = writeEntitiesToCSV(csvWriter, cities); err != nil {
+		return nil, err
+	}
 
-		var continent *entity.GeoNameContinent
-		for _, c := range r.Continents(ctx) {
-			if c.Code() == country.Continent {
-				continent = c
-				break
-			}
-		}
+	subdivs, err := r.Subdivisions(ctx, entity.GeoNameFilter{})
+	if err != nil {
+		return nil, err
+	}
 
-		subdivisions, err := r.Subdivisions(ctx, entity.GeoNameFilter{CountryCodes: []string{city.CountryCode()}})
-		if err != nil {
-			return nil, err
-		}
+	if err = writeEntitiesToCSV(csvWriter, subdivs); err != nil {
+		return nil, err
+	}
 
-		var subdivisionName string
-		for _, sub := range subdivisions {
-			if sub.AdminCode() == city.Admin1Code {
-				subdivisionName = sub.Name()
-				break
-			}
-		}
+	countries, err := r.Countries(ctx, entity.GeoNameFilter{})
+	if err != nil {
+		return nil, err
+	}
 
-		if err := csvWriter.Write([]string{
-			strconv.Itoa(city.GeoNameID()),
-			continent.Code(),
-			continent.Name(),
-			city.CountryCode(),
-			country.Name(),
-			subdivisionName,
-			city.Name(),
-			city.Timezone,
-		}); err != nil {
-			return nil, err
-		}
+	if err = writeEntitiesToCSV(csvWriter, countries); err != nil {
+		return nil, err
+	}
+
+	continents := r.Continents(ctx)
+	if err := writeEntitiesToCSV(csvWriter, continents); err != nil {
+		return nil, err
 	}
 
 	if err := csvWriter.Write([]string{

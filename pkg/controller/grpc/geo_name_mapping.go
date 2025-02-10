@@ -9,8 +9,8 @@ import (
 func GeoNameContinentToPb(c *entity.GeoNameContinent) *pb.GeoNameContinentResponse {
 	return &pb.GeoNameContinentResponse{
 		Code:      c.Code(),
-		Name:      c.Name(),
-		GeoNameId: uint32(c.GeoNameID()),
+		Name:      c.GetName(),
+		GeoNameId: uint32(c.GetGeoNameID()),
 	}
 }
 
@@ -20,7 +20,7 @@ func GeoNameCountryToPb(c *entity.GeoNameCountry) *pb.GeoNameCountryResponse {
 		Iso3Code:           c.Iso3Code,
 		IsoNumeric:         c.IsoNumeric,
 		Fips:               c.Fips,
-		Name:               c.Name(),
+		Name:               c.GetName(),
 		Capital:            c.Capital,
 		Area:               c.Area,
 		Population:         int64(c.Population),
@@ -41,7 +41,7 @@ func GeoNameCountryToPb(c *entity.GeoNameCountry) *pb.GeoNameCountryResponse {
 func GeoNameSubdivisionToPb(s *entity.GeoNameAdminSubdivision) *pb.GeoNameSubdivisionResponse {
 	return &pb.GeoNameSubdivisionResponse{
 		Code:      s.Code,
-		Name:      s.Name(),
+		Name:      s.GetName(),
 		AsciiName: s.AsciiName,
 		GeoNameId: uint32(s.GeonameId),
 	}
@@ -50,13 +50,13 @@ func GeoNameSubdivisionToPb(s *entity.GeoNameAdminSubdivision) *pb.GeoNameSubdiv
 func GeoNameCityToPb(c *entity.GeoName) *pb.GeoNameCityResponse {
 	return &pb.GeoNameCityResponse{
 		GeoNameId:             uint32(c.Id),
-		Name:                  c.Name(),
+		Name:                  c.GetName(),
 		AsciiName:             c.AsciiName,
 		Latitude:              c.Latitude,
 		Longitude:             c.Longitude,
 		Class:                 c.Class,
 		Code:                  c.Code,
-		CountryCode:           c.CountryCode(),
+		CountryCode:           c.GetCountryCode(),
 		AlternateCountryCodes: c.AlternateCountryCodes,
 		Admin1Code:            c.Admin1Code,
 		Admin2Code:            c.Admin2Code,
