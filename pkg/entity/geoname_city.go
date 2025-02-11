@@ -8,14 +8,22 @@ import (
 
 type GeoName struct {
 	*models.Geoname
-	ContinentCode   string
-	ContinentName   string
-	CountryName     string
-	SubdivisionName string
+	ContinentCode   string `csv:"continent code"`
+	ContinentName   string `csv:"continent name"`
+	CountryName     string `csv:"country name"`
+	SubdivisionName string `csv:"subdivision name"`
+}
+
+type geoNameJson struct {
+	*modelGeoNameJson
+	ContinentCode   string `csv:"continent code" json:"continentCode"`
+	ContinentName   string `csv:"continent name" json:"continentName"`
+	CountryName     string `csv:"country name" json:"countryName"`
+	SubdivisionName string `csv:"subdivision name" json:"subdivisionName"`
 }
 
 // same as models.Geoname, but with json tags
-type geoNameJson struct {
+type modelGeoNameJson struct {
 	Id                    int         `csv:"geonameid" valid:"required" json:"geoNameID"`
 	Name                  string      `csv:"name" valid:"required" json:"name"`
 	AsciiName             string      `csv:"asciiname" json:"asciiName"`
@@ -74,7 +82,13 @@ func (g GeoName) GetTimeZone() string {
 }
 
 func (s GeoName) MarshalJSON() ([]byte, error) {
-	return json.Marshal((*geoNameJson)(s.Geoname))
+	return json.Marshal(&geoNameJson{
+		modelGeoNameJson: (*modelGeoNameJson)(s.Geoname),
+		ContinentCode:    s.ContinentCode,
+		ContinentName:    s.ContinentName,
+		CountryName:      s.CountryName,
+		SubdivisionName:  s.SubdivisionName,
+	})
 }
 
 func (s *GeoName) UnmarshalJSON(data []byte) error {
@@ -82,6 +96,10 @@ func (s *GeoName) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &geoNameJson); err != nil {
 		return err
 	}
-	s.Geoname = (*models.Geoname)(&geoNameJson)
+	s.Geoname = (*models.Geoname)(geoNameJson.modelGeoNameJson)
+	s.ContinentCode = geoNameJson.ContinentCode
+	s.ContinentName = geoNameJson.ContinentName
+	s.CountryName = geoNameJson.CountryName
+	s.SubdivisionName = geoNameJson.SubdivisionName
 	return nil
 }

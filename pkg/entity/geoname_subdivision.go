@@ -9,13 +9,20 @@ import (
 
 type GeoNameAdminSubdivision struct {
 	*models.AdminDivision
-	ContinentCode string `csv:"continent_code"`
-	ContinentName string `csv:"continent_name"`
-	CountryName   string `csv:"country_name"`
+	ContinentCode string `csv:"continent code"`
+	ContinentName string `csv:"continent name"`
+	CountryName   string `csv:"country name"`
+}
+
+type adminSubdivisionJson struct {
+	*modelSubdivisionJson
+	ContinentCode string `csv:"continent code" json:"continentCode"`
+	ContinentName string `csv:"continent name" json:"continentName"`
+	CountryName   string `csv:"country name" json:"countryName"`
 }
 
 // same as models.AdminDivision, but with json tags
-type adminSubdivisionJson struct {
+type modelSubdivisionJson struct {
 	Code      string `csv:"concatenated codes" valid:"required" json:"code"`
 	Name      string `csv:"name" valid:"required" json:"name"`
 	AsciiName string `csv:"asciiname" valid:"required" json:"asciiName"`
@@ -67,7 +74,12 @@ func (s GeoNameAdminSubdivision) GetTimeZone() string {
 }
 
 func (s GeoNameAdminSubdivision) MarshalJSON() ([]byte, error) {
-	return json.Marshal((*adminSubdivisionJson)(s.AdminDivision))
+	return json.Marshal(&adminSubdivisionJson{
+		modelSubdivisionJson: (*modelSubdivisionJson)(s.AdminDivision),
+		ContinentCode:        s.ContinentCode,
+		ContinentName:        s.ContinentName,
+		CountryName:          s.CountryName,
+	})
 }
 
 func (s *GeoNameAdminSubdivision) UnmarshalJSON(data []byte) error {
@@ -75,6 +87,9 @@ func (s *GeoNameAdminSubdivision) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &subdivisionJson); err != nil {
 		return err
 	}
-	s.AdminDivision = (*models.AdminDivision)(&subdivisionJson)
+	s.AdminDivision = (*models.AdminDivision)(subdivisionJson.modelSubdivisionJson)
+	s.ContinentCode = subdivisionJson.ContinentCode
+	s.ContinentName = subdivisionJson.ContinentName
+	s.CountryName = subdivisionJson.CountryName
 	return nil
 }

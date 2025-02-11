@@ -8,11 +8,16 @@ import (
 
 type GeoNameCountry struct {
 	*models.Country
-	ContinentName string
+	ContinentName string `csv:"continent name"`
+}
+
+type geoNameCountryJson struct {
+	*modelCountryJson
+	ContinentName string `csv:"continent name" json:"continentName"`
 }
 
 // same as models.Country, but with json tags
-type geoNameCountryJson struct {
+type modelCountryJson struct {
 	Iso2Code           string  `csv:"ISO" valid:"required" json:"iso2Code"`
 	Iso3Code           string  `csv:"ISO3" valid:"required" json:"iso3Code"`
 	IsoNumeric         string  `csv:"ISO-Numeric" valid:"required" json:"isoNumeric"`
@@ -71,7 +76,10 @@ func (s GeoNameCountry) GetTimeZone() string {
 }
 
 func (s GeoNameCountry) MarshalJSON() ([]byte, error) {
-	return json.Marshal((*geoNameCountryJson)(s.Country))
+	return json.Marshal(&geoNameCountryJson{
+		modelCountryJson: (*modelCountryJson)(s.Country),
+		ContinentName:    s.ContinentName,
+	})
 }
 
 func (s *GeoNameCountry) UnmarshalJSON(data []byte) error {
@@ -79,6 +87,7 @@ func (s *GeoNameCountry) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &countryJson); err != nil {
 		return err
 	}
-	s.Country = (*models.Country)(&countryJson)
+	s.Country = (*models.Country)(countryJson.modelCountryJson)
+	s.ContinentName = countryJson.ContinentName
 	return nil
 }
