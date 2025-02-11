@@ -74,7 +74,7 @@ func NewStorage(dir string) *GeoNameStorage {
 }
 
 func (r *GeoNameStorage) fillAdditionalFields() {
-	defer func() { r.additionalInfoReadyC <- struct{}{} }()
+	defer func() { r.additionalInfoReadyC <- struct{}{}; close(r.additionalInfoReadyC) }()
 	r.waitInit()
 
 	countryCodeToContinent := make(map[string]*entity.GeoNameContinent)
@@ -141,7 +141,7 @@ func (r *GeoNameStorage) Continents(ctx context.Context) []*entity.GeoNameContin
 
 func (r *GeoNameStorage) Countries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error) {
 	select {
-	case <-r.countries.readyC:
+	case <-r.additionalInfoReadyC:
 		return r.countries.GetEntities(ctx, filter)
 	case <-ctx.Done():
 		return nil, ctx.Err()
@@ -150,7 +150,7 @@ func (r *GeoNameStorage) Countries(ctx context.Context, filter entity.GeoNameFil
 
 func (r *GeoNameStorage) Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameAdminSubdivision, error) {
 	select {
-	case <-r.subdivisions.readyC:
+	case <-r.additionalInfoReadyC:
 		return r.subdivisions.GetEntities(ctx, filter)
 	case <-ctx.Done():
 		return nil, ctx.Err()
@@ -159,7 +159,7 @@ func (r *GeoNameStorage) Subdivisions(ctx context.Context, filter entity.GeoName
 
 func (r *GeoNameStorage) Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error) {
 	select {
-	case <-r.cities.readyC:
+	case <-r.additionalInfoReadyC:
 		return r.cities.GetEntities(ctx, filter)
 	case <-ctx.Done():
 		return nil, ctx.Err()
