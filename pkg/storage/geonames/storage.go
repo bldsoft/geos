@@ -66,6 +66,7 @@ func NewStorage(dir string) *GeoNameStorage {
 			})
 			return cities, err
 		}),
+		additionalInfoReadyC: make(chan struct{}),
 	}
 
 	go s.fillAdditionalFields()
@@ -74,7 +75,7 @@ func NewStorage(dir string) *GeoNameStorage {
 }
 
 func (r *GeoNameStorage) fillAdditionalFields() {
-	defer func() { r.additionalInfoReadyC <- struct{}{}; close(r.additionalInfoReadyC) }()
+	defer close(r.additionalInfoReadyC)
 	r.waitInit()
 
 	countryCodeToContinent := make(map[string]*entity.GeoNameContinent)
@@ -131,7 +132,6 @@ func (r *GeoNameStorage) waitInit() {
 }
 
 func (r *GeoNameStorage) WaitReady() {
-	r.waitInit()
 	<-r.additionalInfoReadyC
 }
 
