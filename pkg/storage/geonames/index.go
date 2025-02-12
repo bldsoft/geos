@@ -35,17 +35,17 @@ func (idx *index[T]) Init(collection []T) {
 
 	for i, item := range collection {
 		// search by name prefix
-		idx.trie.Add(strings.ToLower(item.Name()), i)
+		idx.trie.Add(strings.ToLower(item.GetName()), i)
 
 		// search by geoNameID
-		idx.geoNameIDToCollectionIndex[uint32(item.GeoNameID())] = i
+		idx.geoNameIDToCollectionIndex[uint32(item.GetGeoNameID())] = i
 
 		// filter by country code
 		// expected collection sorted by country code
-		currentRange := idx.countryCodeToRange[item.CountryCode()]
+		currentRange := idx.countryCodeToRange[item.GetCountryCode()]
 		if currentRange == nil {
 			currentRange = &indexRange{begin: i, end: i + 1}
-			idx.countryCodeToRange[item.CountryCode()] = currentRange
+			idx.countryCodeToRange[item.GetCountryCode()] = currentRange
 		} else {
 			currentRange.end = i + 1
 		}

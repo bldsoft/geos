@@ -70,6 +70,7 @@ func (db MaxmindCSVDumper[T]) WriteCSVTo(ctx context.Context, w io.Writer) error
 	}
 
 	for networks.Next() {
+		var record T
 		subnet, err := networks.Network(&record)
 		if err != nil {
 			return err

@@ -170,7 +170,7 @@ func geonamesStorage(ctx context.Context, customFilePath string) geonames.Storag
 
 func isGeoNameIDAlradyInUse(ctx context.Context, storage geonames.Storage, id uint64) error {
 	for _, contient := range storage.Continents(ctx) {
-		if contient.GeoNameID() == int(id) {
+		if contient.GetGeoNameID() == int(id) {
 			return ErrGeonameIDAlreadyInUse
 		}
 	}
@@ -180,7 +180,7 @@ func isGeoNameIDAlradyInUse(ctx context.Context, storage geonames.Storage, id ui
 		return err
 	}
 	for _, sd := range subdivisions {
-		if sd.GeoNameID() == int(id) {
+		if sd.GetGeoNameID() == int(id) {
 			return ErrGeonameIDAlreadyInUse
 		}
 	}
@@ -190,7 +190,7 @@ func isGeoNameIDAlradyInUse(ctx context.Context, storage geonames.Storage, id ui
 		return err
 	}
 	for _, country := range countries {
-		if country.GeoNameID() == int(id) {
+		if country.GetGeoNameID() == int(id) {
 			return ErrGeonameIDAlreadyInUse
 		}
 	}
@@ -199,7 +199,7 @@ func isGeoNameIDAlradyInUse(ctx context.Context, storage geonames.Storage, id ui
 		return err
 	}
 	for _, city := range cities {
-		if city.GeoNameID() == int(id) {
+		if city.GetGeoNameID() == int(id) {
 			return ErrGeonameIDAlreadyInUse
 		}
 	}
@@ -344,7 +344,7 @@ func selectCountry(ctx context.Context, storage geonames.Storage) (*entity.GeoNa
 		Templates:         selectTemplates,
 		StartInSearchMode: true,
 		Searcher: func(input string, index int) bool {
-			return strings.HasPrefix(strings.ToLower(countries[index].Name()), strings.ToLower(input))
+			return strings.HasPrefix(strings.ToLower(countries[index].GetName()), strings.ToLower(input))
 		},
 	}
 	index, _, err := countrySelect.Run()
@@ -365,14 +365,14 @@ func getContinent(ctx context.Context, storage geonames.Storage, country *entity
 
 func selectCity(ctx context.Context, storage geonames.Storage, country *entity.GeoNameCountry) (*entity.GeoName, error) {
 	cities, err := storage.Cities(ctx, entity.GeoNameFilter{
-		CountryCodes: []string{country.CountryCode()},
+		CountryCodes: []string{country.GetCountryCode()},
 	})
 	if err != nil {
 		return nil, err
 	}
 	var filteredCities []*entity.GeoName
 	for _, city := range cities {
-		if city.CountryCode() == country.CountryCode() {
+		if city.GetCountryCode() == country.GetCountryCode() {
 			filteredCities = append(filteredCities, city)
 		}
 	}
@@ -387,7 +387,7 @@ func selectCity(ctx context.Context, storage geonames.Storage, country *entity.G
 		Templates:         selectTemplates,
 		StartInSearchMode: true,
 		Searcher: func(input string, index int) bool {
-			return strings.HasPrefix(strings.ToLower(filteredCities[index].Name()), strings.ToLower(input))
+			return strings.HasPrefix(strings.ToLower(filteredCities[index].GetName()), strings.ToLower(input))
 		},
 	}
 	index, _, err := citySelect.Run()
@@ -398,7 +398,7 @@ func selectCity(ctx context.Context, storage geonames.Storage, country *entity.G
 }
 
 func getSubdivisions(ctx context.Context, storage geonames.Storage, city *entity.GeoName) ([]entity.GeoNameAdminSubdivision, error) {
-	subdivisions, err := storage.Subdivisions(ctx, entity.GeoNameFilter{CountryCodes: []string{city.CountryCode()}})
+	subdivisions, err := storage.Subdivisions(ctx, entity.GeoNameFilter{CountryCodes: []string{city.GetCountryCode()}})
 	if err != nil {
 		return nil, err
 	}
@@ -433,14 +433,14 @@ func buildDBCity(
 ) *entity.City {
 	var res entity.City
 	res.Continent.Code = continent.Code()
-	res.Continent.GeoNameID = uint(continent.GeoNameID())
-	res.Continent.Names = map[string]string{"en": continent.Name()}
-	res.Country.GeoNameID = uint(country.GeoNameID())
+	res.Continent.GeoNameID = uint(continent.GetGeoNameID())
+	res.Continent.Names = map[string]string{"en": continent.GetName()}
+	res.Country.GeoNameID = uint(country.GetGeoNameID())
 	// res.Country.IsInEuropeanUnion
-	res.Country.IsoCode = country.CountryCode()
-	res.Country.Names = map[string]string{"en": country.Name()}
-	res.City.GeoNameID = uint(city.GeoNameID())
-	res.City.Names = map[string]string{"en": city.Name()}
+	res.Country.IsoCode = country.GetCountryCode()
+	res.Country.Names = map[string]string{"en": country.GetName()}
+	res.City.GeoNameID = uint(city.GetGeoNameID())
+	res.City.Names = map[string]string{"en": city.GetName()}
 	//RepresentedCountry
 	appendSubdvision := func(subdivisions ...entity.GeoNameAdminSubdivision) {
 		for _, sd := range subdivisions {
@@ -449,9 +449,9 @@ func buildDBCity(
 				IsoCode   string            `maxminddb:"iso_code" json:"isoCode,omitempty"`
 				Names     map[string]string `maxminddb:"names" json:"names,omitempty"`
 			}{
-				GeoNameID: uint(sd.GeoNameID()),
+				GeoNameID: uint(sd.GetGeoNameID()),
 				IsoCode:   sd.AdminCode(),
-				Names:     map[string]string{"en": sd.Name()},
+				Names:     map[string]string{"en": sd.GetName()},
 			})
 		}
 	}

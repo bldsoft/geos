@@ -36,6 +36,8 @@ type GeoNameStorage struct {
 	countries    *geonameEntityStorage[*entity.GeoNameCountry]
 	subdivisions *geonameEntityStorage[*entity.GeoNameAdminSubdivision]
 	cities       *geonameEntityStorage[*entity.GeoName]
+
+	additionalInfoReadyC chan struct{}
 }
 
 func NewStorage(dir string) *GeoNameStorage {
@@ -64,14 +66,73 @@ func NewStorage(dir string) *GeoNameStorage {
 			})
 			return cities, err
 		}),
+		additionalInfoReadyC: make(chan struct{}),
 	}
+
+	go s.fillAdditionalFields()
+
 	return s
 }
 
-func (r *GeoNameStorage) WaitReady() {
+func (r *GeoNameStorage) fillAdditionalFields() {
+	defer close(r.additionalInfoReadyC)
+	r.waitInit()
+
+	countryCodeToContinent := make(map[string]*entity.GeoNameContinent)
+	countryCodeToCountry := make(map[string]*entity.GeoNameCountry)
+	subdivisionCodeToSubdivision := make(map[string]*entity.GeoNameAdminSubdivision)
+
+	for _, country := range r.countries.collection {
+		var continent *entity.GeoNameContinent
+		for _, c := range r.Continents(context.Background()) {
+			if c.Code() == country.Continent {
+				continent = c
+				break
+			}
+		}
+
+		country.ContinentName = continent.GetContinentName()
+
+		countryCodeToCountry[country.GetCountryCode()] = country
+		countryCodeToContinent[country.GetCountryCode()] = continent
+	}
+
+	for _, subdiv := range r.subdivisions.collection {
+		if country, ok := countryCodeToCountry[subdiv.GetCountryCode()]; ok {
+			subdiv.CountryName = country.GetName()
+		}
+
+		if continent, ok := countryCodeToContinent[subdiv.GetCountryCode()]; ok {
+			subdiv.ContinentCode = continent.GetContinentCode()
+			subdiv.ContinentName = continent.GetName()
+		}
+
+		subdivisionCodeToSubdivision[subdiv.Code] = subdiv
+	}
+
+	for _, city := range r.cities.collection {
+		if country, ok := countryCodeToCountry[city.GetCountryCode()]; ok {
+			city.CountryCode = country.GetCountryCode()
+			city.CountryName = country.GetCountryName()
+		}
+		if continent, ok := countryCodeToContinent[city.GetCountryCode()]; ok {
+			city.ContinentCode = continent.GetContinentCode()
+			city.ContinentName = continent.GetName()
+		}
+		if subdiv, ok := subdivisionCodeToSubdivision[city.CountryCode+"."+city.Admin1Code]; ok {
+			city.SubdivisionName = subdiv.GetSubdivisionName()
+		}
+	}
+}
+
+func (r *GeoNameStorage) waitInit() {
 	<-r.cities.readyC
 	<-r.subdivisions.readyC
 	<-r.countries.readyC
+}
+
+func (r *GeoNameStorage) WaitReady() {
+	<-r.additionalInfoReadyC
 }
 
 func (r *GeoNameStorage) Continents(ctx context.Context) []*entity.GeoNameContinent {
@@ -80,7 +141,7 @@ func (r *GeoNameStorage) Continents(ctx context.Context) []*entity.GeoNameContin
 
 func (r *GeoNameStorage) Countries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error) {
 	select {
-	case <-r.countries.readyC:
+	case <-r.additionalInfoReadyC:
 		return r.countries.GetEntities(ctx, filter)
 	case <-ctx.Done():
 		return nil, ctx.Err()
@@ -89,7 +150,7 @@ func (r *GeoNameStorage) Countries(ctx context.Context, filter entity.GeoNameFil
 
 func (r *GeoNameStorage) Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameAdminSubdivision, error) {
 	select {
-	case <-r.subdivisions.readyC:
+	case <-r.additionalInfoReadyC:
 		return r.subdivisions.GetEntities(ctx, filter)
 	case <-ctx.Done():
 		return nil, ctx.Err()
@@ -98,7 +159,7 @@ func (r *GeoNameStorage) Subdivisions(ctx context.Context, filter entity.GeoName
 
 func (r *GeoNameStorage) Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error) {
 	select {
-	case <-r.cities.readyC:
+	case <-r.additionalInfoReadyC:
 		return r.cities.GetEntities(ctx, filter)
 	case <-ctx.Done():
 		return nil, ctx.Err()
