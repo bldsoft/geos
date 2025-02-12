@@ -34,24 +34,6 @@ func (r *GeoNameRepository) Cities(ctx context.Context, filter entity.GeoNameFil
 	return r.storage.Cities(ctx, filter)
 }
 
-func writeEntitiesToCSV[T entity.GeoNameEntity](w *csv.Writer, entities []T) error {
-	for _, e := range entities {
-		if err := w.Write([]string{
-			strconv.Itoa(e.GetGeoNameID()),
-			e.GetContinentCode(),
-			e.GetContinentName(),
-			e.GetCountryCode(),
-			e.GetCountryName(),
-			e.GetSubdivisionName(),
-			e.GetCityName(),
-			e.GetTimeZone(),
-		}); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (r *GeoNameRepository) Dump(ctx context.Context, format DumpFormat) ([]byte, error) {
 	var buf bytes.Buffer
 	csvWriter := csv.NewWriter(&buf)
@@ -117,4 +99,22 @@ func (r *GeoNameRepository) Dump(ctx context.Context, format DumpFormat) ([]byte
 
 	csvWriter.Flush()
 	return buf.Bytes(), nil
+}
+
+func writeEntitiesToCSV[T entity.GeoNameEntity](w *csv.Writer, entities []T) error {
+	for _, e := range entities {
+		if err := w.Write([]string{
+			strconv.Itoa(e.GetGeoNameID()),
+			e.GetContinentCode(),
+			e.GetContinentName(),
+			e.GetCountryCode(),
+			e.GetCountryName(),
+			e.GetSubdivisionName(),
+			e.GetCityName(),
+			e.GetTimeZone(),
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
