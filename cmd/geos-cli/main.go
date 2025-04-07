@@ -62,7 +62,7 @@ func commonFlags() []cli.Flag {
 		&cli.StringFlag{
 			Name:        "host",
 			Usage:       "Service host",
-			Value:       defaults.Server.ServiceAddress.Host(),
+			Value:       defaults.Server.ServiceAddressHTTP.Host(),
 			Destination: &host,
 			Aliases:     []string{"H"},
 		},
