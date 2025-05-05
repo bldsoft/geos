@@ -15,9 +15,9 @@ import (
 	"github.com/oschwald/maxminddb-golang"
 )
 
-var (
-	metadataStartMarker = []byte("\xAB\xCD\xEFMaxMind.com")
-)
+const metadataChunkSize = 128 * 1024
+
+var metadataStartMarker = []byte("\xAB\xCD\xEFMaxMind.com")
 
 type MMDBRepository struct {
 	cityDbSourceUrl string
@@ -61,9 +61,8 @@ func (r *MMDBRepository) fileMetadataVersion(path string) (*version.Version, err
 	}
 	fileSize := fileInfo.Size()
 
-	const chunkSize = 128 * 1024
-	startOffset := fileSize - chunkSize
-	if fileSize < chunkSize {
+	startOffset := fileSize - metadataChunkSize
+	if fileSize < metadataChunkSize {
 		startOffset = 0
 	}
 
@@ -179,8 +178,7 @@ func (r *MMDBRepository) CheckISPDbUpdates(ctx context.Context) (bool, error) {
 }
 
 func (r *MMDBRepository) checkMMDBUpdates(ctx context.Context, sourceUrl, localPath string) (bool, error) {
-	chunkSize := -128 * 1024
-	res, err := r.downloadRange(ctx, sourceUrl, chunkSize)
+	res, err := r.downloadRange(ctx, sourceUrl, -metadataChunkSize)
 	if err != nil {
 		return false, err
 	}
