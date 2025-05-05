@@ -93,7 +93,6 @@ func (m *Microservice) initServices() {
 		log.Debug("Log export to ClickHouse is off")
 	}
 
-	//todo: run as async job? or run in parallel with db connect? parallel download?
 	mmdbRep := repository.NewMMDBRepository(m.config.GeoDbSource, m.config.GeoDbISPSource, m.config.GeoDbPath, m.config.GeoDbISPPath)
 	m.mmdbService = service.NewMMDBService(mmdbRep)
 
