@@ -41,6 +41,7 @@ type Microservice struct {
 
 	geoIpService   controller.GeoIpService
 	geoNameService controller.GeoNameService
+	mmdbService    controller.MMDBService
 
 	discovery discovery.Discovery
 
@@ -90,6 +91,26 @@ func (m *Microservice) initServices() {
 		m.getDbJobGroup(clickhouseDB).Append(logExporter)
 	} else {
 		log.Debug("Log export to ClickHouse is off")
+	}
+
+	//todo: run as async job? or run in parallel with db connect? parallel download?
+	mmdbRep := repository.NewMMDBRepository(m.config.GeoDbSource, m.config.GeoDbISPSource, m.config.GeoDbPath, m.config.GeoDbISPPath)
+	m.mmdbService = service.NewMMDBService(mmdbRep)
+
+	if len(m.config.GeoDbSource) != 0 {
+		if err := m.mmdbService.DownloadCityDb(context.Background()); err != nil {
+			log.ErrorWithFields(log.Fields{"err": err}, "failed to download city database from provided source")
+		}
+	} else {
+		log.Warn("Source for city database is not set, assuming it is already downloaded. You will NOT be able to check for database updates and download them without providing source.")
+	}
+
+	if len(m.config.GeoDbISPSource) != 0 {
+		if err := m.mmdbService.DownloadISPDb(context.Background()); err != nil {
+			log.ErrorWithFields(log.Fields{"err": err}, "failed to download ISP database from provided source")
+		}
+	} else {
+		log.Warn("Source for isp database is not set, assuming it is already downloaded. You will NOT be able to check for database updates and download them without providing source.")
 	}
 
 	rep := repository.NewGeoIPRepository(m.config.GeoDbPath, m.config.GeoDbISPPath, m.config.GeoIPCsvDumpDirPath)
@@ -153,6 +174,13 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 			r.Get("/city", geoNameController.GetGeoNameCitiesHandler)
 			r.Post("/city", geoNameController.GetGeoNameCitiesHandler)
 			r.With(m.ApiKeyMiddleware()).Get("/dump", geoNameController.GetDumpHandler)
+		})
+
+		mmdbController := rest.NewMMDBController(m.mmdbService)
+		r.Route("/mmdb", func(r chi.Router) {
+			r.Use(m.ApiKeyMiddleware())
+			r.Get("/update", mmdbController.CheckUpdateHandler)
+			r.Post("/update", mmdbController.UpdateHandler)
 		})
 	})
 }

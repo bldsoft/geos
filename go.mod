@@ -1,6 +1,8 @@
 module github.com/bldsoft/geos
 
-go 1.21
+go 1.23.0
+
+toolchain go1.24.1
 
 require (
 	github.com/bldsoft/gost v0.0.0-20241216092733-2b060a03777f
@@ -13,15 +15,17 @@ require (
 	github.com/manifoldco/promptui v0.9.0
 	github.com/maxmind/mmdbwriter v1.0.0
 	github.com/mkrou/geonames v1.0.0
-	github.com/oschwald/maxminddb-golang v1.12.0
+	github.com/oschwald/maxminddb-golang v1.13.1
 	github.com/rs/zerolog v1.29.0
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 	github.com/swaggo/swag v1.8.6
 	github.com/urfave/cli/v2 v2.17.1
 	golang.org/x/exp v0.0.0-20230510235704-dd950f8aeaea
 	google.golang.org/grpc v1.57.1
 	google.golang.org/protobuf v1.30.0
 )
+
+// replace 	github.com/oschwald/maxminddb-golang v1.13.1 => ../maxminddb-golang
 
 require (
 	github.com/ClickHouse/ch-go v0.61.0 // indirect
@@ -63,6 +67,7 @@ require (
 	github.com/hashicorp/go-msgpack v1.1.5 // indirect
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
 	github.com/hashicorp/go-sockaddr v1.0.5 // indirect
+	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hashicorp/serf v0.10.1 // indirect
@@ -103,7 +108,7 @@ require (
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/net v0.19.0 // indirect
 	golang.org/x/sync v0.5.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/sys v0.32.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/tools v0.14.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230525234030-28d5490b6b19 // indirect

@@ -22,3 +22,10 @@ type GeoNameService interface {
 	Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error)
 	Dump(ctx context.Context, format service.DumpFormat) ([]byte, error)
 }
+
+type MMDBService interface {
+	DownloadCityDb(ctx context.Context, update ...bool) error
+	DownloadISPDb(ctx context.Context, update ...bool) error
+	CheckCityDbUpdates(ctx context.Context) (bool, error)
+	CheckISPDbUpdates(ctx context.Context) (bool, error)
+}
