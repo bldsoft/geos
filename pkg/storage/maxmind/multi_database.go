@@ -2,9 +2,12 @@ package maxmind
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"net"
+
+	"maps"
 
 	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
@@ -17,27 +20,27 @@ import (
 
 var ErrNoDatabases = errors.New("no databases")
 
-type MultiMaxMindDB struct {
-	dbs    []Database
+type MultiMaxMindDB[T Database] struct {
+	dbs    []T
 	logger log.ServiceLogger
 }
 
-func NewMultiMaxMindDB(dbs ...Database) *MultiMaxMindDB {
-	res := &MultiMaxMindDB{dbs: dbs, logger: log.Logger}
+func NewMultiMaxMindDB[T Database](dbs ...T) *MultiMaxMindDB[T] {
+	res := &MultiMaxMindDB[T]{dbs: dbs, logger: log.Logger}
 	return res
 }
 
-func (db *MultiMaxMindDB) WithLogger(logger log.ServiceLogger) *MultiMaxMindDB {
+func (db *MultiMaxMindDB[T]) WithLogger(logger log.ServiceLogger) *MultiMaxMindDB[T] {
 	db.logger = logger
 	return db
 }
 
-func (db *MultiMaxMindDB) Add(dbs ...Database) *MultiMaxMindDB {
+func (db *MultiMaxMindDB[T]) Add(dbs ...T) *MultiMaxMindDB[T] {
 	db.dbs = append(db.dbs, dbs...)
 	return db
 }
 
-func (db *MultiMaxMindDB) Lookup(ip net.IP, result interface{}) error {
+func (db *MultiMaxMindDB[T]) Lookup(ip net.IP, result interface{}) error {
 	var multiErr error
 	for i := len(db.dbs) - 1; i >= 0; i-- {
 		err := db.dbs[i].Lookup(ip, result)
@@ -49,7 +52,7 @@ func (db *MultiMaxMindDB) Lookup(ip net.IP, result interface{}) error {
 	return errors.Join(utils.ErrNotFound, multiErr)
 }
 
-func (db *MultiMaxMindDB) dbReader(index int) (*maxminddb.Reader, error) {
+func (db *MultiMaxMindDB[T]) dbReader(index int) (*maxminddb.Reader, error) {
 	database := db.dbs[index]
 	reader, err := database.RawData()
 	if err != nil {
@@ -67,7 +70,7 @@ func (db *MultiMaxMindDB) dbReader(index int) (*maxminddb.Reader, error) {
 	return maxminddb.FromBytes(bytes)
 }
 
-func (db *MultiMaxMindDB) totalNodes() int {
+func (db *MultiMaxMindDB[T]) totalNodes() int {
 	totalNodes := 0
 	for _, db := range db.dbs {
 		if meta, _ := db.MetaData(); meta != nil {
@@ -77,7 +80,7 @@ func (db *MultiMaxMindDB) totalNodes() int {
 	return totalNodes
 }
 
-func (db *MultiMaxMindDB) RawData() (io.Reader, error) {
+func (db *MultiMaxMindDB[T]) RawData() (io.Reader, error) {
 	if len(db.dbs) == 0 {
 		return nil, ErrNoDatabases
 	}
@@ -165,7 +168,7 @@ func (db *MultiMaxMindDB) RawData() (io.Reader, error) {
 	return &buf, nil
 }
 
-func (db *MultiMaxMindDB) Reader() (*maxminddb.Reader, error) {
+func (db *MultiMaxMindDB[T]) Reader() (*maxminddb.Reader, error) {
 	reader, err := db.RawData()
 	if err != nil {
 		return nil, err
@@ -173,7 +176,7 @@ func (db *MultiMaxMindDB) Reader() (*maxminddb.Reader, error) {
 	return maxminddb.FromBytes(reader.(*bytes.Buffer).Bytes())
 }
 
-func (db *MultiMaxMindDB) Networks(options ...maxminddb.NetworksOption) (*maxminddb.Networks, error) {
+func (db *MultiMaxMindDB[T]) Networks(options ...maxminddb.NetworksOption) (*maxminddb.Networks, error) {
 	reader, err := db.Reader()
 	if err != nil {
 		return nil, err
@@ -181,7 +184,7 @@ func (db *MultiMaxMindDB) Networks(options ...maxminddb.NetworksOption) (*maxmin
 	return reader.Networks(options...), nil
 }
 
-func (db *MultiMaxMindDB) MetaData() (*maxminddb.Metadata, error) {
+func (db *MultiMaxMindDB[T]) MetaData() (*maxminddb.Metadata, error) {
 	if len(db.dbs) == 0 {
 		return nil, ErrNoDatabases
 	}
@@ -194,12 +197,9 @@ func (db *MultiMaxMindDB) MetaData() (*maxminddb.Metadata, error) {
 		return nil, err
 	}
 
-	var res maxminddb.Metadata
-	res = *mainMeta
+	res := *mainMeta
 	res.Description = make(map[string]string)
-	for key, value := range mainMeta.Description {
-		res.Description[key] = value
-	}
+	maps.Copy(res.Description, mainMeta.Description)
 	res.Description["en"] += " patched by GEOS service."
 
 	for _, db := range db.dbs {
@@ -212,4 +212,39 @@ func (db *MultiMaxMindDB) MetaData() (*maxminddb.Metadata, error) {
 	}
 
 	return &res, nil
+}
+
+func (db *MultiMaxMindDB[T]) Download(ctx context.Context, update ...bool) error {
+	if len(db.dbs) == 0 {
+		return ErrNoDatabases
+	}
+
+	var multiErr error
+	for _, database := range db.dbs {
+		err := database.Download(ctx, update...)
+		if err != nil {
+			multiErr = errors.Join(multiErr, err)
+			continue
+		}
+	}
+	return multiErr
+}
+
+func (db *MultiMaxMindDB[T]) CheckUpdates(ctx context.Context) (bool, error) {
+	if len(db.dbs) == 0 {
+		return false, ErrNoDatabases
+	}
+
+	var multiErr error
+	for _, database := range db.dbs {
+		updated, err := database.CheckUpdates(ctx)
+		if err != nil {
+			multiErr = errors.Join(multiErr, err)
+			continue
+		}
+		if updated {
+			return true, nil
+		}
+	}
+	return false, multiErr
 }

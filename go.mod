@@ -17,7 +17,7 @@ require (
 	github.com/mkrou/geonames v1.0.0
 	github.com/oschwald/maxminddb-golang v1.13.1
 	github.com/rs/zerolog v1.29.0
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	github.com/swaggo/swag v1.8.6
 	github.com/urfave/cli/v2 v2.17.1
 	golang.org/x/exp v0.0.0-20230510235704-dd950f8aeaea
@@ -89,6 +89,7 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.18 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
+	github.com/robfig/cron v1.2.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect

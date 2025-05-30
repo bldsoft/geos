@@ -2,6 +2,8 @@ package maxmind
 
 import (
 	"bytes"
+	"context"
+	"fmt"
 	"io"
 	"net"
 	"os"
@@ -9,10 +11,13 @@ import (
 	"github.com/oschwald/maxminddb-golang"
 )
 
+var ErrNoSource = fmt.Errorf("no source provided for the database")
+
 type MaxmindDatabase struct {
 	path   string
 	reader *maxminddb.Reader
 	dbRaw  []byte
+	source *MaxmindSource
 }
 
 func Open(path string) (*MaxmindDatabase, error) {
@@ -32,6 +37,10 @@ func Open(path string) (*MaxmindDatabase, error) {
 	}, nil
 }
 
+func (db *MaxmindDatabase) SetSource(source *MaxmindSource) {
+	db.source = source
+}
+
 func (db *MaxmindDatabase) Lookup(ip net.IP, result interface{}) error {
 	return db.reader.Lookup(ip, result)
 }
@@ -46,4 +55,18 @@ func (db *MaxmindDatabase) MetaData() (*maxminddb.Metadata, error) {
 
 func (db *MaxmindDatabase) Networks(options ...maxminddb.NetworksOption) (*maxminddb.Networks, error) {
 	return db.reader.Networks(), nil
+}
+
+func (db *MaxmindDatabase) Download(ctx context.Context, update ...bool) error {
+	if db.source == nil {
+		return ErrNoSource
+	}
+	return db.source.Download(ctx, update...)
+}
+
+func (db *MaxmindDatabase) CheckUpdates(ctx context.Context) (bool, error) {
+	if db.source == nil {
+		return false, ErrNoSource
+	}
+	return db.source.CheckUpdates(ctx)
 }

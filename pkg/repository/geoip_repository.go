@@ -12,6 +12,7 @@ import (
 	"github.com/bldsoft/geos/pkg/storage/maxmind"
 	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
+	"github.com/bldsoft/gost/utils/errgroup"
 )
 
 var (
@@ -37,8 +38,8 @@ const (
 	MaxmindDBTypeISP  MaxmindDBType = "isp"
 )
 
-func openPatchedDB[T maxmind.CSVEntity](path string, customPrefix string, required bool) *maxmindDBWithCachedCSVDump {
-	originalDB, err := maxmind.Open(path)
+func openPatchedDB[T maxmind.CSVEntity](conf DBConfig, customPrefix string, required bool) *maxmindDBWithCachedCSVDump {
+	originalDB, err := maxmind.Open(conf.Path)
 	if err != nil {
 		if required {
 			log.Fatalf("Failed to read %s db: %s", customPrefix, err)
@@ -46,10 +47,21 @@ func openPatchedDB[T maxmind.CSVEntity](path string, customPrefix string, requir
 		log.Warnf("Failed to read %s db: %s", customPrefix, err)
 		return nil
 	}
-	customDBs := maxmind.NewCustomDatabasesFromDir(filepath.Dir(path), customPrefix)
-	patchedDB := maxmind.NewMultiMaxMindDB(originalDB).Add(customDBs...)
-	patchedDB = patchedDB.WithLogger(*log.Logger.WithFields(log.Fields{"db": customPrefix}))
-	return withCachedCSVDump[T](patchedDB)
+	originalDB.SetSource(conf.DBSource)
+
+	customDB := maxmind.NewCustomDatabaseFromDir(filepath.Dir(conf.Path), customPrefix)
+	customDB.SetSource(conf.PatchesSource)
+
+	multiDB := maxmind.NewMultiMaxMindDB[maxmind.Database](originalDB).Add(customDB).WithLogger(
+		*log.Logger.WithFields(log.Fields{"db": customPrefix}),
+	)
+	return withCachedCSVDump[T](multiDB)
+}
+
+type DBConfig struct {
+	Path          string
+	DBSource      *maxmind.MaxmindSource
+	PatchesSource *maxmind.DBPatchesSource
 }
 
 type GeoIPRepository struct {
@@ -58,11 +70,11 @@ type GeoIPRepository struct {
 	ispPath string
 }
 
-func NewGeoIPRepository(dbCityPath, dbISPPath string, csvDirPath string) *GeoIPRepository {
+func NewGeoIPRepository(cityConf, ispConf DBConfig, csvDirPath string) *GeoIPRepository {
 	rep := GeoIPRepository{
-		dbCity:  openPatchedDB[entity.City](dbCityPath, string(MaxmindDBTypeCity), true),
-		dbISP:   openPatchedDB[entity.ISP](dbISPPath, string(MaxmindDBTypeISP), false),
-		ispPath: dbISPPath,
+		dbCity:  openPatchedDB[entity.City](cityConf, string(MaxmindDBTypeCity), true),
+		dbISP:   openPatchedDB[entity.ISP](ispConf, string(MaxmindDBTypeISP), false),
+		ispPath: ispConf.Path,
 	}
 
 	go rep.initCSVDumps(context.Background(), csvDirPath)
@@ -173,4 +185,45 @@ func (r *GeoIPRepository) database(ctx context.Context, dbType MaxmindDBType) (m
 		return nil, ErrDBNotAvailable
 	}
 	return db, nil
+}
+
+func (r *GeoIPRepository) CheckUpdates(ctx context.Context) (exist bool, err error) {
+	exist, err = r.dbCity.CheckUpdates(ctx)
+	if err != nil || exist {
+		return
+	}
+
+	return r.dbISP.CheckUpdates(ctx)
+}
+
+func (r *GeoIPRepository) Download(ctx context.Context, update ...bool) error {
+	var eg errgroup.Group
+
+	eg.Go(func() error {
+		exist, err := r.dbCity.CheckUpdates(ctx)
+		if err != nil {
+			return err
+		}
+		if exist {
+			err = r.dbCity.Download(ctx, update...)
+		}
+		return err
+	})
+
+	eg.Go(func() error {
+		if r.dbISP == nil {
+			return nil
+		}
+
+		exist, err := r.dbISP.CheckUpdates(ctx)
+		if err != nil {
+			return err
+		}
+		if exist {
+			err = r.dbISP.Download(ctx, update...)
+		}
+		return err
+	})
+
+	return eg.Wait()
 }

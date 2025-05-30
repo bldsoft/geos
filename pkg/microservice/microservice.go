@@ -14,6 +14,7 @@ import (
 	"github.com/bldsoft/geos/pkg/repository"
 	"github.com/bldsoft/geos/pkg/service"
 	"github.com/bldsoft/geos/pkg/storage/geonames"
+	"github.com/bldsoft/geos/pkg/storage/maxmind"
 	"github.com/bldsoft/gost/auth"
 	"github.com/bldsoft/gost/clickhouse"
 	gost "github.com/bldsoft/gost/controller"
@@ -41,7 +42,6 @@ type Microservice struct {
 
 	geoIpService   controller.GeoIpService
 	geoNameService controller.GeoNameService
-	mmdbService    controller.MMDBService
 
 	discovery discovery.Discovery
 
@@ -93,26 +93,28 @@ func (m *Microservice) initServices() {
 		log.Debug("Log export to ClickHouse is off")
 	}
 
-	mmdbRep := repository.NewMMDBRepository(m.config.GeoDbSource, m.config.GeoDbISPSource, m.config.GeoDbPath, m.config.GeoDbISPPath)
-	m.mmdbService = service.NewMMDBService(mmdbRep)
+	// TODO: create sources somewhere in the repository????
+	citySource := maxmind.NewMMDBSource(m.config.GeoDbSource, m.config.GeoDbPath, string(repository.MaxmindDBTypeCity), m.config.AutoUpdatePeriod)
+	customCitySource := maxmind.NewCustomDBSource(m.config.GeoDbPatchesSource, filepath.Dir(m.config.GeoDbPath), string(repository.MaxmindDBTypeCity), m.config.AutoUpdatePeriod)
 
-	if len(m.config.GeoDbSource) != 0 {
-		if err := m.mmdbService.DownloadCityDb(context.Background()); err != nil {
-			log.ErrorWithFields(log.Fields{"err": err}, "failed to download city database from provided source")
-		}
-	} else {
-		log.Warn("Source for city database is not set, assuming it is already downloaded. You will NOT be able to check for database updates and download them without providing source.")
+	ispSource := maxmind.NewMMDBSource(m.config.GeoDbISPSource, m.config.GeoDbISPPath, string(repository.MaxmindDBTypeISP), m.config.AutoUpdatePeriod)
+	customISPSource := maxmind.NewCustomDBSource(m.config.GeoDbISPPatchesSource, filepath.Dir(m.config.GeoDbISPPath), string(repository.MaxmindDBTypeISP), m.config.AutoUpdatePeriod)
+
+	cityDBConfig := repository.DBConfig{
+		Path:          m.config.GeoDbPath,
+		DBSource:      citySource,
+		PatchesSource: customCitySource,
 	}
 
-	if len(m.config.GeoDbISPSource) != 0 {
-		if err := m.mmdbService.DownloadISPDb(context.Background()); err != nil {
-			log.ErrorWithFields(log.Fields{"err": err}, "failed to download ISP database from provided source")
-		}
-	} else {
-		log.Warn("Source for isp database is not set, assuming it is already downloaded. You will NOT be able to check for database updates and download them without providing source.")
+	ispDBConfig := repository.DBConfig{
+		Path:          m.config.GeoDbISPPath,
+		DBSource:      ispSource,
+		PatchesSource: customISPSource,
 	}
 
-	rep := repository.NewGeoIPRepository(m.config.GeoDbPath, m.config.GeoDbISPPath, m.config.GeoIPCsvDumpDirPath)
+	// TODO: =============================================================
+
+	rep := repository.NewGeoIPRepository(cityDBConfig, ispDBConfig, m.config.GeoIPCsvDumpDirPath)
 	m.geoIpService = service.NewGeoIpService(rep)
 
 	geoNameStorage := m.geonamesStorage()
@@ -132,7 +134,6 @@ func (m *Microservice) initServices() {
 	} else {
 		log.Info("gRPC is off")
 	}
-
 }
 
 func (m *Microservice) geonamesStorage() geonames.Storage {
@@ -156,6 +157,11 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 		r.Get("/city-lite/{addr}", geoIpController.GetCityLiteHandler)
 
 		r.With(m.ApiKeyMiddleware()).Get("/dump", geoIpController.GetDumpHandler) // deprecated, used by streampool
+
+		managementController := rest.NewManagementController(m.geoIpService, m.geoNameService)
+		r.With(m.ApiKeyMiddleware()).Get("/update", managementController.CheckUpdatesHandler)
+		r.With(m.ApiKeyMiddleware()).Post("/update", managementController.UpdateHandler)
+
 		r.Route("/dump/{db}", func(r chi.Router) {
 			r.Use(m.ApiKeyMiddleware())
 			r.Get("/csv", geoIpController.GetCSVDatabaseHandler)
@@ -173,13 +179,6 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 			r.Get("/city", geoNameController.GetGeoNameCitiesHandler)
 			r.Post("/city", geoNameController.GetGeoNameCitiesHandler)
 			r.With(m.ApiKeyMiddleware()).Get("/dump", geoNameController.GetDumpHandler)
-		})
-
-		mmdbController := rest.NewMMDBController(m.mmdbService)
-		r.Route("/mmdb", func(r chi.Router) {
-			r.Use(m.ApiKeyMiddleware())
-			r.Get("/update", mmdbController.CheckUpdateHandler)
-			r.Post("/update", mmdbController.UpdateHandler)
 		})
 	})
 }
