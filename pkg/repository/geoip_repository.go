@@ -38,7 +38,7 @@ const (
 	MaxmindDBTypeISP  MaxmindDBType = "isp"
 )
 
-func openPatchedDB[T maxmind.CSVEntity](conf DBConfig, customPrefix string, required bool) *maxmindDBWithCachedCSVDump {
+func openPatchedDB[T maxmind.CSVEntity](conf *DBConfig, customPrefix string, required bool) *maxmindDBWithCachedCSVDump {
 	originalDB, err := maxmind.Open(conf.Path)
 	if err != nil {
 		if required {
@@ -65,16 +65,19 @@ type DBConfig struct {
 }
 
 type GeoIPRepository struct {
-	dbCity  *maxmindDBWithCachedCSVDump
-	dbISP   *maxmindDBWithCachedCSVDump
-	ispPath string
+	dbCity, dbISP       *maxmindDBWithCachedCSVDump
+	cityConf, ispConf   *DBConfig
+	csvDirPath, ispPath string
 }
 
-func NewGeoIPRepository(cityConf, ispConf DBConfig, csvDirPath string) *GeoIPRepository {
+func NewGeoIPRepository(cityConf, ispConf *DBConfig, csvDirPath string) *GeoIPRepository {
 	rep := GeoIPRepository{
-		dbCity:  openPatchedDB[entity.City](cityConf, string(MaxmindDBTypeCity), true),
-		dbISP:   openPatchedDB[entity.ISP](ispConf, string(MaxmindDBTypeISP), false),
-		ispPath: ispConf.Path,
+		csvDirPath: csvDirPath,
+		cityConf:   cityConf,
+		ispConf:    ispConf,
+		dbCity:     openPatchedDB[entity.City](cityConf, string(MaxmindDBTypeCity), true),
+		dbISP:      openPatchedDB[entity.ISP](ispConf, string(MaxmindDBTypeISP), false),
+		ispPath:    ispConf.Path,
 	}
 
 	go rep.initCSVDumps(context.Background(), csvDirPath)
@@ -225,5 +228,14 @@ func (r *GeoIPRepository) Download(ctx context.Context, update ...bool) error {
 		return err
 	})
 
-	return eg.Wait()
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+
+	r.dbCity = openPatchedDB[entity.City](r.cityConf, string(MaxmindDBTypeCity), true)
+	r.dbISP = openPatchedDB[entity.ISP](r.ispConf, string(MaxmindDBTypeISP), false)
+
+	go r.initCSVDumps(ctx, r.csvDirPath)
+
+	return nil
 }

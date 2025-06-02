@@ -49,11 +49,11 @@ func (s *DBPatchesSource) Download(ctx context.Context, _ ...bool) error {
 	return s.download(ctx)
 }
 
-func NewCustomDBSource(sourceUrl, dbPath, name, autoUpdatePeriod string) *DBPatchesSource {
+func NewCustomDBSource(sourceUrl, dbPath, name string, cron *cron.Cron, autoUpdatePeriod string) *DBPatchesSource {
 	s := &DBPatchesSource{
 		sourceUrl: sourceUrl,
 		dbPath:    dbPath,
-		c:         cron.New(), //TODO: move to parents, there should be only one instance of cron in application
+		c:         cron,
 		name:      name,
 	}
 
@@ -94,7 +94,7 @@ func (s *DBPatchesSource) initAutoUpdates(ctx context.Context, autoUpdatePeriod 
 		return fmt.Errorf("missing required paths")
 	}
 
-	return s.c.AddFunc(fmt.Sprintf("@every %s", autoUpdatePeriod), func() {
+	return s.c.AddFunc(fmt.Sprintf("@every %sh", autoUpdatePeriod), func() {
 		log.FromContext(ctx).Infof("Executing auto update for %s patches", s.name)
 
 		exist, err := s.CheckUpdates(ctx)

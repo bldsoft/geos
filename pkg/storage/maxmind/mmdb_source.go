@@ -57,12 +57,12 @@ func (s *MaxmindSource) Download(ctx context.Context, update ...bool) error {
 	return s.download(ctx)
 }
 
-func NewMMDBSource(sourceUrl, dbPath, name string, autoUpdatePeriod string) *MaxmindSource {
+func NewMMDBSource(sourceUrl, dbPath, name string, cron *cron.Cron, autoUpdatePeriod string) *MaxmindSource {
 	s := &MaxmindSource{
 		sourceUrl: sourceUrl,
 		dbPath:    dbPath,
 		name:      name,
-		c:         cron.New(),
+		c:         cron,
 	}
 
 	ctx := context.Background()
@@ -91,12 +91,12 @@ func (s *MaxmindSource) initAutoUpdates(ctx context.Context, autoUpdatePeriod st
 		return fmt.Errorf("Missing required paths")
 	}
 
-	return s.c.AddFunc(fmt.Sprintf("@every %sh", autoUpdatePeriod), func() { //TODO: change me to test
-		log.FromContext(ctx).Infof("Executing automatic updates check for %s", s.name)
+	return s.c.AddFunc(fmt.Sprintf("@every %sh", autoUpdatePeriod), func() {
+		log.FromContext(ctx).Infof("Executing auto update for %s", s.name)
 
 		available, err := s.CheckUpdates(ctx)
 		if err != nil {
-			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to run automatic updates check for %s", s.name)
+			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to run auto update for %s", s.name)
 			return
 		}
 

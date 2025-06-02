@@ -25,6 +25,7 @@ import (
 	"github.com/bldsoft/gost/server"
 	gost_storage "github.com/bldsoft/gost/storage"
 	"github.com/go-chi/chi/v5"
+	"github.com/robfig/cron"
 )
 
 const (
@@ -93,26 +94,25 @@ func (m *Microservice) initServices() {
 		log.Debug("Log export to ClickHouse is off")
 	}
 
-	// TODO: create sources somewhere in the repository????
-	citySource := maxmind.NewMMDBSource(m.config.GeoDbSource, m.config.GeoDbPath, string(repository.MaxmindDBTypeCity), m.config.AutoUpdatePeriod)
-	customCitySource := maxmind.NewCustomDBSource(m.config.GeoDbPatchesSource, filepath.Dir(m.config.GeoDbPath), string(repository.MaxmindDBTypeCity), m.config.AutoUpdatePeriod)
+	cron := cron.New()
 
-	ispSource := maxmind.NewMMDBSource(m.config.GeoDbISPSource, m.config.GeoDbISPPath, string(repository.MaxmindDBTypeISP), m.config.AutoUpdatePeriod)
-	customISPSource := maxmind.NewCustomDBSource(m.config.GeoDbISPPatchesSource, filepath.Dir(m.config.GeoDbISPPath), string(repository.MaxmindDBTypeISP), m.config.AutoUpdatePeriod)
+	citySource := maxmind.NewMMDBSource(m.config.GeoDbSource, m.config.GeoDbPath, string(repository.MaxmindDBTypeCity), cron, m.config.AutoUpdatePeriod)
+	customCitySource := maxmind.NewCustomDBSource(m.config.GeoDbPatchesSource, filepath.Dir(m.config.GeoDbPath), string(repository.MaxmindDBTypeCity), cron, m.config.AutoUpdatePeriod)
 
-	cityDBConfig := repository.DBConfig{
+	ispSource := maxmind.NewMMDBSource(m.config.GeoDbISPSource, m.config.GeoDbISPPath, string(repository.MaxmindDBTypeISP), cron, m.config.AutoUpdatePeriod)
+	customISPSource := maxmind.NewCustomDBSource(m.config.GeoDbISPPatchesSource, filepath.Dir(m.config.GeoDbISPPath), string(repository.MaxmindDBTypeISP), cron, m.config.AutoUpdatePeriod)
+
+	cityDBConfig := &repository.DBConfig{
 		Path:          m.config.GeoDbPath,
 		DBSource:      citySource,
 		PatchesSource: customCitySource,
 	}
 
-	ispDBConfig := repository.DBConfig{
+	ispDBConfig := &repository.DBConfig{
 		Path:          m.config.GeoDbISPPath,
 		DBSource:      ispSource,
 		PatchesSource: customISPSource,
 	}
-
-	// TODO: =============================================================
 
 	rep := repository.NewGeoIPRepository(cityDBConfig, ispDBConfig, m.config.GeoIPCsvDumpDirPath)
 	m.geoIpService = service.NewGeoIpService(rep)
@@ -120,6 +120,8 @@ func (m *Microservice) initServices() {
 	geoNameStorage := m.geonamesStorage()
 	geoNameRep := repository.NewGeoNamesRepository(geoNameStorage)
 	m.geoNameService = service.NewGeoNameService(geoNameRep)
+
+	cron.Start()
 
 	m.discovery = common.NewDiscovery(m.config.Server, m.config.Discovery)
 	m.setDiscoveryMeta()

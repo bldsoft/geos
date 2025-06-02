@@ -7,7 +7,6 @@ import (
 	"github.com/oschwald/maxminddb-golang"
 )
 
-// stores patches for easier updates
 type CustomDatabase struct {
 	*MultiMaxMindDB[*DatabasePatch]
 	source *DBPatchesSource
@@ -41,7 +40,12 @@ func (db *CustomDatabase) Download(ctx context.Context, update ...bool) error {
 		return ErrNoSource
 	}
 
-	return db.source.Download(ctx, update...)
+	if err := db.source.Download(ctx, update...); err != nil {
+		return err
+	}
+
+	db.dbs = NewCustomDatabaseFromDir(db.source.dbPath, db.source.name).dbs
+	return nil
 }
 
 func (db *CustomDatabase) CheckUpdates(ctx context.Context) (bool, error) {
