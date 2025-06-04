@@ -4,11 +4,12 @@ import (
 	"context"
 
 	"github.com/bldsoft/geos/pkg/storage/maxmind"
+	"github.com/bldsoft/geos/pkg/storage/source"
 )
 
 type CustomStorage struct {
 	*MultiStorage[*StoragePatch]
-	source *StoragePatchesSource
+	source source.Source
 }
 
 func NewCustomStorage(patches ...*StoragePatch) *CustomStorage {
@@ -22,7 +23,7 @@ func NewCustomStorageFromDir(dir string) *CustomStorage {
 	return NewCustomStorage(customs...)
 }
 
-func (s *CustomStorage) SetSource(source *StoragePatchesSource) {
+func (s *CustomStorage) SetSource(source source.Source) {
 	s.source = source
 }
 
@@ -43,6 +44,6 @@ func (s *CustomStorage) Download(ctx context.Context, update ...bool) error {
 		return err
 	}
 
-	s.storages = NewStoragePatchesFromDir(s.source.storagePath, "geonames")
+	s.storages = NewStoragePatchesFromDir(s.source.DirPath(), "geonames")
 	return nil
 }

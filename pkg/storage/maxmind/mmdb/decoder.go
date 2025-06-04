@@ -1,4 +1,4 @@
-package maxmind
+package mmdb
 
 import (
 	"encoding/binary"

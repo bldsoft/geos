@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 
+	"github.com/bldsoft/geos/pkg/storage/source"
 	"github.com/oschwald/maxminddb-golang"
 )
 
@@ -17,7 +18,7 @@ type MaxmindDatabase struct {
 	path   string
 	reader *maxminddb.Reader
 	dbRaw  []byte
-	source *MaxmindSource
+	source *source.MaxmindSource
 }
 
 func Open(path string) (*MaxmindDatabase, error) {
@@ -37,7 +38,7 @@ func Open(path string) (*MaxmindDatabase, error) {
 	}, nil
 }
 
-func (db *MaxmindDatabase) SetSource(source *MaxmindSource) {
+func (db *MaxmindDatabase) SetSource(source *source.MaxmindSource) {
 	db.source = source
 }
 
@@ -69,4 +70,8 @@ func (db *MaxmindDatabase) CheckUpdates(ctx context.Context) (bool, error) {
 		return false, ErrNoSource
 	}
 	return db.source.CheckUpdates(ctx)
+}
+
+func (db *MaxmindDatabase) DirPath() string {
+	return db.path
 }

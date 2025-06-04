@@ -41,6 +41,13 @@ func (s *MultiStorage[T]) Download(ctx context.Context, update ...bool) error {
 	return multiErr
 }
 
+func (s *MultiStorage[T]) DirPath() string {
+	// TODO: kinda not used yet... and kinda no proper way to retrieve it yet...
+	// and kinda looks like it should not be there at all...
+	// so how its just to satisfy the interface...
+	return ""
+}
+
 func (s *MultiStorage[T]) Add(storages ...T) *MultiStorage[T] {
 	s.storages = append(s.storages, storages...)
 	return s

@@ -1,4 +1,4 @@
-package maxmind
+package source
 
 import (
 	"bytes"
@@ -9,6 +9,7 @@ import (
 	"os"
 	"reflect"
 
+	"github.com/bldsoft/geos/pkg/storage/maxmind/mmdb"
 	"github.com/bldsoft/gost/log"
 	"github.com/hashicorp/go-version"
 	"github.com/oschwald/maxminddb-golang"
@@ -116,8 +117,12 @@ func (s *MaxmindSource) initAutoUpdates(ctx context.Context, autoUpdatePeriod st
 	})
 }
 
+func (s *MaxmindSource) DirPath() string {
+	return s.dbPath
+}
+
 func (s *MaxmindSource) extractVersion(metadataBuf []byte) (*version.Version, error) {
-	metadataDecoder := Decoder{Buffer: metadataBuf}
+	metadataDecoder := mmdb.Decoder{Buffer: metadataBuf}
 
 	var metadata maxminddb.Metadata
 	rvMetadata := reflect.ValueOf(&metadata)

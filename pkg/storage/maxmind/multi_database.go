@@ -245,3 +245,10 @@ func (db *MultiMaxMindDB[T]) CheckUpdates(ctx context.Context) (bool, error) {
 	}
 	return false, multiErr
 }
+
+func (db *MultiMaxMindDB[T]) DirPath() string {
+	// TODO: kinda not used yet... and kinda no proper way to retrieve it yet...
+	// and kinda looks like it should not be there at all...
+	// so how its just to satisfy the interface...
+	return ""
+}

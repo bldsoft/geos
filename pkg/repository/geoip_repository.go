@@ -10,6 +10,7 @@ import (
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/maxmind"
+	"github.com/bldsoft/geos/pkg/storage/source"
 	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
 	"github.com/bldsoft/gost/utils/errgroup"
@@ -60,8 +61,8 @@ func openPatchedDB[T maxmind.CSVEntity](conf *DBConfig, customPrefix string, req
 
 type DBConfig struct {
 	Path          string
-	DBSource      *maxmind.MaxmindSource
-	PatchesSource *maxmind.DBPatchesSource
+	DBSource      *source.MaxmindSource
+	PatchesSource *source.PatchesSource
 }
 
 type GeoIPRepository struct {

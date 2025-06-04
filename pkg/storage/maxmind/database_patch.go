@@ -181,3 +181,10 @@ func (db *DatabasePatch) CheckUpdates(_ context.Context) (bool, error) {
 	// patches updates check is controlled by the custom database
 	return false, nil
 }
+
+func (db *DatabasePatch) DirPath() string {
+	// TODO: kinda not used yet... and kinda no proper way to retrieve it yet...
+	// and kinda looks like it should not be there at all...
+	// so how its just to satisfy the interface...
+	return ""
+}

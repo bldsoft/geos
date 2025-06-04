@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 
+	"github.com/bldsoft/geos/pkg/storage/source"
 	"github.com/oschwald/maxminddb-golang"
 )
 
@@ -20,13 +21,7 @@ type Database interface {
 	RawData() (io.Reader, error) // mmdb
 	MetaData() (*maxminddb.Metadata, error)
 
-	Source // maybe we should use source as something external to the database
-}
-
-type Source interface {
-	Download(context.Context, ...bool) error
-	//TODO: make it provide somekind of messages?
-	CheckUpdates(context.Context) (bool, error)
+	source.Source
 }
 
 type CSVDumper interface {

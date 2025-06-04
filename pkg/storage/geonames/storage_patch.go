@@ -173,10 +173,16 @@ func (s *StoragePatch) Cities(_ context.Context, filter entity.GeoNameFilter) ([
 	return customFilter(s.cities, filter), nil
 }
 
+//-----------Source stuff is managed by the custom storage so no source for you
+
 func (s *StoragePatch) CheckUpdates(_ context.Context) (bool, error) {
 	return false, nil
 }
 
 func (s *StoragePatch) Download(ctx context.Context, update ...bool) error {
 	return nil
+}
+
+func (s *StoragePatch) DirPath() string {
+	return ""
 }

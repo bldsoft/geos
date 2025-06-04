@@ -14,7 +14,7 @@ import (
 	"github.com/bldsoft/geos/pkg/repository"
 	"github.com/bldsoft/geos/pkg/service"
 	"github.com/bldsoft/geos/pkg/storage/geonames"
-	"github.com/bldsoft/geos/pkg/storage/maxmind"
+	"github.com/bldsoft/geos/pkg/storage/source"
 	"github.com/bldsoft/gost/auth"
 	"github.com/bldsoft/gost/clickhouse"
 	gost "github.com/bldsoft/gost/controller"
@@ -96,28 +96,31 @@ func (m *Microservice) initServices() {
 
 	cron := cron.New()
 
-	citySource := maxmind.NewMMDBSource(m.config.GeoDbSource, m.config.GeoDbPath, string(repository.MaxmindDBTypeCity), cron, m.config.AutoUpdatePeriod)
-	customCitySource := maxmind.NewCustomDBSource(m.config.GeoDbPatchesSource, filepath.Dir(m.config.GeoDbPath), string(repository.MaxmindDBTypeCity), cron, m.config.AutoUpdatePeriod)
+	citySource := source.NewMMDBSource(m.config.GeoDbSource, m.config.GeoDbPath, string(repository.MaxmindDBTypeCity), cron, m.config.AutoUpdatePeriod)
 
-	ispSource := maxmind.NewMMDBSource(m.config.GeoDbISPSource, m.config.GeoDbISPPath, string(repository.MaxmindDBTypeISP), cron, m.config.AutoUpdatePeriod)
-	customISPSource := maxmind.NewCustomDBSource(m.config.GeoDbISPPatchesSource, filepath.Dir(m.config.GeoDbISPPath), string(repository.MaxmindDBTypeISP), cron, m.config.AutoUpdatePeriod)
+	cityPatchesSource := source.NewPatchesSource(m.config.GeoDbPatchesSource, filepath.Dir(m.config.GeoDbPath), string(repository.MaxmindDBTypeCity), cron, m.config.AutoUpdatePeriod)
+
+	ispSource := source.NewMMDBSource(m.config.GeoDbISPSource, m.config.GeoDbISPPath, string(repository.MaxmindDBTypeISP), cron, m.config.AutoUpdatePeriod)
+
+	ispPatchesSource := source.NewPatchesSource(m.config.GeoDbISPPatchesSource, filepath.Dir(m.config.GeoDbISPPath), string(repository.MaxmindDBTypeISP), cron, m.config.AutoUpdatePeriod)
 
 	cityDBConfig := &repository.DBConfig{
 		Path:          m.config.GeoDbPath,
 		DBSource:      citySource,
-		PatchesSource: customCitySource,
+		PatchesSource: cityPatchesSource,
 	}
 
 	ispDBConfig := &repository.DBConfig{
 		Path:          m.config.GeoDbISPPath,
 		DBSource:      ispSource,
-		PatchesSource: customISPSource,
+		PatchesSource: ispPatchesSource,
 	}
 
 	rep := repository.NewGeoIPRepository(cityDBConfig, ispDBConfig, m.config.GeoIPCsvDumpDirPath)
 	m.geoIpService = service.NewGeoIpService(rep)
 
-	geoNameStorage := m.geonamesStorage(cron)
+	geonamePatchesSource := source.NewPatchesSource(m.config.GeoNamePatchesSource, m.config.GeoNameDumpDirPath, "geonames", cron, m.config.AutoUpdatePeriod)
+	geoNameStorage := m.geonamesStorage(geonamePatchesSource, cron)
 	geoNameRep := repository.NewGeoNamesRepository(geoNameStorage)
 	m.geoNameService = service.NewGeoNameService(geoNameRep)
 
@@ -138,13 +141,10 @@ func (m *Microservice) initServices() {
 	}
 }
 
-func (m *Microservice) geonamesStorage(c *cron.Cron) geonames.Storage {
+func (m *Microservice) geonamesStorage(src source.Source, c *cron.Cron) geonames.Storage {
 	original := geonames.NewStorage(m.config.GeoNameDumpDirPath)
 	custom := geonames.NewCustomStorageFromDir(filepath.Dir(m.config.GeoDbPath))
-
-	patchesSource := geonames.NewStoragePatchesSource(m.config.GeoNamePatchesSource, m.config.GeoNameDumpDirPath, c, m.config.AutoUpdatePeriod)
-
-	custom.SetSource(patchesSource)
+	custom.SetSource(src)
 	return geonames.NewMultiStorage[geonames.Storage](original).Add(custom)
 }
 

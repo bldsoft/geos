@@ -92,6 +92,10 @@ func (s *GeoNameStorage) Download(ctx context.Context, update ...bool) error {
 	return nil
 }
 
+func (s *GeoNameStorage) DirPath() string {
+	return s.dir
+}
+
 func (r *GeoNameStorage) fillAdditionalFields() {
 	defer close(r.additionalInfoReadyC)
 	r.waitInit()
