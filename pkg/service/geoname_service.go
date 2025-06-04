@@ -12,6 +12,8 @@ type GeoNameRepository interface {
 	Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameAdminSubdivision, error)
 	Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error)
 	Dump(ctx context.Context, format DumpFormat) ([]byte, error)
+	Download(ctx context.Context, update ...bool) error
+	CheckUpdates(ctx context.Context) (bool, error)
 }
 
 type GeoNameService struct {
@@ -20,6 +22,14 @@ type GeoNameService struct {
 
 func NewGeoNameService(rep GeoNameRepository) *GeoNameService {
 	return &GeoNameService{rep}
+}
+
+func (s *GeoNameService) Download(ctx context.Context, update ...bool) error {
+	return s.GeoNameRepository.Download(ctx, update...)
+}
+
+func (s *GeoNameService) CheckUpdates(ctx context.Context) (bool, error) {
+	return s.GeoNameRepository.CheckUpdates(ctx)
 }
 
 func (s *GeoNameService) Continents(ctx context.Context) []*entity.GeoNameContinent {

@@ -222,10 +222,7 @@ func (db *MultiMaxMindDB[T]) Download(ctx context.Context, update ...bool) error
 	var multiErr error
 	for _, database := range db.dbs {
 		err := database.Download(ctx, update...)
-		if err != nil {
-			multiErr = errors.Join(multiErr, err)
-			continue
-		}
+		multiErr = errors.Join(multiErr, err)
 	}
 	return multiErr
 }

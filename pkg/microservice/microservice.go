@@ -117,7 +117,7 @@ func (m *Microservice) initServices() {
 	rep := repository.NewGeoIPRepository(cityDBConfig, ispDBConfig, m.config.GeoIPCsvDumpDirPath)
 	m.geoIpService = service.NewGeoIpService(rep)
 
-	geoNameStorage := m.geonamesStorage()
+	geoNameStorage := m.geonamesStorage(cron)
 	geoNameRep := repository.NewGeoNamesRepository(geoNameStorage)
 	m.geoNameService = service.NewGeoNameService(geoNameRep)
 
@@ -138,10 +138,14 @@ func (m *Microservice) initServices() {
 	}
 }
 
-func (m *Microservice) geonamesStorage() geonames.Storage {
+func (m *Microservice) geonamesStorage(c *cron.Cron) geonames.Storage {
 	original := geonames.NewStorage(m.config.GeoNameDumpDirPath)
-	customs := geonames.NewCustomStoragesFromDir(filepath.Dir(m.config.GeoDbPath), "geonames")
-	return geonames.NewMultiStorage(original).Add(customs...)
+	custom := geonames.NewCustomStorageFromDir(filepath.Dir(m.config.GeoDbPath))
+
+	patchesSource := geonames.NewStoragePatchesSource(m.config.GeoNamePatchesSource, m.config.GeoNameDumpDirPath, c, m.config.AutoUpdatePeriod)
+
+	custom.SetSource(patchesSource)
+	return geonames.NewMultiStorage[geonames.Storage](original).Add(custom)
 }
 
 func (m *Microservice) BuildRoutes(router chi.Router) {
@@ -181,6 +185,8 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 			r.Get("/city", geoNameController.GetGeoNameCitiesHandler)
 			r.Post("/city", geoNameController.GetGeoNameCitiesHandler)
 			r.With(m.ApiKeyMiddleware()).Get("/dump", geoNameController.GetDumpHandler)
+			r.With(m.ApiKeyMiddleware()).Get("/update", geoNameController.GetUpdatesHandler)
+			r.With(m.ApiKeyMiddleware()).Post("/update", geoNameController.UpdateHandler)
 		})
 	})
 }

@@ -33,6 +33,8 @@ func GeoNameContinents() []*entity.GeoNameContinent {
 }
 
 type GeoNameStorage struct {
+	dir string
+
 	countries    *geonameEntityStorage[*entity.GeoNameCountry]
 	subdivisions *geonameEntityStorage[*entity.GeoNameAdminSubdivision]
 	cities       *geonameEntityStorage[*entity.GeoName]
@@ -41,37 +43,53 @@ type GeoNameStorage struct {
 }
 
 func NewStorage(dir string) *GeoNameStorage {
-	s := &GeoNameStorage{
-		countries: newGeonameEntityStorage(dir, func(parser geonames.Parser) ([]*entity.GeoNameCountry, error) {
-			var countries []*entity.GeoNameCountry
-			err := parser.GetCountries(func(c *models.Country) error {
-				countries = append(countries, &entity.GeoNameCountry{Country: c})
-				return nil
-			})
-			return countries, err
-		}),
-		subdivisions: newGeonameEntityStorage(dir, func(parser geonames.Parser) ([]*entity.GeoNameAdminSubdivision, error) {
-			var subdivisions []*entity.GeoNameAdminSubdivision
-			err := parser.GetAdminDivisions(func(division *models.AdminDivision) error {
-				subdivisions = append(subdivisions, &entity.GeoNameAdminSubdivision{AdminDivision: division})
-				return nil
-			})
-			return subdivisions, err
-		}),
-		cities: newGeonameEntityStorage(dir, func(parser geonames.Parser) ([]*entity.GeoName, error) {
-			var cities []*entity.GeoName
-			err := parser.GetGeonames(geonames.Cities500, func(c *models.Geoname) error {
-				cities = append(cities, &entity.GeoName{Geoname: c})
-				return nil
-			})
-			return cities, err
-		}),
-		additionalInfoReadyC: make(chan struct{}),
-	}
+	s := new(GeoNameStorage)
+	s.dir = dir
 
-	go s.fillAdditionalFields()
+	s.fill()
 
 	return s
+}
+
+func (s *GeoNameStorage) fill() {
+	s.countries = newGeonameEntityStorage(s.dir, func(parser geonames.Parser) ([]*entity.GeoNameCountry, error) {
+		var countries []*entity.GeoNameCountry
+		err := parser.GetCountries(func(c *models.Country) error {
+			countries = append(countries, &entity.GeoNameCountry{Country: c})
+			return nil
+		})
+		return countries, err
+	})
+
+	s.subdivisions = newGeonameEntityStorage(s.dir, func(parser geonames.Parser) ([]*entity.GeoNameAdminSubdivision, error) {
+		var subdivisions []*entity.GeoNameAdminSubdivision
+		err := parser.GetAdminDivisions(func(division *models.AdminDivision) error {
+			subdivisions = append(subdivisions, &entity.GeoNameAdminSubdivision{AdminDivision: division})
+			return nil
+		})
+		return subdivisions, err
+	})
+
+	s.cities = newGeonameEntityStorage(s.dir, func(parser geonames.Parser) ([]*entity.GeoName, error) {
+		var cities []*entity.GeoName
+		err := parser.GetGeonames(geonames.Cities500, func(c *models.Geoname) error {
+			cities = append(cities, &entity.GeoName{Geoname: c})
+			return nil
+		})
+		return cities, err
+	})
+
+	s.additionalInfoReadyC = make(chan struct{})
+	go s.fillAdditionalFields()
+}
+
+func (s *GeoNameStorage) CheckUpdates(ctx context.Context) (bool, error) {
+	return false, nil
+}
+
+func (s *GeoNameStorage) Download(ctx context.Context, update ...bool) error {
+	s.fill()
+	return nil
 }
 
 func (r *GeoNameStorage) fillAdditionalFields() {

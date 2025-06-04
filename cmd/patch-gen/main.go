@@ -159,9 +159,9 @@ func main() {
 
 func geonamesStorage(ctx context.Context, customFilePath string) geonames.Storage {
 	originalStorage := geonames.NewStorage("/tmp/")
-	geonameStorage := geonames.NewMultiStorage(originalStorage)
+	geonameStorage := geonames.NewMultiStorage[geonames.Storage](originalStorage)
 
-	if customStorage, err := geonames.NewCustomStorageFromFile(customFilePath); err == nil {
+	if customStorage, err := geonames.NewStoragePatchFromFile(customFilePath); err == nil {
 		return geonameStorage.Add(customStorage)
 	}
 	originalStorage.WaitReady()

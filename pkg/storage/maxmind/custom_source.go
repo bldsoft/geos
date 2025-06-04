@@ -59,27 +59,28 @@ func NewCustomDBSource(sourceUrl, dbPath, name string, cron *cron.Cron, autoUpda
 
 	ctx := context.Background()
 
-	if len(sourceUrl) != 0 {
-		exist, err := s.CheckUpdates(ctx)
-		if err != nil {
-			log.FromContext(ctx).Errorf("Failed to check for updates for %s patches: %v", s.name, err)
-		}
-
-		if exist {
-			log.FromContext(ctx).Infof("Updates are available for %s patches", s.name)
-			err = s.Download(ctx)
-			if err != nil {
-				log.FromContext(ctx).Errorf("Failed to download patches for %s: %v", s.name, err)
-			} else {
-				log.FromContext(ctx).Infof("Successfully downloaded updates for %s patches", s.name)
-			}
-		}
-
-		if err := s.initAutoUpdates(ctx, autoUpdatePeriod); err != nil {
-			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to initialize auto updates for %s patches", s.name)
-		}
-	} else {
+	if len(sourceUrl) == 0 {
 		log.FromContext(ctx).Warnf("Source for %s patches is not set. You will NOT be able to check for %s patches updates and download them without providing source.", s.name, s.name)
+		return s
+	}
+
+	exist, err := s.CheckUpdates(ctx)
+	if err != nil {
+		log.FromContext(ctx).Errorf("Failed to check for updates for %s patches: %v", s.name, err)
+	}
+
+	if exist {
+		log.FromContext(ctx).Infof("Updates are available for %s patches", s.name)
+		err = s.Download(ctx)
+		if err != nil {
+			log.FromContext(ctx).Errorf("Failed to download patches for %s: %v", s.name, err)
+		} else {
+			log.FromContext(ctx).Infof("Successfully downloaded updates for %s patches", s.name)
+		}
+	}
+
+	if err := s.initAutoUpdates(ctx, autoUpdatePeriod); err != nil {
+		log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to initialize auto updates for %s patches", s.name)
 	}
 
 	return s
@@ -91,7 +92,7 @@ func (s *DBPatchesSource) initAutoUpdates(ctx context.Context, autoUpdatePeriod 
 	}
 
 	if s.sourceUrl == "" || s.dbPath == "" {
-		return fmt.Errorf("missing required paths")
+		return fmt.Errorf("missing required params")
 	}
 
 	return s.c.AddFunc(fmt.Sprintf("@every %sh", autoUpdatePeriod), func() {
