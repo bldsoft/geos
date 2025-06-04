@@ -162,11 +162,13 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 		r.Get("/city/{addr}", geoIpController.GetCityHandler)
 		r.Get("/city-lite/{addr}", geoIpController.GetCityLiteHandler)
 
-		r.With(m.ApiKeyMiddleware()).Get("/dump", geoIpController.GetDumpHandler) // deprecated, used by streampool
-
 		managementController := rest.NewManagementController(m.geoIpService, m.geoNameService)
-		r.With(m.ApiKeyMiddleware()).Get("/update", managementController.CheckUpdatesHandler)
-		r.With(m.ApiKeyMiddleware()).Post("/update", managementController.UpdateHandler)
+		r.Group(func(r chi.Router) {
+			r.Use(m.ApiKeyMiddleware())
+			r.Get("/dump", geoIpController.GetDumpHandler) // deprecated, used by streampool
+			r.Get("/update", managementController.CheckGeoIPUpdatesHandler)
+			r.Post("/update", managementController.UpdateGeoIPHandler)
+		})
 
 		r.Route("/dump/{db}", func(r chi.Router) {
 			r.Use(m.ApiKeyMiddleware())
@@ -184,9 +186,12 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 			r.Post("/subdivision", geoNameController.GetGeoNameSubdivisionsHandler)
 			r.Get("/city", geoNameController.GetGeoNameCitiesHandler)
 			r.Post("/city", geoNameController.GetGeoNameCitiesHandler)
-			r.With(m.ApiKeyMiddleware()).Get("/dump", geoNameController.GetDumpHandler)
-			r.With(m.ApiKeyMiddleware()).Get("/update", geoNameController.GetUpdatesHandler)
-			r.With(m.ApiKeyMiddleware()).Post("/update", geoNameController.UpdateHandler)
+			r.Group(func(r chi.Router) {
+				r.Use(m.ApiKeyMiddleware())
+				r.Get("/dump", geoNameController.GetDumpHandler)
+				r.Get("/update", managementController.CheckGeonamesUpdatesHandler)
+				r.Post("/update", managementController.UpdateGeonamesHandler)
+			})
 		})
 	})
 }

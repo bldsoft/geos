@@ -23,24 +23,6 @@ func NewGeoNameController(geoNameService controller.GeoNameService) *GeoNameCont
 	return &GeoNameController{geoNameService: geoNameService}
 }
 
-func (c *GeoNameController) GetUpdatesHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	if exist, err := c.geoNameService.CheckUpdates(ctx); err == nil {
-		c.ResponseJson(w, r, exist)
-	} else {
-		c.responseError(w, r, err)
-	}
-}
-
-func (c *GeoNameController) UpdateHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	if err := c.geoNameService.Download(ctx); err == nil {
-		c.ResponseOK(w)
-	} else {
-		c.responseError(w, r, err)
-	}
-}
-
 func (c *GeoNameController) getGeoNameFilter(r *http.Request) (filter *entity.GeoNameFilter, err error) {
 	filter = &entity.GeoNameFilter{}
 	if r.Method == http.MethodPost {
