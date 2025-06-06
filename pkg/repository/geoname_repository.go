@@ -18,11 +18,11 @@ func NewGeoNamesRepository(storage geonames.Storage) *GeoNameRepository {
 	return &GeoNameRepository{storage: storage}
 }
 
-func (r *GeoNameRepository) CheckUpdates(ctx context.Context) (bool, error) {
+func (r *GeoNameRepository) CheckUpdates(ctx context.Context) (entity.Updates, error) {
 	return r.storage.CheckUpdates(ctx)
 }
 
-func (r *GeoNameRepository) Download(ctx context.Context, update ...bool) error {
+func (r *GeoNameRepository) Download(ctx context.Context, update ...bool) (entity.Updates, error) {
 	return r.storage.Download(ctx, update...)
 }
 

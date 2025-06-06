@@ -27,25 +27,25 @@ func (c *ManagementController) CheckGeoIPUpdatesHandler(w http.ResponseWriter, r
 }
 
 func (c *ManagementController) UpdateGeoIPHandler(w http.ResponseWriter, r *http.Request) {
-	if err := c.geoIpService.Download(r.Context(), true); err != nil {
+	if updates, err := c.geoIpService.Download(r.Context(), true); err != nil {
 		c.ResponseError(w, err.Error(), http.StatusInternalServerError)
 	} else {
-		c.ResponseJson(w, r, true)
+		c.ResponseJson(w, r, updates)
 	}
 }
 
 func (c *ManagementController) CheckGeonamesUpdatesHandler(w http.ResponseWriter, r *http.Request) {
-	if exist, err := c.geoNameService.CheckUpdates(r.Context()); err == nil {
-		c.ResponseJson(w, r, exist)
-	} else {
+	if updates, err := c.geoNameService.CheckUpdates(r.Context()); err != nil {
 		c.ResponseError(w, err.Error(), http.StatusInternalServerError)
+	} else {
+		c.ResponseJson(w, r, updates)
 	}
 }
 
 func (c *ManagementController) UpdateGeonamesHandler(w http.ResponseWriter, r *http.Request) {
-	if err := c.geoNameService.Download(r.Context()); err == nil {
-		c.ResponseOK(w)
-	} else {
+	if updates, err := c.geoNameService.Download(r.Context()); err != nil {
 		c.ResponseError(w, err.Error(), http.StatusInternalServerError)
+	} else {
+		c.ResponseJson(w, r, updates)
 	}
 }

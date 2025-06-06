@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
 	"github.com/maxmind/mmdbwriter"
@@ -172,19 +173,12 @@ func (db *DatabasePatch) MetaData() (*maxminddb.Metadata, error) {
 	return &db.db.Metadata, nil
 }
 
-func (db *DatabasePatch) Download(_ context.Context, _ ...bool) error {
+func (db *DatabasePatch) Download(_ context.Context, _ ...bool) (entity.Updates, error) {
 	// patches download is controlled by the custom database
-	return nil
+	return nil, nil
 }
 
-func (db *DatabasePatch) CheckUpdates(_ context.Context) (bool, error) {
+func (db *DatabasePatch) CheckUpdates(_ context.Context) (entity.Updates, error) {
 	// patches updates check is controlled by the custom database
-	return false, nil
-}
-
-func (db *DatabasePatch) DirPath() string {
-	// TODO: kinda not used yet... and kinda no proper way to retrieve it yet...
-	// and kinda looks like it should not be there at all...
-	// so how its just to satisfy the interface...
-	return ""
+	return nil, nil
 }

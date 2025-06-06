@@ -18,8 +18,8 @@ type GeoRepository interface {
 	CityLite(ctx context.Context, ip net.IP, lang string) (*entity.CityLite, error)
 	MetaData(ctx context.Context, dbType DBType) (*entity.MetaData, error)
 	Database(ctx context.Context, dbType DBType, format DumpFormat) (*entity.Database, error)
-	CheckUpdates(ctx context.Context) (bool, error)
-	Download(ctx context.Context, update ...bool) error
+	CheckUpdates(ctx context.Context) (entity.Updates, error)
+	Download(ctx context.Context, update ...bool) (entity.Updates, error)
 }
 
 type GeoIpService struct {
@@ -87,10 +87,10 @@ func (r *GeoIpService) Database(ctx context.Context, dbType DBType, format DumpF
 	return r.rep.Database(ctx, dbType, format)
 }
 
-func (r *GeoIpService) CheckUpdates(ctx context.Context) (bool, error) {
+func (r *GeoIpService) CheckUpdates(ctx context.Context) (entity.Updates, error) {
 	return r.rep.CheckUpdates(ctx)
 }
 
-func (r *GeoIpService) Download(ctx context.Context, update ...bool) error {
+func (r *GeoIpService) Download(ctx context.Context, update ...bool) (entity.Updates, error) {
 	return r.rep.Download(ctx, update...)
 }

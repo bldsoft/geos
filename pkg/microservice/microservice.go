@@ -11,6 +11,7 @@ import (
 	"github.com/bldsoft/geos/pkg/config"
 	"github.com/bldsoft/geos/pkg/controller"
 	"github.com/bldsoft/geos/pkg/controller/rest"
+	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/repository"
 	"github.com/bldsoft/geos/pkg/service"
 	"github.com/bldsoft/geos/pkg/storage/geonames"
@@ -96,13 +97,13 @@ func (m *Microservice) initServices() {
 
 	cron := cron.New()
 
-	citySource := source.NewMMDBSource(m.config.GeoDbSource, m.config.GeoDbPath, string(repository.MaxmindDBTypeCity), cron, m.config.AutoUpdatePeriod)
+	citySource := source.NewMMDBSource(m.config.GeoDbSource, m.config.GeoDbPath, entity.SubjectCitiesDb, cron, m.config.AutoUpdatePeriod)
 
-	cityPatchesSource := source.NewPatchesSource(m.config.GeoDbPatchesSource, filepath.Dir(m.config.GeoDbPath), string(repository.MaxmindDBTypeCity), cron, m.config.AutoUpdatePeriod)
+	cityPatchesSource := source.NewPatchesSource(m.config.GeoDbPatchesSource, filepath.Dir(m.config.GeoDbPath), string(repository.MaxmindDBTypeCity), entity.SubjectCitiesDbPatches, cron, m.config.AutoUpdatePeriod)
 
-	ispSource := source.NewMMDBSource(m.config.GeoDbISPSource, m.config.GeoDbISPPath, string(repository.MaxmindDBTypeISP), cron, m.config.AutoUpdatePeriod)
+	ispSource := source.NewMMDBSource(m.config.GeoDbISPSource, m.config.GeoDbISPPath, entity.SubjectISPDb, cron, m.config.AutoUpdatePeriod)
 
-	ispPatchesSource := source.NewPatchesSource(m.config.GeoDbISPPatchesSource, filepath.Dir(m.config.GeoDbISPPath), string(repository.MaxmindDBTypeISP), cron, m.config.AutoUpdatePeriod)
+	ispPatchesSource := source.NewPatchesSource(m.config.GeoDbISPPatchesSource, filepath.Dir(m.config.GeoDbISPPath), string(repository.MaxmindDBTypeISP), entity.SubjectISPDbPatches, cron, m.config.AutoUpdatePeriod)
 
 	cityDBConfig := &repository.DBConfig{
 		Path:          m.config.GeoDbPath,
@@ -119,7 +120,8 @@ func (m *Microservice) initServices() {
 	rep := repository.NewGeoIPRepository(cityDBConfig, ispDBConfig, m.config.GeoIPCsvDumpDirPath)
 	m.geoIpService = service.NewGeoIpService(rep)
 
-	geonamePatchesSource := source.NewPatchesSource(m.config.GeoNamePatchesSource, m.config.GeoNameDumpDirPath, "geonames", cron, m.config.AutoUpdatePeriod)
+	geonamePatchesSource := source.NewPatchesSource(m.config.GeoNamePatchesSource, m.config.GeoNameDumpDirPath, "geonames", entity.SubjectGeonamesPatches, cron, m.config.AutoUpdatePeriod)
+
 	geoNameStorage := m.geonamesStorage(geonamePatchesSource, cron)
 	geoNameRep := repository.NewGeoNamesRepository(geoNameStorage)
 	m.geoNameService = service.NewGeoNameService(geoNameRep)

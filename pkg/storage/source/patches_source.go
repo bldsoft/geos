@@ -12,6 +12,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/gost/log"
 	"github.com/robfig/cron"
 )
@@ -20,41 +21,50 @@ type PatchesSource struct {
 	c         *cron.Cron
 	sourceUrl string
 	dirPath   string
-	name      string
+	prefix    string
+	Name      entity.Subject
 }
 
-func NewPatchesSource(sourceUrl, dirPath, name string, cron *cron.Cron, autoUpdatePeriod string) *PatchesSource {
+func NewPatchesSource(sourceUrl, dirPath, prefix string, name entity.Subject, cron *cron.Cron, autoUpdatePeriod string) *PatchesSource {
 	s := &PatchesSource{
 		sourceUrl: sourceUrl,
 		dirPath:   dirPath,
 		c:         cron,
-		name:      name,
+		prefix:    prefix,
+		Name:      name,
 	}
 
 	ctx := context.Background()
 
 	if len(sourceUrl) == 0 {
-		log.FromContext(ctx).Warnf("Source for %s patches is not set. You will NOT be able to check for %s patches updates and download them without providing source.", s.name, s.name)
+		log.FromContext(ctx).Warnf("Source for %s is not set. You will NOT be able to check for %s updates and download them without providing source.", s.Name, s.Name)
 		return s
 	}
 
-	exist, err := s.CheckUpdates(ctx)
+	if err := s.initAutoUpdates(ctx, autoUpdatePeriod); err != nil {
+		log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to initialize auto updates for %s", s.Name)
+	}
+
+	remoteContent, err := getFiles(s.sourceUrl)
 	if err != nil {
-		log.FromContext(ctx).Errorf("Failed to check for updates for %s patches: %v", s.name, err)
+		log.FromContext(ctx).Errorf("Failed to get source files for %s: %v", s.Name, err)
+		return s
+	}
+
+	exist, err := s.checkUpdates(remoteContent)
+	if err != nil {
+		log.FromContext(ctx).Errorf("Failed to check for updates for %s: %v", s.Name, err)
+		return s
 	}
 
 	if exist {
-		log.FromContext(ctx).Infof("Updates are available for %s patches", s.name)
-		err = s.Download(ctx)
+		log.FromContext(ctx).Infof("Updates are available for %s", s.Name)
+		err = s.updateLocalFiles(remoteContent)
 		if err != nil {
-			log.FromContext(ctx).Errorf("Failed to download patches for %s: %v", s.name, err)
+			log.FromContext(ctx).Errorf("Failed to apply updates for %s: %v", s.Name, err)
 		} else {
-			log.FromContext(ctx).Infof("Successfully downloaded updates for %s patches", s.name)
+			log.FromContext(ctx).Infof("Successfully applied updates for %s", s.Name)
 		}
-	}
-
-	if err := s.initAutoUpdates(ctx, autoUpdatePeriod); err != nil {
-		log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to initialize auto updates for %s patches", s.name)
 	}
 
 	return s
@@ -70,48 +80,66 @@ func (s *PatchesSource) initAutoUpdates(ctx context.Context, autoUpdatePeriod st
 	}
 
 	return s.c.AddFunc(fmt.Sprintf("@every %sh", autoUpdatePeriod), func() {
-		log.FromContext(ctx).Infof("Executing auto update for %s patches", s.name)
+		log.FromContext(ctx).Infof("Executing auto update for %s", s.Name)
 
-		exist, err := s.CheckUpdates(ctx)
+		remoteContent, err := getFiles(s.sourceUrl)
 		if err != nil {
-			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to check for updates for %s patches", s.name)
+			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to get source files for %s", s.Name)
+			return
+		}
+
+		exist, err := s.checkUpdates(remoteContent)
+		if err != nil {
+			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to check for updates for %s", s.Name)
 			return
 		}
 
 		if !exist {
-			log.FromContext(ctx).Infof("No updates found for %s patches", s.name)
+			log.FromContext(ctx).Infof("No updates found for %s", s.Name)
 			return
 		}
 
-		log.FromContext(ctx).Infof("Found update for %s patches", s.name)
+		log.FromContext(ctx).Infof("Found update for %s", s.Name)
 
-		if err := s.Download(ctx); err != nil {
-			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to download updates for %s patches", s.name)
+		if err := s.updateLocalFiles(remoteContent); err != nil {
+			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to download updates for %s", s.Name)
 			return
 		}
 
-		log.FromContext(ctx).Infof("Successfully downloaded updates for %s patches", s.name)
+		log.FromContext(ctx).Infof("Successfully applied updates for %s", s.Name)
 	})
 }
 
-func (s *PatchesSource) CheckUpdates(ctx context.Context) (bool, error) {
+func (s *PatchesSource) CheckUpdates(ctx context.Context) (entity.Updates, error) {
 	if s.dirPath == "" {
-		return false, fmt.Errorf("%s database path is not set, unable to check for patches updates", s.name)
+		return nil, fmt.Errorf("%s database path is not set, unable to check for updates", s.Name)
 	}
 
 	if s.sourceUrl == "" {
-		return false, fmt.Errorf("%s patches source is not set, unable to check for updates", s.name)
+		return nil, fmt.Errorf("%s patches source is not set, unable to check for updates", s.Name)
 	}
 
-	return s.checkUpdates(ctx)
-}
-
-func (s *PatchesSource) checkUpdates(ctx context.Context) (bool, error) {
+	updates := entity.Updates{}
 	remoteContent, err := getFiles(s.sourceUrl)
 	if err != nil {
-		return false, err
+		updates[s.Name] = &entity.UpdateStatus{Error: err.Error()}
+		return updates, nil
 	}
 
+	exist, err := s.checkUpdates(remoteContent)
+	if err != nil {
+		updates[s.Name] = &entity.UpdateStatus{Error: err.Error()}
+		return updates, nil
+	}
+
+	if exist {
+		updates[s.Name] = &entity.UpdateStatus{Available: true}
+	}
+
+	return updates, nil
+}
+
+func (s *PatchesSource) checkUpdates(remoteContent map[string][]byte) (bool, error) {
 	localContent := make(map[string]struct{})
 
 	files, err := os.ReadDir(s.dirPath)
@@ -122,7 +150,7 @@ func (s *PatchesSource) checkUpdates(ctx context.Context) (bool, error) {
 		if file.IsDir() {
 			continue
 		}
-		if strings.HasPrefix(file.Name(), s.name) && strings.HasSuffix(file.Name(), ".json") {
+		if strings.HasPrefix(file.Name(), s.prefix) && strings.HasSuffix(file.Name(), ".json") {
 			localContent[file.Name()] = struct{}{}
 		}
 	}
@@ -150,26 +178,46 @@ func (s *PatchesSource) checkUpdates(ctx context.Context) (bool, error) {
 	return false, nil
 }
 
-func (s *PatchesSource) Download(ctx context.Context, _ ...bool) error {
-	if s.sourceUrl == "" {
-		return fmt.Errorf("%s database path is not set, unable to check for patches updates", s.name)
+func (s *PatchesSource) Download(ctx context.Context, _ ...bool) (entity.Updates, error) {
+	if s.dirPath == "" {
+		return nil, fmt.Errorf("%s path is not set, unable to check for updates", s.Name)
 	}
 
 	if s.sourceUrl == "" {
-		return fmt.Errorf("%s patches source is not set, unable to check for updates", s.name)
+		return nil, fmt.Errorf("%s source is not set, unable to check for updates", s.Name)
 	}
 
-	log.FromContext(ctx).Infof("Downloading %s patches", s.name)
+	updates := entity.Updates{}
 
-	return s.download(ctx)
-}
-
-func (s *PatchesSource) download(ctx context.Context) error {
 	remoteContent, err := getFiles(s.sourceUrl)
 	if err != nil {
-		return fmt.Errorf("failed to download remote content: %w", err)
+		updates[s.Name] = &entity.UpdateStatus{Error: err.Error()}
+		return updates, nil
 	}
 
+	exist, err := s.checkUpdates(remoteContent)
+	if err != nil {
+		updates[s.Name] = &entity.UpdateStatus{Error: err.Error()}
+		return updates, nil
+	}
+
+	if !exist {
+		return nil, nil
+	}
+
+	if err := s.updateLocalFiles(remoteContent); err != nil {
+		updates[s.Name] = &entity.UpdateStatus{Error: err.Error()}
+		return updates, nil
+	}
+
+	log.FromContext(ctx).Infof("Applied updates for %s", s.Name)
+
+	updates[s.Name] = &entity.UpdateStatus{}
+
+	return updates, nil
+}
+
+func (s *PatchesSource) updateLocalFiles(remoteContent map[string][]byte) error {
 	files, err := os.ReadDir(s.dirPath)
 	if err != nil {
 		return fmt.Errorf("failed to read local directory %s: %w", s.dirPath, err)
@@ -179,7 +227,7 @@ func (s *PatchesSource) download(ctx context.Context) error {
 		if file.IsDir() {
 			continue
 		}
-		if strings.HasPrefix(file.Name(), s.name) && strings.HasSuffix(file.Name(), ".json") {
+		if strings.HasPrefix(file.Name(), s.prefix) && strings.HasSuffix(file.Name(), ".json") {
 			if err := os.Remove(path.Join(s.dirPath, file.Name())); err != nil {
 				return fmt.Errorf("failed to remove old file %s: %w", file.Name(), err)
 			}

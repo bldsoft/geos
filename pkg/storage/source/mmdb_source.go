@@ -9,6 +9,7 @@ import (
 	"os"
 	"reflect"
 
+	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/maxmind/mmdb"
 	"github.com/bldsoft/gost/log"
 	"github.com/hashicorp/go-version"
@@ -24,41 +25,68 @@ type MaxmindSource struct {
 	c         *cron.Cron
 	sourceUrl string
 	dbPath    string
-	name      string
+	name      entity.Subject
 }
 
-func (s *MaxmindSource) CheckUpdates(ctx context.Context) (bool, error) {
+func (s *MaxmindSource) CheckUpdates(ctx context.Context) (entity.Updates, error) {
 	if s.dbPath == "" {
-		return false, fmt.Errorf("Path for %s database is not set", s.name)
+		return nil, fmt.Errorf("path for %s database is not set", s.name)
 	}
 	if s.sourceUrl == "" {
-		return false, fmt.Errorf("Source for %s database is not set", s.name)
+		return nil, fmt.Errorf("source for %s database is not set", s.name)
 	}
 
-	return s.checkUpdates(ctx)
+	updates := entity.Updates{}
+	exist, err := s.checkUpdates(ctx)
+	if err != nil {
+		updates[s.name] = &entity.UpdateStatus{Error: err.Error()}
+	}
+
+	if exist {
+		updates[s.name] = &entity.UpdateStatus{Available: true}
+	}
+
+	return updates, nil
 }
 
-func (s *MaxmindSource) Download(ctx context.Context, update ...bool) error {
+func (s *MaxmindSource) Download(ctx context.Context, update ...bool) (entity.Updates, error) {
 	if s.dbPath == "" {
-		return fmt.Errorf("Path for %s database is not set", s.name)
+		return nil, fmt.Errorf("path for %s database is not set", s.name)
 	}
 
 	if s.sourceUrl == "" {
-		return fmt.Errorf("Source for %s database is not set", s.name)
+		return nil, fmt.Errorf("source for %s database is not set", s.name)
 	}
 
 	if len(update) == 0 || !update[0] {
 		if _, err := os.Stat(s.dbPath); err == nil {
 			log.FromContext(ctx).Infof("%s database already exists, skipping download", s.name)
-			return nil
+			return nil, nil
 		}
 	}
 
-	log.FromContext(ctx).Infof("Downloading %s database", s.name)
-	return s.download(ctx)
+	updates := entity.Updates{}
+
+	exist, err := s.checkUpdates(ctx)
+	if err != nil {
+		updates[s.name] = &entity.UpdateStatus{Error: err.Error()}
+		return updates, err
+	}
+
+	if !exist {
+		return nil, nil
+	}
+
+	if err := s.download(ctx); err != nil {
+		updates[s.name] = &entity.UpdateStatus{Error: err.Error()}
+	} else {
+		updates[s.name] = &entity.UpdateStatus{}
+	}
+
+	return updates, nil
 }
 
-func NewMMDBSource(sourceUrl, dbPath, name string, cron *cron.Cron, autoUpdatePeriod string) *MaxmindSource {
+func NewMMDBSource(sourceUrl, dbPath string, name entity.Subject, cron *cron.Cron, autoUpdatePeriod string) *MaxmindSource {
 	s := &MaxmindSource{
 		sourceUrl: sourceUrl,
 		dbPath:    dbPath,
@@ -69,7 +97,7 @@ func NewMMDBSource(sourceUrl, dbPath, name string, cron *cron.Cron, autoUpdatePe
 	ctx := context.Background()
 
 	if len(sourceUrl) != 0 {
-		if err := s.Download(ctx); err != nil {
+		if err := s.download(ctx); err != nil {
 			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to download %s database from provided source", name)
 		}
 
@@ -89,13 +117,13 @@ func (s *MaxmindSource) initAutoUpdates(ctx context.Context, autoUpdatePeriod st
 	}
 
 	if s.sourceUrl == "" || s.dbPath == "" {
-		return fmt.Errorf("Missing required paths")
+		return fmt.Errorf("missing required paths")
 	}
 
 	return s.c.AddFunc(fmt.Sprintf("@every %sh", autoUpdatePeriod), func() {
 		log.FromContext(ctx).Infof("Executing auto update for %s", s.name)
 
-		available, err := s.CheckUpdates(ctx)
+		available, err := s.checkUpdates(ctx)
 		if err != nil {
 			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to run auto update for %s", s.name)
 			return
@@ -113,7 +141,7 @@ func (s *MaxmindSource) initAutoUpdates(ctx context.Context, autoUpdatePeriod st
 			return
 		}
 
-		log.FromContext(ctx).Infof("Updates are downloaded and installed for %s", s.name)
+		log.FromContext(ctx).Infof("Updates applied for %s", s.name)
 	})
 }
 

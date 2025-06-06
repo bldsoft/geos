@@ -83,17 +83,17 @@ func (s *GeoNameStorage) fill() {
 	go s.fillAdditionalFields()
 }
 
-func (s *GeoNameStorage) CheckUpdates(ctx context.Context) (bool, error) {
-	return false, nil
+func (s *GeoNameStorage) CheckUpdates(ctx context.Context) (entity.Updates, error) {
+	return entity.Updates{
+		entity.SubjectGeonames: &entity.UpdateStatus{Available: false},
+	}, nil
 }
 
-func (s *GeoNameStorage) Download(ctx context.Context, update ...bool) error {
+func (s *GeoNameStorage) Download(ctx context.Context, update ...bool) (entity.Updates, error) {
 	s.fill()
-	return nil
-}
-
-func (s *GeoNameStorage) DirPath() string {
-	return s.dir
+	return entity.Updates{
+		entity.SubjectGeonames: &entity.UpdateStatus{Error: ""},
+	}, nil
 }
 
 func (r *GeoNameStorage) fillAdditionalFields() {

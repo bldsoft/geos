@@ -6,9 +6,11 @@ import (
 	"errors"
 	"io"
 	"net"
+	"sync"
 
 	"maps"
 
+	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
 	"github.com/bldsoft/gost/utils/errgroup"
@@ -19,10 +21,13 @@ import (
 )
 
 var ErrNoDatabases = errors.New("no databases")
+var ErrNotReady = errors.New("database is currently being updated")
 
 type MultiMaxMindDB[T Database] struct {
-	dbs    []T
-	logger log.ServiceLogger
+	dbs        []T
+	logger     log.ServiceLogger
+	isUpdating bool
+	updMutex   sync.RWMutex
 }
 
 func NewMultiMaxMindDB[T Database](dbs ...T) *MultiMaxMindDB[T] {
@@ -88,6 +93,16 @@ func (db *MultiMaxMindDB[T]) RawData() (io.Reader, error) {
 		return db.dbs[0].RawData()
 	}
 
+	db.updMutex.Lock()
+	db.isUpdating = true
+	db.updMutex.Unlock()
+
+	defer func() {
+		db.updMutex.Lock()
+		db.isUpdating = false
+		db.updMutex.Unlock()
+	}()
+
 	opts := mmdbwriter.Options{IncludeReservedNetworks: true}
 	tree, err := mmdbwriter.New(opts)
 	if err != nil {
@@ -103,7 +118,7 @@ func (db *MultiMaxMindDB[T]) RawData() (io.Reader, error) {
 	}
 	const bufSize = 1000
 	readedNodeC := make(chan networkNode, bufSize)
-	convetedNodeC := make(chan MMDBRecord, bufSize)
+	convertedNodeC := make(chan MMDBRecord, bufSize)
 
 	var eg errgroup.Group
 	eg.Go(func() (err error) {
@@ -131,18 +146,18 @@ func (db *MultiMaxMindDB[T]) RawData() (io.Reader, error) {
 	})
 
 	eg.Go(func() (err error) {
-		defer close(convetedNodeC)
+		defer close(convertedNodeC)
 		for node := range readedNodeC {
 			var rec MMDBRecord
 			rec.Network = node.network
 			rec.Data, _ = toMMDBType(node.data).(mmdbtype.Map)
-			convetedNodeC <- rec
+			convertedNodeC <- rec
 		}
 		return nil
 	})
 
 	eg.Go(func() error {
-		for convertedNode := range convetedNodeC {
+		for convertedNode := range convertedNodeC {
 			err = tree.InsertFunc(convertedNode.Network, inserter.ReplaceWith(convertedNode.Data))
 			if err != nil {
 				return err
@@ -214,41 +229,54 @@ func (db *MultiMaxMindDB[T]) MetaData() (*maxminddb.Metadata, error) {
 	return &res, nil
 }
 
-func (db *MultiMaxMindDB[T]) Download(ctx context.Context, update ...bool) error {
+func (db *MultiMaxMindDB[T]) Download(ctx context.Context, update ...bool) (entity.Updates, error) {
+	db.updMutex.RLock()
+	if db.isUpdating {
+		db.updMutex.RUnlock()
+		return nil, ErrNotReady
+	}
+	db.updMutex.RUnlock()
+
 	if len(db.dbs) == 0 {
-		return ErrNoDatabases
+		return nil, ErrNoDatabases
 	}
 
+	multiUpdates := entity.Updates{}
 	var multiErr error
 	for _, database := range db.dbs {
-		err := database.Download(ctx, update...)
-		multiErr = errors.Join(multiErr, err)
-	}
-	return multiErr
-}
-
-func (db *MultiMaxMindDB[T]) CheckUpdates(ctx context.Context) (bool, error) {
-	if len(db.dbs) == 0 {
-		return false, ErrNoDatabases
-	}
-
-	var multiErr error
-	for _, database := range db.dbs {
-		updated, err := database.CheckUpdates(ctx)
-		if err != nil {
+		updates, err := database.Download(ctx, update...)
+		if err != nil || updates == nil {
 			multiErr = errors.Join(multiErr, err)
 			continue
 		}
-		if updated {
-			return true, nil
-		}
+
+		maps.Copy(multiUpdates, updates)
 	}
-	return false, multiErr
+	return multiUpdates, multiErr
 }
 
-func (db *MultiMaxMindDB[T]) DirPath() string {
-	// TODO: kinda not used yet... and kinda no proper way to retrieve it yet...
-	// and kinda looks like it should not be there at all...
-	// so how its just to satisfy the interface...
-	return ""
+func (db *MultiMaxMindDB[T]) CheckUpdates(ctx context.Context) (entity.Updates, error) {
+	db.updMutex.RLock()
+	if db.isUpdating {
+		db.updMutex.RUnlock()
+		return nil, ErrNotReady
+	}
+	db.updMutex.RUnlock()
+
+	if len(db.dbs) == 0 {
+		return nil, ErrNoDatabases
+	}
+
+	multiUpdates := entity.Updates{}
+	var multiErr error
+	for _, database := range db.dbs {
+		updates, err := database.CheckUpdates(ctx)
+		if err != nil || updates == nil {
+			multiErr = errors.Join(multiErr, err)
+			continue
+		}
+		maps.Copy(multiUpdates, updates)
+	}
+
+	return multiUpdates, multiErr
 }

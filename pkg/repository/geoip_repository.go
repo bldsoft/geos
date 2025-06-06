@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net"
 	"path/filepath"
+	"sync"
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/maxmind"
@@ -191,27 +193,48 @@ func (r *GeoIPRepository) database(ctx context.Context, dbType MaxmindDBType) (m
 	return db, nil
 }
 
-func (r *GeoIPRepository) CheckUpdates(ctx context.Context) (exist bool, err error) {
-	exist, err = r.dbCity.CheckUpdates(ctx)
-	if err != nil || exist {
-		return
+func (r *GeoIPRepository) CheckUpdates(ctx context.Context) (entity.Updates, error) {
+	var multiErr error
+	multiUpdates := entity.Updates{}
+
+	updates, err := r.dbCity.CheckUpdates(ctx)
+	if err != nil {
+		multiErr = errors.Join(multiErr, err)
+	}
+	if updates != nil {
+		maps.Copy(multiUpdates, updates)
 	}
 
-	return r.dbISP.CheckUpdates(ctx)
+	if r.dbISP == nil {
+		return multiUpdates, multiErr
+	}
+
+	updates, err = r.dbISP.CheckUpdates(ctx)
+	if err != nil {
+		multiErr = errors.Join(multiErr, err)
+	}
+	if updates != nil {
+		maps.Copy(multiUpdates, updates)
+	}
+
+	return multiUpdates, multiErr
 }
 
-func (r *GeoIPRepository) Download(ctx context.Context, update ...bool) error {
-	var eg errgroup.Group
+func (r *GeoIPRepository) Download(ctx context.Context, update ...bool) (entity.Updates, error) {
+	multiUpdates := entity.Updates{}
+	var updatesM sync.Mutex
 
+	var eg errgroup.Group
 	eg.Go(func() error {
-		exist, err := r.dbCity.CheckUpdates(ctx)
+		updates, err := r.dbCity.Download(ctx, update...)
 		if err != nil {
 			return err
 		}
-		if exist {
-			err = r.dbCity.Download(ctx, update...)
-		}
-		return err
+
+		updatesM.Lock()
+		defer updatesM.Unlock()
+		maps.Copy(multiUpdates, updates)
+		return nil
 	})
 
 	eg.Go(func() error {
@@ -219,24 +242,27 @@ func (r *GeoIPRepository) Download(ctx context.Context, update ...bool) error {
 			return nil
 		}
 
-		exist, err := r.dbISP.CheckUpdates(ctx)
+		updates, err := r.dbISP.Download(ctx, update...)
 		if err != nil {
 			return err
 		}
-		if exist {
-			err = r.dbISP.Download(ctx, update...)
-		}
-		return err
+
+		updatesM.Lock()
+		defer updatesM.Unlock()
+		maps.Copy(multiUpdates, updates)
+		return nil
 	})
 
 	if err := eg.Wait(); err != nil {
-		return err
+		return nil, err
 	}
 
-	r.dbCity = openPatchedDB[entity.City](r.cityConf, string(MaxmindDBTypeCity), true)
-	r.dbISP = openPatchedDB[entity.ISP](r.ispConf, string(MaxmindDBTypeISP), false)
+	go func() {
+		r.dbCity = openPatchedDB[entity.City](r.cityConf, string(MaxmindDBTypeCity), true)
+		r.dbISP = openPatchedDB[entity.ISP](r.ispConf, string(MaxmindDBTypeISP), false)
 
-	go r.initCSVDumps(ctx, r.csvDirPath)
+		go r.initCSVDumps(ctx, r.csvDirPath)
+	}()
 
-	return nil
+	return multiUpdates, nil
 }

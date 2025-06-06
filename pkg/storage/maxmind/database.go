@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 
+	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/source"
 	"github.com/oschwald/maxminddb-golang"
 )
@@ -58,20 +59,17 @@ func (db *MaxmindDatabase) Networks(options ...maxminddb.NetworksOption) (*maxmi
 	return db.reader.Networks(), nil
 }
 
-func (db *MaxmindDatabase) Download(ctx context.Context, update ...bool) error {
+func (db *MaxmindDatabase) Download(ctx context.Context, update ...bool) (entity.Updates, error) {
 	if db.source == nil {
-		return ErrNoSource
+		return nil, ErrNoSource
 	}
+
 	return db.source.Download(ctx, update...)
 }
 
-func (db *MaxmindDatabase) CheckUpdates(ctx context.Context) (bool, error) {
+func (db *MaxmindDatabase) CheckUpdates(ctx context.Context) (entity.Updates, error) {
 	if db.source == nil {
-		return false, ErrNoSource
+		return nil, ErrNoSource
 	}
 	return db.source.CheckUpdates(ctx)
-}
-
-func (db *MaxmindDatabase) DirPath() string {
-	return db.path
 }

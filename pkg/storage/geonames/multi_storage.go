@@ -3,6 +3,7 @@ package geonames
 import (
 	"context"
 	"errors"
+	"maps"
 
 	"github.com/bldsoft/geos/pkg/entity"
 )
@@ -15,37 +16,38 @@ func NewMultiStorage[T Storage](storages ...T) *MultiStorage[T] {
 	return &MultiStorage[T]{storages: storages}
 }
 
-func (s *MultiStorage[T]) CheckUpdates(ctx context.Context) (bool, error) {
+// launch in parallel?
+func (s *MultiStorage[T]) CheckUpdates(ctx context.Context) (entity.Updates, error) {
+	multiUpdates := entity.Updates{}
 	var multiErr error
 	for _, storage := range s.storages {
-		updated, err := storage.CheckUpdates(ctx)
-		if err != nil {
+		updates, err := storage.CheckUpdates(ctx)
+		if err != nil || updates == nil {
 			multiErr = errors.Join(multiErr, err)
 			continue
 		}
-		if updated {
-			return true, nil
-		}
+
+		maps.Copy(multiUpdates, updates)
 	}
 
-	return false, multiErr
+	return multiUpdates, multiErr
 }
 
-func (s *MultiStorage[T]) Download(ctx context.Context, update ...bool) error {
+// launch in parallel?
+func (s *MultiStorage[T]) Download(ctx context.Context, update ...bool) (entity.Updates, error) {
+	multiUpdate := entity.Updates{}
 	var multiErr error
 	for _, storage := range s.storages {
-		err := storage.Download(ctx, update...)
-		multiErr = errors.Join(multiErr, err)
+		updates, err := storage.Download(ctx, update...)
+		if err != nil || updates == nil {
+			multiErr = errors.Join(multiErr, err)
+			continue
+		}
+
+		maps.Copy(multiUpdate, updates)
 	}
 
-	return multiErr
-}
-
-func (s *MultiStorage[T]) DirPath() string {
-	// TODO: kinda not used yet... and kinda no proper way to retrieve it yet...
-	// and kinda looks like it should not be there at all...
-	// so how its just to satisfy the interface...
-	return ""
+	return multiUpdate, multiErr
 }
 
 func (s *MultiStorage[T]) Add(storages ...T) *MultiStorage[T] {
