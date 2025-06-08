@@ -16,7 +16,6 @@ func NewMultiStorage[T Storage](storages ...T) *MultiStorage[T] {
 	return &MultiStorage[T]{storages: storages}
 }
 
-// launch in parallel?
 func (s *MultiStorage[T]) CheckUpdates(ctx context.Context) (entity.Updates, error) {
 	multiUpdates := entity.Updates{}
 	var multiErr error
@@ -33,7 +32,6 @@ func (s *MultiStorage[T]) CheckUpdates(ctx context.Context) (entity.Updates, err
 	return multiUpdates, multiErr
 }
 
-// launch in parallel?
 func (s *MultiStorage[T]) Download(ctx context.Context, update ...bool) (entity.Updates, error) {
 	multiUpdate := entity.Updates{}
 	var multiErr error

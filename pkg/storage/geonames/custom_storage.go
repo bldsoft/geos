@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/bldsoft/geos/pkg/entity"
-	"github.com/bldsoft/geos/pkg/storage/maxmind"
 	"github.com/bldsoft/geos/pkg/storage/source"
 )
 
@@ -30,7 +29,7 @@ func (s *CustomStorage) SetSource(source source.Source) {
 
 func (s *CustomStorage) CheckUpdates(ctx context.Context) (entity.Updates, error) {
 	if s.source == nil {
-		return nil, maxmind.ErrNoSource
+		return nil, source.ErrNoSource
 	}
 
 	return s.source.CheckUpdates(ctx)
@@ -38,7 +37,7 @@ func (s *CustomStorage) CheckUpdates(ctx context.Context) (entity.Updates, error
 
 func (s *CustomStorage) Download(ctx context.Context, update ...bool) (updates entity.Updates, err error) {
 	if s.source == nil {
-		return nil, maxmind.ErrNoSource
+		return nil, source.ErrNoSource
 	}
 
 	if updates, err = s.source.Download(ctx, update...); err != nil {

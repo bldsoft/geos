@@ -41,7 +41,7 @@ func (db *CustomDatabase) MetaData() (*maxminddb.Metadata, error) {
 
 func (db *CustomDatabase) Download(ctx context.Context, update ...bool) (updates entity.Updates, err error) {
 	if db.source == nil {
-		return nil, ErrNoSource
+		return nil, source.ErrNoSource
 	}
 
 	if updates, err = db.source.Download(ctx, update...); err != nil {
@@ -54,7 +54,7 @@ func (db *CustomDatabase) Download(ctx context.Context, update ...bool) (updates
 
 func (db *CustomDatabase) CheckUpdates(ctx context.Context) (entity.Updates, error) {
 	if db.source == nil {
-		return nil, ErrNoSource
+		return nil, source.ErrNoSource
 	}
 	return db.source.CheckUpdates(ctx)
 }

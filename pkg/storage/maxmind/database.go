@@ -3,7 +3,6 @@ package maxmind
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"net"
 	"os"
@@ -12,8 +11,6 @@ import (
 	"github.com/bldsoft/geos/pkg/storage/source"
 	"github.com/oschwald/maxminddb-golang"
 )
-
-var ErrNoSource = fmt.Errorf("no source provided for the database")
 
 type MaxmindDatabase struct {
 	path   string
@@ -61,7 +58,7 @@ func (db *MaxmindDatabase) Networks(options ...maxminddb.NetworksOption) (*maxmi
 
 func (db *MaxmindDatabase) Download(ctx context.Context, update ...bool) (entity.Updates, error) {
 	if db.source == nil {
-		return nil, ErrNoSource
+		return nil, source.ErrNoSource
 	}
 
 	return db.source.Download(ctx, update...)
@@ -69,7 +66,7 @@ func (db *MaxmindDatabase) Download(ctx context.Context, update ...bool) (entity
 
 func (db *MaxmindDatabase) CheckUpdates(ctx context.Context) (entity.Updates, error) {
 	if db.source == nil {
-		return nil, ErrNoSource
+		return nil, source.ErrNoSource
 	}
 	return db.source.CheckUpdates(ctx)
 }
