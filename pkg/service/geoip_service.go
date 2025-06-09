@@ -94,3 +94,7 @@ func (r *GeoIpService) CheckUpdates(ctx context.Context) (entity.Updates, error)
 func (r *GeoIpService) Download(ctx context.Context, update ...bool) (entity.Updates, error) {
 	return r.rep.Download(ctx, update...)
 }
+
+func (r *GeoIpService) InitAutoUpdates(ctx context.Context) error {
+	return nil
+}

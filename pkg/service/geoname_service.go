@@ -51,3 +51,7 @@ func (s *GeoNameService) Cities(ctx context.Context, filter entity.GeoNameFilter
 func (s *GeoNameService) Dump(ctx context.Context, format DumpFormat) ([]byte, error) {
 	return s.GeoNameRepository.Dump(ctx, format)
 }
+
+func (s *GeoNameService) InitAutoUpdates(ctx context.Context) error {
+	return nil
+}
