@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/bldsoft/geos/pkg/entity"
+	"github.com/bldsoft/geos/pkg/storage/source"
 )
 
 type Storage interface {
@@ -12,6 +13,5 @@ type Storage interface {
 	Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameAdminSubdivision, error)
 	Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error)
 
-	CheckUpdates(ctx context.Context) (entity.Updates, error)
-	Download(ctx context.Context, update ...bool) (entity.Updates, error)
+	source.Updater
 }

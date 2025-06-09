@@ -5,7 +5,7 @@ import (
 	"io"
 	"net"
 
-	"github.com/bldsoft/geos/pkg/entity"
+	"github.com/bldsoft/geos/pkg/storage/source"
 	"github.com/oschwald/maxminddb-golang"
 )
 
@@ -21,8 +21,7 @@ type Database interface {
 	RawData() (io.Reader, error) // mmdb
 	MetaData() (*maxminddb.Metadata, error)
 
-	CheckUpdates(ctx context.Context) (entity.Updates, error)
-	Download(ctx context.Context, update ...bool) (entity.Updates, error)
+	source.Updater
 }
 
 type CSVDumper interface {
