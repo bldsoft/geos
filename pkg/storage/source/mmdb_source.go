@@ -1,25 +1,20 @@
 package source
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
-	"reflect"
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/maxmind/mmdb"
 	"github.com/bldsoft/gost/log"
 	"github.com/hashicorp/go-version"
-	"github.com/oschwald/maxminddb-golang"
 	"github.com/robfig/cron"
 )
 
 const metadataChunkSize = 128 * 1024
-
-var metadataStartMarker = []byte("\xAB\xCD\xEFMaxMind.com")
 
 type MaxmindSource struct {
 	c         *cron.Cron
@@ -157,16 +152,12 @@ func (s *MaxmindSource) DirPath() string {
 }
 
 func (s *MaxmindSource) extractVersion(metadataBuf []byte) (*version.Version, error) {
-	metadataDecoder := mmdb.Decoder{Buffer: metadataBuf}
-
-	var metadata maxminddb.Metadata
-	rvMetadata := reflect.ValueOf(&metadata)
-	_, err := metadataDecoder.Decode(0, rvMetadata, 0)
+	meta, err := mmdb.DecodeMetadata(metadataBuf)
 	if err != nil {
 		return nil, fmt.Errorf("metadata decoding failed: %w", err)
 	}
 
-	return version.NewVersion(fmt.Sprintf("%d.%d", metadata.BinaryFormatMajorVersion, metadata.BinaryFormatMinorVersion))
+	return version.NewVersion(fmt.Sprintf("%d.%d", meta.BinaryFormatMajorVersion, meta.BinaryFormatMinorVersion))
 }
 
 func (s *MaxmindSource) fileMetadataVersion(path string) (*version.Version, error) {
@@ -194,14 +185,14 @@ func (s *MaxmindSource) fileMetadataVersion(path string) (*version.Version, erro
 		return nil, fmt.Errorf("failed to read file chunk: %w", err)
 	}
 
-	metadataIndex := bytes.LastIndex(buffer, metadataStartMarker)
-	if metadataIndex == -1 {
-		return nil, fmt.Errorf("metadata marker not found")
-	}
+	// metadataIndex := bytes.LastIndex(buffer, metadataStartMarker)
+	// if metadataIndex == -1 {
+	// 	return nil, fmt.Errorf("metadata marker not found")
+	// }
 
-	metadataStart := metadataIndex + len(metadataStartMarker)
+	// metadataStart := metadataIndex + len(metadataStartMarker)
 
-	return s.extractVersion(buffer[metadataStart:])
+	return s.extractVersion(buffer)
 }
 
 func (s *MaxmindSource) downloadRange(ctx context.Context, sourceUrl string, chunkSize int) ([]byte, error) {
@@ -235,15 +226,7 @@ func (s *MaxmindSource) checkUpdates(ctx context.Context) (bool, error) {
 		return false, err
 	}
 
-	metadataStart := bytes.LastIndex(res, metadataStartMarker)
-
-	if metadataStart == -1 {
-		return false, fmt.Errorf("metadata start marker not found in the response")
-	}
-
-	metadataStart += len(metadataStartMarker)
-
-	remoteVersion, err := s.extractVersion(res[metadataStart:])
+	remoteVersion, err := s.extractVersion(res)
 	if err != nil {
 		return false, fmt.Errorf("failed to extract version from response: %w", err)
 	}

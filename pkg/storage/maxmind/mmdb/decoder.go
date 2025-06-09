@@ -1,12 +1,15 @@
 package mmdb
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"math"
 	"math/big"
 	"reflect"
 	"sync"
+
+	"github.com/oschwald/maxminddb-golang"
 )
 
 type Decoder struct {
@@ -36,6 +39,8 @@ const (
 	_Float32
 )
 
+var metadataStartMarker = []byte("\xAB\xCD\xEFMaxMind.com")
+
 const (
 	// This is the value used in libmaxminddb.
 	maximumDataStructureDepth = 512
@@ -56,6 +61,25 @@ type deserializer interface {
 	Uint128(*big.Int) error
 	Bool(bool) error
 	Float32(float32) error
+}
+
+func DecodeMetadata(buf []byte) (*maxminddb.Metadata, error) {
+	metadataIndex := bytes.LastIndex(buf, metadataStartMarker)
+	if metadataIndex == -1 {
+		return nil, fmt.Errorf("metadata marker not found")
+	}
+
+	metadataStart := metadataIndex + len(metadataStartMarker)
+
+	metadataDecoder := Decoder{Buffer: buf[metadataStart:]}
+	var metadata maxminddb.Metadata
+	rvMetadata := reflect.ValueOf(&metadata)
+	_, err := metadataDecoder.Decode(0, rvMetadata, 0)
+	if err != nil {
+		return nil, fmt.Errorf("metadata decoding failed: %w", err)
+	}
+
+	return &metadata, nil
 }
 
 func (d *Decoder) Decode(offset uint, result reflect.Value, depth int) (uint, error) {
