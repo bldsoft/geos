@@ -111,15 +111,18 @@ func (s *PatchesSource) initAutoUpdates(ctx context.Context, autoUpdatePeriod st
 }
 
 func (s *PatchesSource) CheckUpdates(ctx context.Context) (entity.Updates, error) {
+	updates := entity.Updates{}
+
 	if s.dirPath == "" {
-		return nil, fmt.Errorf("%s database path is not set, unable to check for updates", s.Name)
+		updates[s.Name] = &entity.UpdateStatus{Error: fmt.Errorf("%s database path is not set, unable to check for updates", s.Name).Error()}
+		return updates, nil
 	}
 
 	if s.sourceUrl == "" {
-		return nil, fmt.Errorf("%s patches source is not set, unable to check for updates", s.Name)
+		updates[s.Name] = &entity.UpdateStatus{Error: fmt.Errorf("%s source is not set, unable to check for updates", s.Name).Error()}
+		return updates, nil
 	}
 
-	updates := entity.Updates{}
 	remoteContent, err := getFiles(s.sourceUrl)
 	if err != nil {
 		updates[s.Name] = &entity.UpdateStatus{Error: err.Error()}
@@ -179,15 +182,17 @@ func (s *PatchesSource) checkUpdates(remoteContent map[string][]byte) (bool, err
 }
 
 func (s *PatchesSource) Download(ctx context.Context, _ ...bool) (entity.Updates, error) {
+	updates := entity.Updates{}
+
 	if s.dirPath == "" {
-		return nil, fmt.Errorf("%s path is not set, unable to check for updates", s.Name)
+		updates[s.Name] = &entity.UpdateStatus{Error: fmt.Errorf("%s path is not set, unable to check for updates", s.Name).Error()}
+		return updates, nil
 	}
 
 	if s.sourceUrl == "" {
-		return nil, fmt.Errorf("%s source is not set, unable to check for updates", s.Name)
+		updates[s.Name] = &entity.UpdateStatus{Error: fmt.Errorf("%s source is not set, unable to check for updates", s.Name).Error()}
+		return updates, nil
 	}
-
-	updates := entity.Updates{}
 
 	remoteContent, err := getFiles(s.sourceUrl)
 	if err != nil {

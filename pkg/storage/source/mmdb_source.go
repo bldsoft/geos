@@ -29,17 +29,22 @@ type MaxmindSource struct {
 }
 
 func (s *MaxmindSource) CheckUpdates(ctx context.Context) (entity.Updates, error) {
+	updates := entity.Updates{}
+
 	if s.dbPath == "" {
-		return nil, fmt.Errorf("path for %s database is not set", s.name)
-	}
-	if s.sourceUrl == "" {
-		return nil, fmt.Errorf("source for %s database is not set", s.name)
+		updates[s.name] = &entity.UpdateStatus{Error: fmt.Errorf("path for %s database is not set", s.name).Error()}
+		return updates, nil
 	}
 
-	updates := entity.Updates{}
+	if s.sourceUrl == "" {
+		updates[s.name] = &entity.UpdateStatus{Error: fmt.Errorf("source for %s database is not set", s.name).Error()}
+		return updates, nil
+	}
+
 	exist, err := s.checkUpdates(ctx)
 	if err != nil {
 		updates[s.name] = &entity.UpdateStatus{Error: err.Error()}
+		return updates, nil
 	}
 
 	if exist {
@@ -50,12 +55,16 @@ func (s *MaxmindSource) CheckUpdates(ctx context.Context) (entity.Updates, error
 }
 
 func (s *MaxmindSource) Download(ctx context.Context, update ...bool) (entity.Updates, error) {
+	updates := entity.Updates{}
+
 	if s.dbPath == "" {
-		return nil, fmt.Errorf("path for %s database is not set", s.name)
+		updates[s.name] = &entity.UpdateStatus{Error: fmt.Errorf("path for %s database is not set", s.name).Error()}
+		return updates, nil
 	}
 
 	if s.sourceUrl == "" {
-		return nil, fmt.Errorf("source for %s database is not set", s.name)
+		updates[s.name] = &entity.UpdateStatus{Error: fmt.Errorf("source for %s database is not set", s.name).Error()}
+		return updates, nil
 	}
 
 	if len(update) == 0 || !update[0] {
@@ -64,8 +73,6 @@ func (s *MaxmindSource) Download(ctx context.Context, update ...bool) (entity.Up
 			return nil, nil
 		}
 	}
-
-	updates := entity.Updates{}
 
 	exist, err := s.checkUpdates(ctx)
 	if err != nil {
