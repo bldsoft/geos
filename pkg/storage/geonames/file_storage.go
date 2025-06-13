@@ -60,7 +60,7 @@ func (s *geonameEntityStorage[T]) init(dir string) {
 
 		reader, err := geonames.NewParser()(filename)
 		if err != nil {
-			return nil, nil
+			return nil, err
 		}
 
 		file, err := os.OpenFile(fullpath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
