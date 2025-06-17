@@ -51,6 +51,7 @@ func (c *Config) SetDefaults() {
 	c.ApiKey = "Dfga4pBfeRsMnxesWmY8eNBCW2Zf46kL"
 
 	c.Clickhouse.Dsn = ""
+	c.GeoNameDumpDirPath = "/data/geoname"
 }
 
 // Validate ...

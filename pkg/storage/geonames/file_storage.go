@@ -15,6 +15,7 @@ import (
 )
 
 const initRetryInterval = time.Minute
+const fallbackGeonamesDir = "/etc/geos/geonames" // hardcoded in docker image
 
 var (
 	ErrGeoNameNotReady = fmt.Errorf("geoname csv dump is %w", utils.ErrNotReady)
@@ -60,9 +61,17 @@ func (s *geonameEntityStorage[T]) init(dir string) {
 
 		reader, err := geonames.NewParser()(filename)
 		if err != nil {
-			return nil, err
+			log.WarnWithFields(log.Fields{"err": err, "file": filename}, "Geonames: failed to download file")
+			log.DebugWithFields(log.Fields{"file": filename}, "Geonames: using preloaded fallback file")
+			fallbackPath := filepath.Join(fallbackGeonamesDir, filename)
+			file, err := os.OpenFile(fallbackPath, os.O_RDONLY, 0666)
+			if err != nil {
+				return nil, fmt.Errorf("fallback file: %w", err)
+			}
+			reader = file
 		}
 
+		_ = os.MkdirAll(dir, 0755)
 		file, err := os.OpenFile(fullpath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 		if err != nil {
 			log.Logger.ErrorWithFields(log.Fields{"path": fullpath, "err": err}, "Geonames: failed to create file")
