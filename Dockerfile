@@ -18,7 +18,14 @@ RUN go build -o geos -ldflags="\
 
 #final stage
 FROM alpine:latest
-RUN apk --no-cache add ca-certificates
+RUN apk --no-cache add ca-certificates wget
+
+ARG GEONAME_DUMP_DIR=/etc/geos/geonames
+RUN mkdir -p ${GEONAME_DUMP_DIR}
+RUN wget -P ${GEONAME_DUMP_DIR} https://download.geonames.org/export/dump/admin1CodesASCII.txt && \
+    wget -P ${GEONAME_DUMP_DIR} https://download.geonames.org/export/dump/cities500.zip && \
+    wget -P ${GEONAME_DUMP_DIR} https://download.geonames.org/export/dump/countryInfo.txt
+
 COPY --from=builder /go/src/${SRC_DIR}/geos /geos
 EXPOSE 8505
 EXPOSE 8506
