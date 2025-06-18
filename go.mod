@@ -25,7 +25,7 @@ require (
 	google.golang.org/protobuf v1.30.0
 )
 
-replace github.com/bldsoft/gost v0.0.0-20241216092733-2b060a03777f => ../gost
+// replace github.com/bldsoft/gost v0.0.0-20241216092733-2b060a03777f => ../gost
 
 require (
 	github.com/ClickHouse/ch-go v0.61.0 // indirect
