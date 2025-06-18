@@ -29,7 +29,7 @@ type Config struct {
 	GeoDbPatchesSource    string `mapstructure:"GEOIP_DB_PATCHES_SOURCE" description:"Source for downloading patches for city database (in .tar.gz)"`
 	GeoDbISPSource        string `mapstructure:"GEOIP_DB_ISP_SOURCE" description:"Source to download GeoIP2 ISP database from"`
 	GeoDbISPPatchesSource string `mapstructure:"GEOIP_DB_ISP_PATCHES_SOURCE" description:"Source for downloading custom ISP database patches (in .tar.gz)"`
-	AutoUpdatePeriod      string `mapstructure:"AUTO_UPDATE_PERIOD" description:"Amount of hours to wait before trying to automatically update from the source"`
+	AutoUpdatePeriod      int    `mapstructure:"AUTO_UPDATE_PERIOD" description:"Amount of hours to wait before trying to automatically update from the source"`
 
 	GeoDbPath    string `mapstructure:"GEOIP_DB_PATH" description:"Path to GeoLite2 or GeoIP2 city database"`
 	GeoDbISPPath string `mapstructure:"GEOIP_DB_ISP_PATH" description:"Path to GeoIP2 ISP database"`

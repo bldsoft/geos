@@ -88,3 +88,17 @@ func (c *discoveredClient) GeoNameCities(ctx context.Context, filter entity.GeoN
 			return client.GeoNameCities(ctx, filter)
 		})
 }
+
+func (c *discoveredClient) CheckUpdates(ctx context.Context) (entity.Updates, error) {
+	return doWithClientLoader(c.clientLoader, true,
+		func(client client.Client) (res entity.Updates, err error) {
+			return client.CheckUpdates(ctx)
+		})
+}
+
+func (c *discoveredClient) Update(ctx context.Context) (entity.Updates, error) {
+	return doWithClientLoader(c.clientLoader, true,
+		func(client client.Client) (res entity.Updates, err error) {
+			return client.Update(ctx)
+		})
+}

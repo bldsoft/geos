@@ -123,3 +123,11 @@ func (c *Client) GeoNameCities(ctx context.Context, filter entity.GeoNameFilter)
 func (c *Client) Close() {
 	c.conn.Close()
 }
+
+func (c *Client) CheckUpdates(ctx context.Context) (entity.Updates, error) {
+	return nil, nil
+}
+
+func (c *Client) Update(ctx context.Context) (entity.Updates, error) {
+	return nil, nil
+}

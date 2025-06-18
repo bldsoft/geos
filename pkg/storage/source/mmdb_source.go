@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/maxmind/mmdb"
@@ -86,7 +87,7 @@ func (s *MaxmindSource) Download(ctx context.Context, update ...bool) (entity.Up
 	return updates, nil
 }
 
-func NewMMDBSource(sourceUrl, dbPath string, name entity.Subject, autoUpdatePeriod string) *MaxmindSource {
+func NewMMDBSource(sourceUrl, dbPath string, name entity.Subject, autoUpdatePeriod int) *MaxmindSource {
 	s := &MaxmindSource{
 		sourceUrl: sourceUrl,
 		dbPath:    dbPath,
@@ -100,9 +101,9 @@ func NewMMDBSource(sourceUrl, dbPath string, name entity.Subject, autoUpdatePeri
 			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to download %s database from provided source", name)
 		}
 
-		// if err := s.initAutoUpdates(ctx, autoUpdatePeriod); err != nil {
-		// 	log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to initialize auto updates for %s database", name)
-		// }
+		if err := s.initAutoUpdates(ctx, autoUpdatePeriod); err != nil {
+			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to initialize auto updates for %s database", name)
+		}
 	} else {
 		log.FromContext(ctx).Warnf("Source for %s database is not set, assuming it is already downloaded. You will NOT be able to check for database updates and download them without providing source.", name)
 	}
@@ -110,39 +111,46 @@ func NewMMDBSource(sourceUrl, dbPath string, name entity.Subject, autoUpdatePeri
 	return s
 }
 
-// func (s *MaxmindSource) initAutoUpdates(ctx context.Context, autoUpdatePeriod string) error {
-// 	if autoUpdatePeriod == "" || autoUpdatePeriod == "0" {
-// 		return nil
-// 	}
+func (s *MaxmindSource) initAutoUpdates(ctx context.Context, autoUpdatePeriod int) error {
+	if autoUpdatePeriod == 0 {
+		return nil
+	}
 
-// 	if s.sourceUrl == "" || s.dbPath == "" {
-// 		return fmt.Errorf("missing required paths")
-// 	}
+	if s.sourceUrl == "" || s.dbPath == "" {
+		return fmt.Errorf("missing required paths")
+	}
 
-// 	return s.c.AddFunc(fmt.Sprintf("@every %sh", autoUpdatePeriod), func() {
-// 		log.FromContext(ctx).Infof("Executing auto update for %s", s.name)
+	go func() {
+		timer := time.NewTicker(time.Duration(autoUpdatePeriod) * time.Hour)
+		defer timer.Stop()
 
-// 		available, err := s.checkUpdates(ctx)
-// 		if err != nil {
-// 			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to run auto update for %s", s.name)
-// 			return
-// 		}
+		for range timer.C {
+			log.FromContext(ctx).Infof("Executing auto update for %s", s.name)
 
-// 		if !available {
-// 			log.FromContext(ctx).Infof("No updates found during automatic check for %s", s.name)
-// 			return
-// 		}
+			available, err := s.checkUpdates(ctx)
+			if err != nil {
+				log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to run auto update for %s", s.name)
+				return
+			}
 
-// 		log.FromContext(ctx).Infof("Found updates during automatic check for %s", s.name)
+			if !available {
+				log.FromContext(ctx).Infof("No updates found during automatic check for %s", s.name)
+				return
+			}
 
-// 		if err := s.download(ctx); err != nil {
-// 			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to download updates for %s", s.name)
-// 			return
-// 		}
+			log.FromContext(ctx).Infof("Found updates during automatic check for %s", s.name)
 
-// 		log.FromContext(ctx).Infof("Updates applied for %s", s.name)
-// 	})
-// }
+			if err := s.download(ctx); err != nil {
+				log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to download updates for %s", s.name)
+				return
+			}
+
+			log.FromContext(ctx).Infof("Updates applied for %s", s.name)
+		}
+	}()
+
+	return nil
+}
 
 func (s *MaxmindSource) DirPath() string {
 	return s.dbPath
@@ -181,13 +189,6 @@ func (s *MaxmindSource) fileMetadataVersion(path string) (*version.Version, erro
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file chunk: %w", err)
 	}
-
-	// metadataIndex := bytes.LastIndex(buffer, metadataStartMarker)
-	// if metadataIndex == -1 {
-	// 	return nil, fmt.Errorf("metadata marker not found")
-	// }
-
-	// metadataStart := metadataIndex + len(metadataStartMarker)
 
 	return s.extractVersion(buffer)
 }

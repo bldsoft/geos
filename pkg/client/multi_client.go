@@ -79,3 +79,11 @@ func (c *MultiClient) GeoNameCities(ctx context.Context, filter entity.GeoNameFi
 		return client.GeoNameCities(ctx, filter)
 	})
 }
+
+func (c *MultiClient) CheckUpdates(ctx context.Context) (entity.Updates, error) {
+	return nil, nil
+}
+
+func (c *MultiClient) Update(ctx context.Context) (entity.Updates, error) {
+	return nil, nil
+}

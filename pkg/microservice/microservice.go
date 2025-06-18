@@ -164,7 +164,7 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 			r.Use(m.ApiKeyMiddleware())
 			r.Get("/dump", geoIpController.GetDumpHandler) // deprecated, used by streampool
 			r.Get("/update", managementController.CheckGeoIPUpdatesHandler)
-			r.Post("/update", managementController.UpdateGeoIPHandler)
+			r.Put("/update", managementController.UpdateGeoIPHandler)
 		})
 
 		r.Route("/dump/{db}", func(r chi.Router) {
@@ -187,7 +187,7 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 				r.Use(m.ApiKeyMiddleware())
 				r.Get("/dump", geoNameController.GetDumpHandler)
 				r.Get("/update", managementController.CheckGeonamesUpdatesHandler)
-				r.Post("/update", managementController.UpdateGeonamesHandler)
+				r.Put("/update", managementController.UpdateGeonamesHandler)
 			})
 		})
 	})

@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/gost/log"
@@ -23,7 +24,7 @@ type PatchesSource struct {
 	Name      entity.Subject
 }
 
-func NewPatchesSource(sourceUrl, dirPath, prefix string, name entity.Subject, autoUpdatePeriod string) *PatchesSource {
+func NewPatchesSource(sourceUrl, dirPath, prefix string, name entity.Subject, autoUpdatePeriod int) *PatchesSource {
 	s := &PatchesSource{
 		sourceUrl: sourceUrl,
 		dirPath:   dirPath,
@@ -38,9 +39,9 @@ func NewPatchesSource(sourceUrl, dirPath, prefix string, name entity.Subject, au
 		return s
 	}
 
-	// if err := s.initAutoUpdates(ctx, autoUpdatePeriod); err != nil {
-	// 	log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to initialize auto updates for %s", s.Name)
-	// }
+	if err := s.initAutoUpdates(ctx, autoUpdatePeriod); err != nil {
+		log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to initialize auto updates for %s", s.Name)
+	}
 
 	remoteContent, err := getFiles(s.sourceUrl)
 	if err != nil {
@@ -67,45 +68,52 @@ func NewPatchesSource(sourceUrl, dirPath, prefix string, name entity.Subject, au
 	return s
 }
 
-// func (s *PatchesSource) initAutoUpdates(ctx context.Context, autoUpdatePeriod string) error {
-// 	if autoUpdatePeriod == "" || autoUpdatePeriod == "0" {
-// 		return nil
-// 	}
+func (s *PatchesSource) initAutoUpdates(ctx context.Context, autoUpdatePeriod int) error {
+	if autoUpdatePeriod == 0 {
+		return nil
+	}
 
-// 	if s.sourceUrl == "" || s.dirPath == "" {
-// 		return fmt.Errorf("missing required params")
-// 	}
+	if s.sourceUrl == "" || s.dirPath == "" {
+		return fmt.Errorf("missing required params")
+	}
 
-// 	return s.c.AddFunc(fmt.Sprintf("@every %sh", autoUpdatePeriod), func() {
-// 		log.FromContext(ctx).Infof("Executing auto update for %s", s.Name)
+	go func() {
+		timer := time.NewTicker(time.Duration(autoUpdatePeriod) * time.Hour)
+		defer timer.Stop()
 
-// 		remoteContent, err := getFiles(s.sourceUrl)
-// 		if err != nil {
-// 			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to get source files for %s", s.Name)
-// 			return
-// 		}
+		for range timer.C {
+			log.FromContext(ctx).Infof("Executing auto update for %s", s.Name)
 
-// 		exist, err := s.checkUpdates(remoteContent)
-// 		if err != nil {
-// 			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to check for updates for %s", s.Name)
-// 			return
-// 		}
+			remoteContent, err := getFiles(s.sourceUrl)
+			if err != nil {
+				log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to get source files for %s", s.Name)
+				continue
+			}
 
-// 		if !exist {
-// 			log.FromContext(ctx).Infof("No updates found for %s", s.Name)
-// 			return
-// 		}
+			exist, err := s.checkUpdates(remoteContent)
+			if err != nil {
+				log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to check for updates for %s", s.Name)
+				continue
+			}
 
-// 		log.FromContext(ctx).Infof("Found update for %s", s.Name)
+			if !exist {
+				log.FromContext(ctx).Infof("No updates found for %s", s.Name)
+				continue
+			}
 
-// 		if err := s.updateLocalFiles(remoteContent); err != nil {
-// 			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to download updates for %s", s.Name)
-// 			return
-// 		}
+			log.FromContext(ctx).Infof("Found update for %s", s.Name)
 
-// 		log.FromContext(ctx).Infof("Successfully applied updates for %s", s.Name)
-// 	})
-// }
+			if err := s.updateLocalFiles(remoteContent); err != nil {
+				log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to download updates for %s", s.Name)
+				continue
+			}
+
+			log.FromContext(ctx).Infof("Successfully applied updates for %s", s.Name)
+		}
+	}()
+
+	return nil
+}
 
 func (s *PatchesSource) CheckUpdates(ctx context.Context) (entity.Updates, error) {
 	updates := entity.Updates{}

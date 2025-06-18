@@ -84,9 +84,7 @@ func (s *GeoNameStorage) fill() {
 }
 
 func (s *GeoNameStorage) CheckUpdates(ctx context.Context) (entity.Updates, error) {
-	return entity.Updates{
-		entity.SubjectGeonames: &entity.UpdateStatus{Available: false},
-	}, nil
+	return nil, nil
 }
 
 func (s *GeoNameStorage) Download(ctx context.Context, update ...bool) (entity.Updates, error) {

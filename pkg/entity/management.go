@@ -5,10 +5,10 @@ type Subject string
 const (
 	SubjectISPDb           Subject = "ISP"
 	SubjectCitiesDb        Subject = "City"
-	SubjectGeonames        Subject = "Geoname"
+	SubjectGeonames        Subject = "Geonames"
 	SubjectISPDbPatches    Subject = "ISP patches"
 	SubjectCitiesDbPatches Subject = "City patches"
-	SubjectGeonamesPatches Subject = "Geoname patches"
+	SubjectGeonamesPatches Subject = "Geonames patches"
 )
 
 type Updates map[Subject]*UpdateStatus

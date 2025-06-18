@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/url"
 	"strings"
@@ -138,4 +139,73 @@ func (c *Client) GeoNameCities(ctx context.Context, filter entity.GeoNameFilter)
 
 func (c *Client) GeoNameDump(ctx context.Context, filter entity.GeoNameFilter) (*resty.Response, error) {
 	return c.client.R().SetHeader(microservice.APIKey, c.APIKey()).Get("geoname/dump")
+}
+
+func (c *Client) CheckUpdates(ctx context.Context) (entity.Updates, error) {
+	resp, err := c.client.R().SetHeader(microservice.APIKey, c.APIKey()).Get("geoname/update")
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode() >= 400 {
+		return nil, &RespError{StatusCode: resp.StatusCode(), Response: string(resp.Body())}
+	}
+
+	var geonameUpdates entity.Updates
+	err = json.Unmarshal(resp.Body(), &geonameUpdates)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err = c.client.R().SetHeader(microservice.APIKey, c.APIKey()).Get("update")
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode() >= 400 {
+		return nil, &RespError{StatusCode: resp.StatusCode(), Response: string(resp.Body())}
+	}
+	var geoipUpdates entity.Updates
+	err = json.Unmarshal(resp.Body(), &geoipUpdates)
+	if err != nil {
+		return nil, err
+	}
+
+	maps.Copy(geonameUpdates, geoipUpdates)
+
+	return geonameUpdates, nil
+}
+
+func (c *Client) Update(ctx context.Context) (entity.Updates, error) {
+	resp, err := c.client.R().SetHeader(microservice.APIKey, c.APIKey()).Put("geoname/update")
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode() >= 400 {
+		return nil, &RespError{StatusCode: resp.StatusCode(), Response: string(resp.Body())}
+	}
+	var geonameUpdates entity.Updates
+	err = json.Unmarshal(resp.Body(), &geonameUpdates)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err = c.client.R().SetHeader(microservice.APIKey, c.APIKey()).Put("update")
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode() >= 400 {
+		return nil, &RespError{StatusCode: resp.StatusCode(), Response: string(resp.Body())}
+	}
+	var geoipUpdates entity.Updates
+	err = json.Unmarshal(resp.Body(), &geoipUpdates)
+	if err != nil {
+		return nil, err
+	}
+
+	maps.Copy(geonameUpdates, geoipUpdates)
+
+	return geonameUpdates, nil
 }
