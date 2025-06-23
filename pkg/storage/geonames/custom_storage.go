@@ -9,18 +9,20 @@ import (
 
 type CustomStorage struct {
 	*MultiStorage[*StoragePatch]
-	source source.Source
+	source          source.Source
+	archiveFilepath string
 }
 
-func NewCustomStorage(patches ...*StoragePatch) *CustomStorage {
+func NewCustomStorage(archiveFilepath string, patches ...*StoragePatch) *CustomStorage {
 	return &CustomStorage{
-		MultiStorage: &MultiStorage[*StoragePatch]{storages: patches},
+		MultiStorage:    &MultiStorage[*StoragePatch]{storages: patches},
+		archiveFilepath: archiveFilepath,
 	}
 }
 
-func NewCustomStorageFromDir(dir string) *CustomStorage {
-	customs := NewStoragePatchesFromDir(dir, "geonames")
-	return NewCustomStorage(customs...)
+func NewCustomStorageFromTarGz(archiveFilepath string) *CustomStorage {
+	customs := NewStoragePatchesFromTarGz(archiveFilepath)
+	return NewCustomStorage(archiveFilepath, customs...)
 }
 
 func (s *CustomStorage) SetSource(source source.Source) {
@@ -35,15 +37,15 @@ func (s *CustomStorage) CheckUpdates(ctx context.Context) (entity.Updates, error
 	return s.source.CheckUpdates(ctx)
 }
 
-func (s *CustomStorage) Download(ctx context.Context, update ...bool) (updates entity.Updates, err error) {
+func (s *CustomStorage) Download(ctx context.Context) (updates entity.Updates, err error) {
 	if s.source == nil {
 		return nil, source.ErrNoSource
 	}
 
-	if updates, err = s.source.Download(ctx, update...); err != nil {
+	if updates, err = s.source.Download(ctx); err != nil {
 		return nil, err
 	}
 
-	s.storages = NewStoragePatchesFromDir(s.source.DirPath(), "geonames")
+	s.storages = NewStoragePatchesFromTarGz(s.archiveFilepath)
 	return updates, nil
 }

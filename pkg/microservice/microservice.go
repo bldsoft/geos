@@ -128,20 +128,20 @@ func (m *Microservice) initServices() {
 
 	m.asyncRunners = append(m.asyncRunners, m.discovery)
 
-	if m.config.NeedGrpc() {
-		grpcService := NewGrpcMicroservice(m.config.GRPCServiceBindAddress.HostPort(), m.geoIpService, m.geoNameService)
-		m.asyncRunners = append(m.asyncRunners, grpcService)
+	// if m.config.NeedGrpc() {
+	// 	grpcService := NewGrpcMicroservice(m.config.GRPCServiceBindAddress.HostPort(), m.geoIpService, m.geoNameService)
+	// 	m.asyncRunners = append(m.asyncRunners, grpcService)
 
-		m.discovery.SetMetadata(GrpcAddressMetaKey, m.config.GRPCServiceAddress.String())
-	} else {
-		log.Info("gRPC is off")
-	}
+	// 	m.discovery.SetMetadata(GrpcAddressMetaKey, m.config.GRPCServiceAddress.String())
+	// } else {
+	// 	log.Info("gRPC is off")
+	// }
 }
 
-func (m *Microservice) geonamesStorage(src source.Source) geonames.Storage {
+func (m *Microservice) geonamesStorage(patchSrc *source.PatchesSource) geonames.Storage {
 	original := geonames.NewStorage(m.config.GeoNameDumpDirPath)
-	custom := geonames.NewCustomStorageFromDir(filepath.Dir(m.config.GeoDbPath))
-	custom.SetSource(src)
+	custom := geonames.NewCustomStorageFromTarGz(patchSrc.ArchiveFilePath())
+	custom.SetSource(patchSrc)
 	return geonames.NewMultiStorage[geonames.Storage](original).Add(custom)
 }
 
@@ -165,6 +165,7 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 			r.Get("/dump", geoIpController.GetDumpHandler) // deprecated, used by streampool
 			r.Get("/update", managementController.CheckGeoIPUpdatesHandler)
 			r.Put("/update", managementController.UpdateGeoIPHandler)
+			r.Get("/status", managementController.GetGeosStatusHandler)
 		})
 
 		r.Route("/dump/{db}", func(r chi.Router) {

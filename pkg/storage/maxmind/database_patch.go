@@ -64,6 +64,54 @@ func NewDatabasePatchesFromDir(dir, customDBPrefix string) []*DatabasePatch {
 	return customDBs
 }
 
+func NewDatabasePatchesFromTarGz(filename string) ([]*DatabasePatch, error) {
+	var customDBs []*DatabasePatch
+	file, err := os.OpenFile(filename, os.O_RDONLY, 0666)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	stat, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	contents, err := utils.UnpackTarGz(file)
+	if err != nil {
+		return nil, err
+	}
+
+	for fileName, content := range contents {
+		if filepath.Ext(fileName) != ".json" {
+			return nil, utils.ErrUnknownFormat
+		}
+
+		reader, err := NewJSONRecordReader(bytes.NewReader(content))
+		if err != nil {
+			return nil, err
+		}
+
+		if db, err := NewDatabasePatch(reader); err != nil {
+			return nil, err
+		} else {
+			customDBs = append(customDBs, db.WithMetadata(maxminddb.Metadata{
+				Description:              map[string]string{"en": fmt.Sprintf("path = %s", fileName)},
+				DatabaseType:             db.db.Metadata.DatabaseType,
+				Languages:                db.db.Metadata.Languages,
+				BinaryFormatMajorVersion: db.db.Metadata.BinaryFormatMajorVersion,
+				BinaryFormatMinorVersion: db.db.Metadata.BinaryFormatMinorVersion,
+				BuildEpoch:               uint(stat.ModTime().Unix()),
+				IPVersion:                db.db.Metadata.IPVersion,
+				NodeCount:                db.db.Metadata.NodeCount,
+				RecordSize:               db.db.Metadata.RecordSize,
+			}))
+		}
+	}
+
+	return customDBs, nil
+}
+
 func NewDatabasePatchFromFile(path string) (*DatabasePatch, error) {
 	file, err := os.OpenFile(path, os.O_RDONLY, 0666)
 	if err != nil {
@@ -173,7 +221,7 @@ func (db *DatabasePatch) MetaData() (*maxminddb.Metadata, error) {
 	return &db.db.Metadata, nil
 }
 
-func (db *DatabasePatch) Download(_ context.Context, _ ...bool) (entity.Updates, error) {
+func (db *DatabasePatch) Download(_ context.Context) (entity.Updates, error) {
 	// patches download is controlled by the custom database
 	return nil, nil
 }

@@ -56,12 +56,12 @@ func (db *MaxmindDatabase) Networks(options ...maxminddb.NetworksOption) (*maxmi
 	return db.reader.Networks(), nil
 }
 
-func (db *MaxmindDatabase) Download(ctx context.Context, update ...bool) (entity.Updates, error) {
+func (db *MaxmindDatabase) Download(ctx context.Context) (entity.Updates, error) {
 	if db.source == nil {
 		return nil, source.ErrNoSource
 	}
 
-	return db.source.Download(ctx, update...)
+	return db.source.Download(ctx)
 }
 
 func (db *MaxmindDatabase) CheckUpdates(ctx context.Context) (entity.Updates, error) {

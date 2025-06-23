@@ -229,7 +229,7 @@ func (db *MultiMaxMindDB[T]) MetaData() (*maxminddb.Metadata, error) {
 	return &res, nil
 }
 
-func (db *MultiMaxMindDB[T]) Download(ctx context.Context, update ...bool) (entity.Updates, error) {
+func (db *MultiMaxMindDB[T]) Download(ctx context.Context) (entity.Updates, error) {
 	db.updMutex.RLock()
 	if db.isUpdating {
 		db.updMutex.RUnlock()
@@ -244,7 +244,7 @@ func (db *MultiMaxMindDB[T]) Download(ctx context.Context, update ...bool) (enti
 	multiUpdates := entity.Updates{}
 	var multiErr error
 	for _, database := range db.dbs {
-		updates, err := database.Download(ctx, update...)
+		updates, err := database.Download(ctx)
 		if err != nil || updates == nil {
 			multiErr = errors.Join(multiErr, err)
 			continue

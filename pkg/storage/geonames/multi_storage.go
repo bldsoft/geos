@@ -32,11 +32,11 @@ func (s *MultiStorage[T]) CheckUpdates(ctx context.Context) (entity.Updates, err
 	return multiUpdates, multiErr
 }
 
-func (s *MultiStorage[T]) Download(ctx context.Context, update ...bool) (entity.Updates, error) {
+func (s *MultiStorage[T]) Download(ctx context.Context) (entity.Updates, error) {
 	multiUpdate := entity.Updates{}
 	var multiErr error
 	for _, storage := range s.storages {
-		updates, err := storage.Download(ctx, update...)
+		updates, err := storage.Download(ctx)
 		if err != nil || updates == nil {
 			multiErr = errors.Join(multiErr, err)
 			continue

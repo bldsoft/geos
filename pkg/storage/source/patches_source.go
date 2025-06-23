@@ -1,16 +1,12 @@
 package source
 
 import (
-	"archive/tar"
 	"bytes"
-	"compress/gzip"
 	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
-	"path"
-	"strings"
 	"time"
 
 	"github.com/bldsoft/geos/pkg/entity"
@@ -22,6 +18,14 @@ type PatchesSource struct {
 	dirPath   string
 	prefix    string
 	Name      entity.Subject
+}
+
+func (s *PatchesSource) tmpFilePath() string {
+	return fmt.Sprintf("%s/%s_patches_tmp.tar.gz", s.dirPath, s.prefix)
+}
+
+func (s *PatchesSource) ArchiveFilePath() string {
+	return fmt.Sprintf("%s/%s_patches.tar.gz", s.dirPath, s.prefix)
 }
 
 func NewPatchesSource(sourceUrl, dirPath, prefix string, name entity.Subject, autoUpdatePeriod int) *PatchesSource {
@@ -43,33 +47,54 @@ func NewPatchesSource(sourceUrl, dirPath, prefix string, name entity.Subject, au
 		log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to initialize auto updates for %s", s.Name)
 	}
 
-	remoteContent, err := getFiles(s.sourceUrl)
+	_, err := os.Stat(s.ArchiveFilePath())
 	if err != nil {
-		log.FromContext(ctx).Errorf("Failed to get source files for %s: %v", s.Name, err)
+		if !os.IsNotExist(err) {
+			log.FromContext(ctx).Errorf("Failed to check if %s archive exists: %v", s.Name, err)
+			return s
+		}
+
+		log.FromContext(ctx).Warnf("No %s archive found, creating empty one", s.Name)
+		if _, err := os.Create(s.ArchiveFilePath()); err != nil {
+			log.FromContext(ctx).Errorf("Failed to create empty archive for %s: %v", s.Name, err) //TEST THIS
+		}
+	}
+
+	if autoUpdatePeriod == 0 {
 		return s
 	}
 
-	exist, err := s.checkUpdates(remoteContent)
+	if err := s.getTmpArchive(s.sourceUrl); err != nil {
+		log.FromContext(ctx).Errorf("Failed to check for updates for %s: %v", s.Name, err)
+		return s
+	}
+
+	exist, err := s.checkUpdates()
 	if err != nil {
 		log.FromContext(ctx).Errorf("Failed to check for updates for %s: %v", s.Name, err)
 		return s
 	}
 
-	if exist {
-		log.FromContext(ctx).Infof("Updates are available for %s", s.Name)
-		err = s.updateLocalFiles(remoteContent)
-		if err != nil {
-			log.FromContext(ctx).Errorf("Failed to apply updates for %s: %v", s.Name, err)
-		} else {
-			log.FromContext(ctx).Infof("Successfully applied updates for %s", s.Name)
+	if !exist {
+		if err := s.rmTmpArchive(); err != nil {
+			log.FromContext(ctx).Errorf("Failed to remove temporary archive for %s: %v", s.Name, err)
 		}
+		return s
 	}
+
+	log.FromContext(ctx).Infof("Found updates for %s", s.Name)
+	if err := s.updateLocalFiles(); err != nil {
+		log.FromContext(ctx).Errorf("Failed to apply updates for %s: %v", s.Name, err)
+		return s
+	}
+
+	log.FromContext(ctx).Infof("Successfully applied updates for %s", s.Name)
 
 	return s
 }
 
 func (s *PatchesSource) initAutoUpdates(ctx context.Context, autoUpdatePeriod int) error {
-	if autoUpdatePeriod == 0 {
+	if autoUpdatePeriod <= 0 {
 		return nil
 	}
 
@@ -84,13 +109,13 @@ func (s *PatchesSource) initAutoUpdates(ctx context.Context, autoUpdatePeriod in
 		for range timer.C {
 			log.FromContext(ctx).Infof("Executing auto update for %s", s.Name)
 
-			remoteContent, err := getFiles(s.sourceUrl)
+			err := s.getTmpArchive(s.sourceUrl)
 			if err != nil {
 				log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to get source files for %s", s.Name)
 				continue
 			}
 
-			exist, err := s.checkUpdates(remoteContent)
+			exist, err := s.checkUpdates()
 			if err != nil {
 				log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to check for updates for %s", s.Name)
 				continue
@@ -103,7 +128,7 @@ func (s *PatchesSource) initAutoUpdates(ctx context.Context, autoUpdatePeriod in
 
 			log.FromContext(ctx).Infof("Found update for %s", s.Name)
 
-			if err := s.updateLocalFiles(remoteContent); err != nil {
+			if err := s.updateLocalFiles(); err != nil {
 				log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to download updates for %s", s.Name)
 				continue
 			}
@@ -128,13 +153,13 @@ func (s *PatchesSource) CheckUpdates(ctx context.Context) (entity.Updates, error
 		return updates, nil
 	}
 
-	remoteContent, err := getFiles(s.sourceUrl)
+	err := s.getTmpArchive(s.sourceUrl)
 	if err != nil {
 		updates[s.Name] = &entity.UpdateStatus{Error: err.Error()}
 		return updates, nil
 	}
 
-	exist, err := s.checkUpdates(remoteContent)
+	exist, err := s.checkUpdates()
 	if err != nil {
 		updates[s.Name] = &entity.UpdateStatus{Error: err.Error()}
 		return updates, nil
@@ -144,49 +169,40 @@ func (s *PatchesSource) CheckUpdates(ctx context.Context) (entity.Updates, error
 		updates[s.Name] = &entity.UpdateStatus{Available: true}
 	}
 
+	if err := s.rmTmpArchive(); err != nil {
+		return nil, fmt.Errorf("failed to remove temporary archive: %w", err)
+	}
+
 	return updates, nil
 }
 
-func (s *PatchesSource) checkUpdates(remoteContent map[string][]byte) (bool, error) {
-	localContent := make(map[string]struct{})
-
-	files, err := os.ReadDir(s.dirPath)
+func (s *PatchesSource) checkUpdates() (bool, error) {
+	tmpFile, err := os.Open(s.tmpFilePath())
 	if err != nil {
 		return false, err
 	}
-	for _, file := range files {
-		if file.IsDir() {
-			continue
-		}
-		if strings.HasPrefix(file.Name(), s.prefix) && strings.HasSuffix(file.Name(), ".json") {
-			localContent[file.Name()] = struct{}{}
-		}
+	defer tmpFile.Close()
+
+	currentFile, err := os.Open(s.ArchiveFilePath())
+	if err != nil {
+		return false, err
+	}
+	defer currentFile.Close()
+
+	tmpContent, err := io.ReadAll(tmpFile)
+	if err != nil {
+		return false, err
 	}
 
-	if len(remoteContent) != len(localContent) {
-		return true, nil
+	currentContent, err := io.ReadAll(currentFile)
+	if err != nil {
+		return false, err
 	}
 
-	for fileName, content := range remoteContent {
-		if _, exists := localContent[fileName]; !exists {
-			return true, nil
-		}
-
-		localFilePath := path.Join(s.dirPath, fileName)
-		localFileContent, err := os.ReadFile(localFilePath)
-		if err != nil {
-			return false, err
-		}
-
-		if !bytes.Equal(localFileContent, content) {
-			return true, nil
-		}
-	}
-
-	return false, nil
+	return !bytes.Equal(tmpContent, currentContent), nil
 }
 
-func (s *PatchesSource) Download(ctx context.Context, _ ...bool) (entity.Updates, error) {
+func (s *PatchesSource) Download(ctx context.Context) (entity.Updates, error) {
 	updates := entity.Updates{}
 
 	if s.dirPath == "" {
@@ -199,13 +215,13 @@ func (s *PatchesSource) Download(ctx context.Context, _ ...bool) (entity.Updates
 		return updates, nil
 	}
 
-	remoteContent, err := getFiles(s.sourceUrl)
+	err := s.getTmpArchive(s.sourceUrl)
 	if err != nil {
 		updates[s.Name] = &entity.UpdateStatus{Error: err.Error()}
 		return updates, nil
 	}
 
-	exist, err := s.checkUpdates(remoteContent)
+	exist, err := s.checkUpdates()
 	if err != nil {
 		updates[s.Name] = &entity.UpdateStatus{Error: err.Error()}
 		return updates, nil
@@ -215,9 +231,9 @@ func (s *PatchesSource) Download(ctx context.Context, _ ...bool) (entity.Updates
 		return nil, nil
 	}
 
-	if err := s.updateLocalFiles(remoteContent); err != nil {
+	if err := s.updateLocalFiles(); err != nil {
 		updates[s.Name] = &entity.UpdateStatus{Error: err.Error()}
-		return updates, nil
+		return updates, err
 	}
 
 	log.FromContext(ctx).Infof("Applied updates for %s", s.Name)
@@ -227,75 +243,47 @@ func (s *PatchesSource) Download(ctx context.Context, _ ...bool) (entity.Updates
 	return updates, nil
 }
 
-func (s *PatchesSource) updateLocalFiles(remoteContent map[string][]byte) error {
-	files, err := os.ReadDir(s.dirPath)
-	if err != nil {
-		return fmt.Errorf("failed to read local directory %s: %w", s.dirPath, err)
+func (s *PatchesSource) rmTmpArchive() error {
+	return os.Remove(s.tmpFilePath())
+}
+
+func (s *PatchesSource) updateLocalFiles() error {
+	if err := os.Remove(s.ArchiveFilePath()); err != nil && !os.IsNotExist(err) {
+		return err
 	}
 
-	for _, file := range files {
-		if file.IsDir() {
-			continue
-		}
-		if strings.HasPrefix(file.Name(), s.prefix) && strings.HasSuffix(file.Name(), ".json") {
-			if err := os.Remove(path.Join(s.dirPath, file.Name())); err != nil {
-				return fmt.Errorf("failed to remove old file %s: %w", file.Name(), err)
-			}
-		}
-	}
-
-	for fileName, content := range remoteContent {
-		if err := os.WriteFile(path.Join(s.dirPath, fileName), content, 0644); err != nil {
-			return fmt.Errorf("failed to write new file %s: %w", fileName, err)
-		}
-	}
-
-	return nil
+	return os.Rename(s.tmpFilePath(), s.ArchiveFilePath())
 }
 
 func (s *PatchesSource) DirPath() string {
 	return s.dirPath
 }
 
-func getFiles(url string) (map[string][]byte, error) {
+func (s *PatchesSource) getTmpArchive(url string) error {
 	resp, err := http.Get(url)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("bad response status: %s", resp.Status)
+		return fmt.Errorf("bad response status: %s", resp.Status)
 	}
 
-	gzReader, err := gzip.NewReader(resp.Body)
+	tmpFile, err := os.Create(s.tmpFilePath())
 	if err != nil {
-		return nil, err
+		return err
 	}
-	defer gzReader.Close()
+	defer tmpFile.Close()
 
-	tarReader := tar.NewReader(gzReader)
-	files := make(map[string][]byte)
-
-	for {
-		hdr, err := tarReader.Next()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
-		if hdr.Typeflag != tar.TypeReg || !strings.HasSuffix(hdr.Name, ".json") {
-			continue
-		}
-
-		var buf bytes.Buffer
-		if _, err := io.Copy(&buf, tarReader); err != nil {
-			return nil, err
-		}
-
-		files[path.Base(hdr.Name)] = buf.Bytes()
+	_, err = io.Copy(tmpFile, resp.Body)
+	if err != nil {
+		return err
 	}
 
-	return files, nil
+	if err := tmpFile.Close(); err != nil {
+		return err
+	}
+
+	return nil
 }

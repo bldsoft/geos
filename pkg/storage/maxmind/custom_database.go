@@ -11,20 +11,24 @@ import (
 
 type CustomDatabase struct {
 	*MultiMaxMindDB[*DatabasePatch]
-	source       *source.PatchesSource
-	customDBName string
+	source          *source.PatchesSource
+	archiveFilepath string
 }
 
-func NewCustomDatabase(customDBName string, patches ...*DatabasePatch) *CustomDatabase {
+func NewCustomDatabase(archiveFilepath string, patches ...*DatabasePatch) *CustomDatabase {
 	return &CustomDatabase{
-		customDBName:   customDBName,
-		MultiMaxMindDB: &MultiMaxMindDB[*DatabasePatch]{dbs: patches, logger: log.Logger},
+		archiveFilepath: archiveFilepath,
+		MultiMaxMindDB:  &MultiMaxMindDB[*DatabasePatch]{dbs: patches, logger: log.Logger},
 	}
 }
 
-func NewCustomDatabaseFromDir(dir, customDBPrefix string) *CustomDatabase {
-	customDBs := NewDatabasePatchesFromDir(dir, customDBPrefix)
-	return NewCustomDatabase(customDBPrefix, customDBs...)
+func NewCustomDatabaseFromTarGz(archiveFilepath string) *CustomDatabase {
+	customDBs, err := NewDatabasePatchesFromTarGz(archiveFilepath)
+	if err != nil {
+		log.Logger.Errorf("failed to load custom databases from %s: %v", archiveFilepath, err)
+	}
+
+	return NewCustomDatabase(archiveFilepath, customDBs...)
 }
 
 func (db *CustomDatabase) SetSource(source *source.PatchesSource) {
@@ -39,16 +43,16 @@ func (db *CustomDatabase) MetaData() (*maxminddb.Metadata, error) {
 	return db.MultiMaxMindDB.MetaData()
 }
 
-func (db *CustomDatabase) Download(ctx context.Context, update ...bool) (updates entity.Updates, err error) {
+func (db *CustomDatabase) Download(ctx context.Context) (updates entity.Updates, err error) {
 	if db.source == nil {
 		return nil, source.ErrNoSource
 	}
 
-	if updates, err = db.source.Download(ctx, update...); err != nil {
+	if updates, err = db.source.Download(ctx); err != nil {
 		return nil, err
 	}
 
-	db.dbs = NewCustomDatabaseFromDir(db.source.DirPath(), db.customDBName).dbs
+	db.dbs = NewCustomDatabaseFromTarGz(db.archiveFilepath).dbs
 	return
 }
 

@@ -119,6 +119,40 @@ func NewStoragePatchesFromDir(dir, customStoragesPrefix string) []*StoragePatch 
 	return customStorages
 }
 
+func NewStoragePatchesFromTarGz(archiveFilepath string) []*StoragePatch {
+	var customStorages []*StoragePatch
+
+	f, err := os.Open(archiveFilepath)
+	if err != nil {
+		log.ErrorWithFields(log.Fields{"err": err, "archiveFilepath": archiveFilepath}, "failed to open custom geonames storage archive")
+		return nil
+	}
+	defer f.Close()
+
+	content, err := utils.UnpackTarGz(f)
+	if err != nil {
+		log.ErrorWithFields(log.Fields{"err": err, "archiveFilepath": archiveFilepath}, "failed to unpack custom geonames storage archive")
+		return nil
+	}
+
+	for filename, data := range content {
+		if filepath.Ext(filename) != ".json" {
+			log.WarnWithFields(log.Fields{"name": filename}, "skipping non-json file in custom geonames storage archive")
+			continue
+		}
+
+		var records []CustomGeonamesRecord
+		if err := json.Unmarshal(data, &records); err != nil {
+			log.ErrorWithFields(log.Fields{"err": err, "name": filename}, "failed to unmarshal custom geonames record")
+			continue
+		}
+
+		customStorages = append(customStorages, NewStoragePatch(records))
+	}
+
+	return customStorages
+}
+
 func NewStoragePatchFromFile(path string) (*StoragePatch, error) {
 	if filepath.Ext(path) != ".json" {
 		return nil, utils.ErrUnknownFormat
@@ -179,6 +213,6 @@ func (s *StoragePatch) CheckUpdates(_ context.Context) (entity.Updates, error) {
 	return nil, nil
 }
 
-func (s *StoragePatch) Download(ctx context.Context, update ...bool) (entity.Updates, error) {
+func (s *StoragePatch) Download(ctx context.Context) (entity.Updates, error) {
 	return nil, nil
 }

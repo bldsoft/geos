@@ -52,7 +52,7 @@ func openPatchedDB[T maxmind.CSVEntity](conf *DBConfig, customPrefix string, req
 	}
 	originalDB.SetSource(conf.DBSource)
 
-	customDB := maxmind.NewCustomDatabaseFromDir(filepath.Dir(conf.Path), customPrefix)
+	customDB := maxmind.NewCustomDatabaseFromTarGz(conf.PatchesSource.ArchiveFilePath())
 	customDB.SetSource(conf.PatchesSource)
 
 	multiDB := maxmind.NewMultiMaxMindDB[maxmind.Database](originalDB).Add(customDB).WithLogger(
@@ -220,13 +220,13 @@ func (r *GeoIPRepository) CheckUpdates(ctx context.Context) (entity.Updates, err
 	return multiUpdates, multiErr
 }
 
-func (r *GeoIPRepository) Download(ctx context.Context, update ...bool) (entity.Updates, error) {
+func (r *GeoIPRepository) Download(ctx context.Context) (entity.Updates, error) {
 	multiUpdates := entity.Updates{}
 	var updatesM sync.Mutex
 
 	var eg errgroup.Group
 	eg.Go(func() error {
-		updates, err := r.dbCity.Download(ctx, update...)
+		updates, err := r.dbCity.Download(ctx)
 		if err != nil {
 			return err
 		}
@@ -242,7 +242,7 @@ func (r *GeoIPRepository) Download(ctx context.Context, update ...bool) (entity.
 			return nil
 		}
 
-		updates, err := r.dbISP.Download(ctx, update...)
+		updates, err := r.dbISP.Download(ctx)
 		if err != nil {
 			return err
 		}

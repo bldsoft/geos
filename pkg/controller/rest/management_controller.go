@@ -27,7 +27,7 @@ func (c *ManagementController) CheckGeoIPUpdatesHandler(w http.ResponseWriter, r
 }
 
 func (c *ManagementController) UpdateGeoIPHandler(w http.ResponseWriter, r *http.Request) {
-	if updates, err := c.geoIpService.Download(r.Context(), true); err != nil {
+	if updates, err := c.geoIpService.Download(r.Context()); err != nil {
 		c.ResponseError(w, err.Error(), http.StatusInternalServerError)
 	} else {
 		c.ResponseJson(w, r, updates)
@@ -48,4 +48,8 @@ func (c *ManagementController) UpdateGeonamesHandler(w http.ResponseWriter, r *h
 	} else {
 		c.ResponseJson(w, r, updates)
 	}
+}
+
+func (c *ManagementController) GetGeosStatusHandler(w http.ResponseWriter, r *http.Request) {
+
 }

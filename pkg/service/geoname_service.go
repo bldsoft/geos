@@ -24,8 +24,8 @@ func NewGeoNameService(rep GeoNameRepository) *GeoNameService {
 	return &GeoNameService{rep}
 }
 
-func (s *GeoNameService) Download(ctx context.Context, update ...bool) (entity.Updates, error) {
-	return s.GeoNameRepository.Download(ctx, update...)
+func (s *GeoNameService) Download(ctx context.Context) (entity.Updates, error) {
+	return s.GeoNameRepository.Download(ctx)
 }
 
 func (s *GeoNameService) CheckUpdates(ctx context.Context) (entity.Updates, error) {

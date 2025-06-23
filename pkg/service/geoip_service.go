@@ -7,6 +7,7 @@ import (
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/microservice/middleware"
 	"github.com/bldsoft/geos/pkg/repository"
+	"github.com/bldsoft/geos/pkg/storage/source"
 )
 
 type DumpFormat = repository.DumpFormat
@@ -18,8 +19,8 @@ type GeoRepository interface {
 	CityLite(ctx context.Context, ip net.IP, lang string) (*entity.CityLite, error)
 	MetaData(ctx context.Context, dbType DBType) (*entity.MetaData, error)
 	Database(ctx context.Context, dbType DBType, format DumpFormat) (*entity.Database, error)
-	CheckUpdates(ctx context.Context) (entity.Updates, error)
-	Download(ctx context.Context, update ...bool) (entity.Updates, error)
+
+	source.Updater
 }
 
 type GeoIpService struct {
@@ -91,8 +92,8 @@ func (r *GeoIpService) CheckUpdates(ctx context.Context) (entity.Updates, error)
 	return r.rep.CheckUpdates(ctx)
 }
 
-func (r *GeoIpService) Download(ctx context.Context, update ...bool) (entity.Updates, error) {
-	return r.rep.Download(ctx, update...)
+func (r *GeoIpService) Download(ctx context.Context) (entity.Updates, error) {
+	return r.rep.Download(ctx)
 }
 
 func (r *GeoIpService) InitAutoUpdates(ctx context.Context) error {

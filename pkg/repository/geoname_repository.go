@@ -23,7 +23,7 @@ func (r *GeoNameRepository) CheckUpdates(ctx context.Context) (entity.Updates, e
 }
 
 func (r *GeoNameRepository) Download(ctx context.Context, update ...bool) (entity.Updates, error) {
-	return r.storage.Download(ctx, update...)
+	return r.storage.Download(ctx)
 }
 
 func (r *GeoNameRepository) Continents(ctx context.Context) []*entity.GeoNameContinent {

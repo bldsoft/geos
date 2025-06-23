@@ -87,7 +87,7 @@ func (s *GeoNameStorage) CheckUpdates(ctx context.Context) (entity.Updates, erro
 	return nil, nil
 }
 
-func (s *GeoNameStorage) Download(ctx context.Context, update ...bool) (entity.Updates, error) {
+func (s *GeoNameStorage) Download(ctx context.Context) (entity.Updates, error) {
 	s.fill()
 	return entity.Updates{
 		entity.SubjectGeonames: &entity.UpdateStatus{Error: ""},

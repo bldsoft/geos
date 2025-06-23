@@ -10,7 +10,7 @@ import (
 var ErrNoSource = fmt.Errorf("no source provided for the database")
 
 type Updater interface {
-	Download(ctx context.Context, update ...bool) (entity.Updates, error)
+	Download(ctx context.Context) (entity.Updates, error)
 	CheckUpdates(ctx context.Context) (entity.Updates, error)
 }
 
