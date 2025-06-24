@@ -266,3 +266,13 @@ func (r *GeoIPRepository) Download(ctx context.Context) (entity.Updates, error) 
 
 	return multiUpdates, nil
 }
+
+func (r *GeoIPRepository) State() (result string) {
+	result += string(MaxmindDBTypeCity) + r.dbCity.State()
+
+	if r.dbISP != nil {
+		result += string(MaxmindDBTypeISP) + r.dbISP.State()
+	}
+
+	return
+}

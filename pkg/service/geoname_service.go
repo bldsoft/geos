@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/bldsoft/geos/pkg/entity"
+	"github.com/bldsoft/geos/pkg/storage/source"
 )
 
 type GeoNameRepository interface {
@@ -12,8 +13,9 @@ type GeoNameRepository interface {
 	Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameAdminSubdivision, error)
 	Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error)
 	Dump(ctx context.Context, format DumpFormat) ([]byte, error)
-	Download(ctx context.Context, update ...bool) (entity.Updates, error)
-	CheckUpdates(ctx context.Context) (entity.Updates, error)
+
+	source.Updater
+	source.Stater
 }
 
 type GeoNameService struct {
@@ -54,4 +56,8 @@ func (s *GeoNameService) Dump(ctx context.Context, format DumpFormat) ([]byte, e
 
 func (s *GeoNameService) InitAutoUpdates(ctx context.Context) error {
 	return nil
+}
+
+func (s *GeoNameService) State() string {
+	return s.GeoNameRepository.State()
 }

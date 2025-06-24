@@ -21,6 +21,7 @@ type GeoRepository interface {
 	Database(ctx context.Context, dbType DBType, format DumpFormat) (*entity.Database, error)
 
 	source.Updater
+	source.Stater
 }
 
 type GeoIpService struct {
@@ -98,4 +99,8 @@ func (r *GeoIpService) Download(ctx context.Context) (entity.Updates, error) {
 
 func (r *GeoIpService) InitAutoUpdates(ctx context.Context) error {
 	return nil
+}
+
+func (r *GeoIpService) State() string {
+	return r.rep.State()
 }

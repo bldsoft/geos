@@ -22,7 +22,7 @@ func (r *GeoNameRepository) CheckUpdates(ctx context.Context) (entity.Updates, e
 	return r.storage.CheckUpdates(ctx)
 }
 
-func (r *GeoNameRepository) Download(ctx context.Context, update ...bool) (entity.Updates, error) {
+func (r *GeoNameRepository) Download(ctx context.Context) (entity.Updates, error) {
 	return r.storage.Download(ctx)
 }
 
@@ -125,4 +125,8 @@ func writeEntitiesToCSV[T entity.GeoNameEntity](w *csv.Writer, entities []T) err
 		}
 	}
 	return nil
+}
+
+func (r *GeoNameRepository) State() string {
+	return r.storage.State()
 }

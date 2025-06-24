@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"net"
+	"strings"
 	"sync"
 
 	"maps"
@@ -279,4 +280,16 @@ func (db *MultiMaxMindDB[T]) CheckUpdates(ctx context.Context) (entity.Updates, 
 	}
 
 	return multiUpdates, multiErr
+}
+
+func (db *MultiMaxMindDB[T]) State() string {
+	var res string
+	for _, database := range db.dbs {
+		state := database.State()
+		if !strings.HasSuffix(state, ";") {
+			state += ";"
+		}
+		res += state
+	}
+	return res
 }

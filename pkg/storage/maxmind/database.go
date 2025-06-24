@@ -3,6 +3,7 @@ package maxmind
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"net"
 	"os"
@@ -34,6 +35,10 @@ func Open(path string) (*MaxmindDatabase, error) {
 		reader: db,
 		dbRaw:  dbRaw,
 	}, nil
+}
+
+func (db *MaxmindDatabase) State() string {
+	return fmt.Sprintf("%s%d.%d", db.reader.Metadata.DatabaseType, db.reader.Metadata.BinaryFormatMajorVersion, db.reader.Metadata.BinaryFormatMinorVersion)
 }
 
 func (db *MaxmindDatabase) SetSource(source *source.MaxmindSource) {

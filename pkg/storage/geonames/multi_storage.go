@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"maps"
+	"strings"
 
 	"github.com/bldsoft/geos/pkg/entity"
 )
@@ -98,4 +99,16 @@ func (s *MultiStorage[T]) Cities(ctx context.Context, filter entity.GeoNameFilte
 		res = append(res, cities...)
 	}
 	return res, nil
+}
+
+func (s *MultiStorage[T]) State() string {
+	var res string
+	for _, storage := range s.storages {
+		state := storage.State()
+		if !strings.HasSuffix(state, ";") {
+			state += ";"
+		}
+		res += state
+	}
+	return res
 }

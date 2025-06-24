@@ -2,8 +2,13 @@ package geonames
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/bldsoft/geos/pkg/entity"
+	"github.com/bldsoft/geos/pkg/storage/source"
 	"github.com/mkrou/geonames"
 	"github.com/mkrou/geonames/models"
 )
@@ -33,7 +38,8 @@ func GeoNameContinents() []*entity.GeoNameContinent {
 }
 
 type GeoNameStorage struct {
-	dir string
+	dir    string
+	source source.Source
 
 	countries    *geonameEntityStorage[*entity.GeoNameCountry]
 	subdivisions *geonameEntityStorage[*entity.GeoNameAdminSubdivision]
@@ -49,6 +55,10 @@ func NewStorage(dir string) *GeoNameStorage {
 	s.fill()
 
 	return s
+}
+
+func (s *GeoNameStorage) SetSource(source source.Source) {
+	s.source = source
 }
 
 func (s *GeoNameStorage) fill() {
@@ -84,14 +94,25 @@ func (s *GeoNameStorage) fill() {
 }
 
 func (s *GeoNameStorage) CheckUpdates(ctx context.Context) (entity.Updates, error) {
-	return nil, nil
+	if s.source == nil {
+		return nil, source.ErrNoSource
+	}
+	return s.source.CheckUpdates(ctx)
 }
 
 func (s *GeoNameStorage) Download(ctx context.Context) (entity.Updates, error) {
+	if s.source == nil {
+		return nil, source.ErrNoSource
+	}
+
+	updates, err := s.source.Download(ctx)
+	if err != nil {
+		return updates, err
+	}
+
 	s.fill()
-	return entity.Updates{
-		entity.SubjectGeonames: &entity.UpdateStatus{Error: ""},
-	}, nil
+
+	return updates, nil
 }
 
 func (r *GeoNameStorage) fillAdditionalFields() {
@@ -184,4 +205,16 @@ func (r *GeoNameStorage) Cities(ctx context.Context, filter entity.GeoNameFilter
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}
+}
+
+func (r *GeoNameStorage) State() string {
+	var state string
+	for _, filename := range []string{"countryInfo.txt", "admin1CodesASCII.txt", "cities500.zip"} {
+		filePath := filepath.Join(r.dir, filename)
+		if info, err := os.Stat(filePath); err == nil {
+			state += fmt.Sprintf("%s:%d,", filename, info.ModTime().Unix())
+		}
+	}
+	state = strings.TrimSuffix(state, ",")
+	return state + ";"
 }

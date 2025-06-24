@@ -50,6 +50,7 @@ func (c *ManagementController) UpdateGeonamesHandler(w http.ResponseWriter, r *h
 	}
 }
 
-func (c *ManagementController) GetGeosStatusHandler(w http.ResponseWriter, r *http.Request) {
-
+func (c *ManagementController) GetGeosStateHandler(w http.ResponseWriter, r *http.Request) {
+	res := c.geoIpService.State() + c.geoNameService.State()
+	c.ResponseJson(w, r, res)
 }

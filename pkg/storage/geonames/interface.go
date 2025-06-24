@@ -14,4 +14,5 @@ type Storage interface {
 	Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error)
 
 	source.Updater
+	source.Stater
 }

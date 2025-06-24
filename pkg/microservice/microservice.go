@@ -140,6 +140,12 @@ func (m *Microservice) initServices() {
 
 func (m *Microservice) geonamesStorage(patchSrc *source.PatchesSource) geonames.Storage {
 	original := geonames.NewStorage(m.config.GeoNameDumpDirPath)
+
+	if m.config.AutoUpdatePeriod > 0 && len(m.config.GeoNameDumpDirPath) > 0 {
+		geoNamesSource := source.NewGeoNamesSource(m.config.GeoNameDumpDirPath, m.config.AutoUpdatePeriod)
+		original.SetSource(geoNamesSource)
+	}
+
 	custom := geonames.NewCustomStorageFromTarGz(patchSrc.ArchiveFilePath())
 	custom.SetSource(patchSrc)
 	return geonames.NewMultiStorage[geonames.Storage](original).Add(custom)
@@ -165,7 +171,7 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 			r.Get("/dump", geoIpController.GetDumpHandler) // deprecated, used by streampool
 			r.Get("/update", managementController.CheckGeoIPUpdatesHandler)
 			r.Put("/update", managementController.UpdateGeoIPHandler)
-			r.Get("/status", managementController.GetGeosStatusHandler)
+			r.Get("/state", managementController.GetGeosStateHandler)
 		})
 
 		r.Route("/dump/{db}", func(r chi.Router) {

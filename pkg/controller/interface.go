@@ -16,6 +16,7 @@ type GeoIpService interface {
 	Database(ctx context.Context, dbType service.DBType, format service.DumpFormat) (*entity.Database, error)
 
 	source.Updater
+	source.Stater
 }
 
 type GeoNameService interface {
@@ -26,4 +27,5 @@ type GeoNameService interface {
 	Dump(ctx context.Context, format service.DumpFormat) ([]byte, error)
 
 	source.Updater
+	source.Stater
 }

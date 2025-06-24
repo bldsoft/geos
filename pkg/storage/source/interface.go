@@ -18,3 +18,7 @@ type Source interface {
 	Updater
 	DirPath() string
 }
+
+type Stater interface {
+	State() string
+}

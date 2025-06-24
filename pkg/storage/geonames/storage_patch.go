@@ -3,11 +3,9 @@ package geonames
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
+	"strconv"
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/utils"
@@ -89,34 +87,8 @@ type StoragePatch struct {
 	countries    []*entity.GeoNameCountry
 	subdivisions []*entity.GeoNameAdminSubdivision
 	cities       []*entity.GeoName
-}
 
-func NewStoragePatchesFromDir(dir, customStoragesPrefix string) []*StoragePatch {
-	var customStorages []*StoragePatch
-	err := filepath.WalkDir(dir, func(s string, d fs.DirEntry, e error) error {
-		if e != nil {
-			return e
-		}
-		if !d.Type().IsRegular() || !strings.HasPrefix(d.Name(), customStoragesPrefix) {
-			return nil
-		}
-
-		path := filepath.Join(dir, d.Name())
-		custom, err := NewStoragePatchFromFile(path)
-		if err != nil {
-			if errors.Is(err, utils.ErrUnknownFormat) {
-				return nil
-			}
-			return err
-		}
-		customStorages = append(customStorages, custom)
-
-		return nil
-	})
-	if err != nil {
-		log.WarnWithFields(log.Fields{"err": err}, "failed to read custom geonames storage")
-	}
-	return customStorages
+	state string
 }
 
 func NewStoragePatchesFromTarGz(archiveFilepath string) []*StoragePatch {
@@ -128,6 +100,11 @@ func NewStoragePatchesFromTarGz(archiveFilepath string) []*StoragePatch {
 		return nil
 	}
 	defer f.Close()
+
+	stat, err := f.Stat()
+	if err != nil {
+		log.Errorf("failed to stat custom geonames storage archive %s: %v", archiveFilepath, err)
+	}
 
 	content, err := utils.UnpackTarGz(f)
 	if err != nil {
@@ -147,7 +124,7 @@ func NewStoragePatchesFromTarGz(archiveFilepath string) []*StoragePatch {
 			continue
 		}
 
-		customStorages = append(customStorages, NewStoragePatch(records))
+		customStorages = append(customStorages, NewStoragePatch(records).WithState(strconv.FormatInt(stat.ModTime().Unix(), 10)))
 	}
 
 	return customStorages
@@ -163,11 +140,16 @@ func NewStoragePatchFromFile(path string) (*StoragePatch, error) {
 		return nil, err
 	}
 
+	stat, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+
 	var records []CustomGeonamesRecord
 	if err := json.Unmarshal(data, &records); err != nil {
 		return nil, err
 	}
-	return NewStoragePatch(records), nil
+	return NewStoragePatch(records).WithState(strconv.FormatInt(stat.ModTime().Unix(), 10)), nil
 }
 
 func NewStoragePatch(records []CustomGeonamesRecord) *StoragePatch {
@@ -179,6 +161,11 @@ func NewStoragePatch(records []CustomGeonamesRecord) *StoragePatch {
 		res.cities = append(res.cities, rec.CityEntity())
 	}
 	return res
+}
+
+func (s *StoragePatch) WithState(state string) *StoragePatch {
+	s.state = state
+	return s
 }
 
 func (s *StoragePatch) Continents(_ context.Context) []*entity.GeoNameContinent {
@@ -215,4 +202,8 @@ func (s *StoragePatch) CheckUpdates(_ context.Context) (entity.Updates, error) {
 
 func (s *StoragePatch) Download(ctx context.Context) (entity.Updates, error) {
 	return nil, nil
+}
+
+func (s *StoragePatch) State() string {
+	return s.state
 }

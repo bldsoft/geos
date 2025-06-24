@@ -6,15 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"net"
 	"os"
 	"path/filepath"
-	"strings"
+	"strconv"
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/utils"
-	"github.com/bldsoft/gost/log"
 	"github.com/maxmind/mmdbwriter"
 	"github.com/maxmind/mmdbwriter/inserter"
 	"github.com/maxmind/mmdbwriter/mmdbtype"
@@ -34,34 +32,7 @@ type DatabasePatch struct {
 	tree  *mmdbwriter.Tree
 	dbRaw []byte
 	db    *maxminddb.Reader
-}
-
-func NewDatabasePatchesFromDir(dir, customDBPrefix string) []*DatabasePatch {
-	var customDBs []*DatabasePatch
-	err := filepath.WalkDir(dir, func(s string, d fs.DirEntry, e error) error {
-		if e != nil {
-			return e
-		}
-		if !d.Type().IsRegular() || !strings.HasPrefix(d.Name(), customDBPrefix) {
-			return nil
-		}
-
-		path := filepath.Join(dir, d.Name())
-		custom, err := NewDatabasePatchFromFile(path)
-		if err != nil {
-			if errors.Is(err, utils.ErrUnknownFormat) {
-				return nil
-			}
-			return err
-		}
-		customDBs = append(customDBs, custom)
-
-		return nil
-	})
-	if err != nil {
-		log.WarnWithFields(log.Fields{"err": err}, "failed to read custom databases")
-	}
-	return customDBs
+	state string
 }
 
 func NewDatabasePatchesFromTarGz(filename string) ([]*DatabasePatch, error) {
@@ -105,7 +76,7 @@ func NewDatabasePatchesFromTarGz(filename string) ([]*DatabasePatch, error) {
 				IPVersion:                db.db.Metadata.IPVersion,
 				NodeCount:                db.db.Metadata.NodeCount,
 				RecordSize:               db.db.Metadata.RecordSize,
-			}))
+			}).WithState(strconv.FormatInt(stat.ModTime().Unix(), 10)))
 		}
 	}
 
@@ -149,7 +120,7 @@ func NewDatabasePatchFromFile(path string) (*DatabasePatch, error) {
 		IPVersion:                db.db.Metadata.IPVersion,
 		NodeCount:                db.db.Metadata.NodeCount,
 		RecordSize:               db.db.Metadata.RecordSize,
-	}), nil
+	}).WithState(strconv.FormatInt(stat.ModTime().Unix(), 10)), nil
 }
 
 func NewDatabasePatch(reader MMDBRecordReader) (*DatabasePatch, error) {
@@ -194,6 +165,11 @@ func (db *DatabasePatch) WithMetadata(meta maxminddb.Metadata) *DatabasePatch {
 	return db
 }
 
+func (db *DatabasePatch) WithState(state string) *DatabasePatch {
+	db.state = state
+	return db
+}
+
 func (db *DatabasePatch) Available() bool {
 	return true
 }
@@ -229,4 +205,8 @@ func (db *DatabasePatch) Download(_ context.Context) (entity.Updates, error) {
 func (db *DatabasePatch) CheckUpdates(_ context.Context) (entity.Updates, error) {
 	// patches updates check is controlled by the custom database
 	return nil, nil
+}
+
+func (db *DatabasePatch) State() string {
+	return db.state
 }
