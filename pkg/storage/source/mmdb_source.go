@@ -107,8 +107,6 @@ func NewMMDBSource(sourceUrl, dbPath string, name entity.Subject, autoUpdatePeri
 			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to update local files for %s database", name)
 			return s
 		}
-
-		//should we check and clear temporary file here???
 	}
 
 	if f == nil || autoUpdatePeriod == 0 {

@@ -78,10 +78,13 @@ func (dm *DownloadManager) RecoverInterruptedDownloads(ctx context.Context, targ
 		log.FromContext(ctx).WarnWithFields(log.Fields{"err": err}, "Failed to remove temporary file, continuing anyway")
 	}
 
-	log.FromContext(ctx).Infof("Re-downloading %s to recover from interrupted download", dm.name)
 	err := dm.Download(ctx, sourceUrl, targetPath)
 	if err != nil {
 		return fmt.Errorf("failed to re-download during recovery: %w", err)
+	}
+
+	if err := dm.ApplyUpdate(ctx, targetPath); err != nil {
+		return fmt.Errorf("failed to apply update after recovery: %w", err)
 	}
 
 	return nil

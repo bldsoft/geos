@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sync"
+	"sync/atomic"
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/gost/log"
@@ -53,11 +53,9 @@ func (s *GeoNamesSource) downloadFiles(ctx context.Context, filenames []string) 
 	return eg.Wait()
 }
 
-// prettify me
 func (s *GeoNamesSource) checkUpdates(ctx context.Context) (bool, error) {
 	var eg errgroup.Group
-	var exists bool
-	var m sync.Mutex
+	var hasUpdates int32
 
 	for _, filename := range geonamesFiles {
 		eg.Go(func() error {
@@ -66,24 +64,27 @@ func (s *GeoNamesSource) checkUpdates(ctx context.Context) (bool, error) {
 				return fmt.Errorf("download manager for %s not found", filename)
 			}
 
-			targetUrl := fmt.Sprintf("%s/%s", geonamesBaseURL, filename)
+			targetURL := fmt.Sprintf("%s/%s", geonamesBaseURL, filename)
+			targetPath := filepath.Join(s.dirPath, filename)
 
-			hu, err := manager.CheckUpdates(ctx, targetUrl, filepath.Join(s.dirPath, filename))
+			hasUpdate, err := manager.CheckUpdates(ctx, targetURL, targetPath)
 			if err != nil {
 				return fmt.Errorf("failed to check updates for file %s: %w", filename, err)
 			}
 
-			if hu {
-				m.Lock()
-				exists = true
-				m.Unlock()
+			if hasUpdate {
+				atomic.StoreInt32(&hasUpdates, 1)
 			}
 
 			return nil
 		})
 	}
 
-	return exists, eg.Wait()
+	if err := eg.Wait(); err != nil {
+		return false, err
+	}
+
+	return atomic.LoadInt32(&hasUpdates) == 1, nil
 }
 
 func (s *GeoNamesSource) applyChanges(ctx context.Context) error {
@@ -118,6 +119,13 @@ func NewGeoNamesSource(dirPath string, autoUpdatePeriod int) *GeoNamesSource {
 
 	for _, filename := range geonamesFiles {
 		s.managers[filename] = NewDownloadManager(s.name)
+	}
+
+	for file, manager := range s.managers {
+		if err := manager.RecoverInterruptedDownloads(ctx, filepath.Join(s.dirPath, file), fmt.Sprintf("%s/%s", geonamesBaseURL, file)); err != nil {
+			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to handle interrupted downloads for %s", s.name)
+			return s
+		}
 	}
 
 	// if err := s.initAutoUpdates(ctx, autoUpdatePeriod); err != nil {
