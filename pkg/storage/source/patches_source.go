@@ -1,11 +1,8 @@
 package source
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"time"
 
@@ -14,14 +11,11 @@ import (
 )
 
 type PatchesSource struct {
-	sourceUrl string
-	dirPath   string
-	prefix    string
-	Name      entity.Subject
-}
-
-func (s *PatchesSource) tmpFilePath() string {
-	return fmt.Sprintf("%s/%s_patches_tmp.tar.gz", s.dirPath, s.prefix)
+	sourceUrl       string
+	dirPath         string
+	prefix          string
+	Name            entity.Subject
+	downloadManager *DownloadManager
 }
 
 func (s *PatchesSource) ArchiveFilePath() string {
@@ -30,10 +24,11 @@ func (s *PatchesSource) ArchiveFilePath() string {
 
 func NewPatchesSource(sourceUrl, dirPath, prefix string, name entity.Subject, autoUpdatePeriod int) *PatchesSource {
 	s := &PatchesSource{
-		sourceUrl: sourceUrl,
-		dirPath:   dirPath,
-		prefix:    prefix,
-		Name:      name,
+		sourceUrl:       sourceUrl,
+		dirPath:         dirPath,
+		prefix:          prefix,
+		Name:            name,
+		downloadManager: NewDownloadManager(name),
 	}
 
 	ctx := context.Background()
@@ -41,6 +36,10 @@ func NewPatchesSource(sourceUrl, dirPath, prefix string, name entity.Subject, au
 	if len(sourceUrl) == 0 {
 		log.FromContext(ctx).Warnf("Source for %s is not set. You will NOT be able to check for %s updates and download them without providing source.", s.Name, s.Name)
 		return s
+	}
+
+	if err := s.downloadManager.RecoverInterruptedDownloads(ctx, s.ArchiveFilePath(), s.sourceUrl); err != nil {
+		log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to handle interrupted downloads for %s", s.Name)
 	}
 
 	if err := s.initAutoUpdates(ctx, autoUpdatePeriod); err != nil {
@@ -56,7 +55,7 @@ func NewPatchesSource(sourceUrl, dirPath, prefix string, name entity.Subject, au
 
 		log.FromContext(ctx).Warnf("No %s archive found, creating empty one", s.Name)
 		if _, err := os.Create(s.ArchiveFilePath()); err != nil {
-			log.FromContext(ctx).Errorf("Failed to create empty archive for %s: %v", s.Name, err) //TEST THIS
+			log.FromContext(ctx).Errorf("Failed to create empty archive for %s: %v", s.Name, err)
 		}
 	}
 
@@ -64,26 +63,27 @@ func NewPatchesSource(sourceUrl, dirPath, prefix string, name entity.Subject, au
 		return s
 	}
 
-	if err := s.getTmpArchive(s.sourceUrl); err != nil {
-		log.FromContext(ctx).Errorf("Failed to check for updates for %s: %v", s.Name, err)
+	if err := s.downloadManager.Download(ctx, s.sourceUrl, s.ArchiveFilePath()); err != nil {
+		log.FromContext(ctx).Errorf("Failed to download remote archive to check updates for %s: %v", s.Name, err)
 		return s
 	}
 
-	exist, err := s.checkUpdates()
+	hasUpdates, err := s.downloadManager.CheckUpdates(ctx, s.sourceUrl, s.ArchiveFilePath())
 	if err != nil {
 		log.FromContext(ctx).Errorf("Failed to check for updates for %s: %v", s.Name, err)
 		return s
 	}
 
-	if !exist {
-		if err := s.rmTmpArchive(); err != nil {
-			log.FromContext(ctx).Errorf("Failed to remove temporary archive for %s: %v", s.Name, err)
-		}
+	if !hasUpdates {
 		return s
 	}
 
 	log.FromContext(ctx).Infof("Found updates for %s", s.Name)
-	if err := s.updateLocalFiles(); err != nil {
+	if err := s.downloadManager.Download(ctx, s.sourceUrl, s.ArchiveFilePath()); err != nil {
+		log.FromContext(ctx).Errorf("Failed to download updates for %s: %v", s.Name, err)
+		return s
+	}
+	if err := s.downloadManager.ApplyUpdate(ctx, s.ArchiveFilePath()); err != nil {
 		log.FromContext(ctx).Errorf("Failed to apply updates for %s: %v", s.Name, err)
 		return s
 	}
@@ -109,27 +109,21 @@ func (s *PatchesSource) initAutoUpdates(ctx context.Context, autoUpdatePeriod in
 		for range timer.C {
 			log.FromContext(ctx).Infof("Executing auto update for %s", s.Name)
 
-			err := s.getTmpArchive(s.sourceUrl)
-			if err != nil {
-				log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to get source files for %s", s.Name)
-				continue
-			}
-
-			exist, err := s.checkUpdates()
+			hasUpdates, err := s.downloadManager.CheckUpdates(ctx, s.sourceUrl, s.ArchiveFilePath())
 			if err != nil {
 				log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to check for updates for %s", s.Name)
 				continue
 			}
 
-			if !exist {
+			if !hasUpdates {
 				log.FromContext(ctx).Infof("No updates found for %s", s.Name)
 				continue
 			}
 
 			log.FromContext(ctx).Infof("Found update for %s", s.Name)
 
-			if err := s.updateLocalFiles(); err != nil {
-				log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to download updates for %s", s.Name)
+			if err := s.downloadManager.ApplyUpdate(ctx, s.ArchiveFilePath()); err != nil {
+				log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to apply updates for %s", s.Name)
 				continue
 			}
 
@@ -153,53 +147,27 @@ func (s *PatchesSource) CheckUpdates(ctx context.Context) (entity.Updates, error
 		return updates, nil
 	}
 
-	err := s.getTmpArchive(s.sourceUrl)
+	if err := s.downloadManager.Download(ctx, s.sourceUrl, s.ArchiveFilePath()); err != nil {
+		updates[s.Name] = &entity.UpdateStatus{Error: err.Error()}
+		return updates, nil
+	}
+
+	hasUpdates, err := s.downloadManager.CheckUpdates(ctx, s.sourceUrl, s.ArchiveFilePath())
 	if err != nil {
 		updates[s.Name] = &entity.UpdateStatus{Error: err.Error()}
 		return updates, nil
 	}
 
-	exist, err := s.checkUpdates()
-	if err != nil {
-		updates[s.Name] = &entity.UpdateStatus{Error: err.Error()}
-		return updates, nil
-	}
-
-	if exist {
+	if hasUpdates {
 		updates[s.Name] = &entity.UpdateStatus{Available: true}
-	}
-
-	if err := s.rmTmpArchive(); err != nil {
-		return nil, fmt.Errorf("failed to remove temporary archive: %w", err)
+		s.downloadManager.RemoveTmp(s.ArchiveFilePath())
 	}
 
 	return updates, nil
 }
 
-func (s *PatchesSource) checkUpdates() (bool, error) {
-	tmpFile, err := os.Open(s.tmpFilePath())
-	if err != nil {
-		return false, err
-	}
-	defer tmpFile.Close()
-
-	currentFile, err := os.Open(s.ArchiveFilePath())
-	if err != nil {
-		return false, err
-	}
-	defer currentFile.Close()
-
-	tmpContent, err := io.ReadAll(tmpFile)
-	if err != nil {
-		return false, err
-	}
-
-	currentContent, err := io.ReadAll(currentFile)
-	if err != nil {
-		return false, err
-	}
-
-	return !bytes.Equal(tmpContent, currentContent), nil
+func (s *PatchesSource) DirPath() string {
+	return s.dirPath
 }
 
 func (s *PatchesSource) Download(ctx context.Context) (entity.Updates, error) {
@@ -215,25 +183,24 @@ func (s *PatchesSource) Download(ctx context.Context) (entity.Updates, error) {
 		return updates, nil
 	}
 
-	err := s.getTmpArchive(s.sourceUrl)
+	if err := s.downloadManager.Download(ctx, s.sourceUrl, s.ArchiveFilePath()); err != nil {
+		updates[s.Name] = &entity.UpdateStatus{Error: err.Error()}
+		return updates, nil
+	}
+
+	hasUpdates, err := s.downloadManager.CheckUpdates(ctx, s.sourceUrl, s.ArchiveFilePath())
 	if err != nil {
 		updates[s.Name] = &entity.UpdateStatus{Error: err.Error()}
 		return updates, nil
 	}
 
-	exist, err := s.checkUpdates()
-	if err != nil {
-		updates[s.Name] = &entity.UpdateStatus{Error: err.Error()}
-		return updates, nil
-	}
-
-	if !exist {
+	if !hasUpdates {
 		return nil, nil
 	}
 
-	if err := s.updateLocalFiles(); err != nil {
+	if err := s.downloadManager.ApplyUpdate(ctx, s.ArchiveFilePath()); err != nil {
 		updates[s.Name] = &entity.UpdateStatus{Error: err.Error()}
-		return updates, err
+		return updates, nil
 	}
 
 	log.FromContext(ctx).Infof("Applied updates for %s", s.Name)
@@ -241,49 +208,4 @@ func (s *PatchesSource) Download(ctx context.Context) (entity.Updates, error) {
 	updates[s.Name] = &entity.UpdateStatus{}
 
 	return updates, nil
-}
-
-func (s *PatchesSource) rmTmpArchive() error {
-	return os.Remove(s.tmpFilePath())
-}
-
-func (s *PatchesSource) updateLocalFiles() error {
-	if err := os.Remove(s.ArchiveFilePath()); err != nil && !os.IsNotExist(err) {
-		return err
-	}
-
-	return os.Rename(s.tmpFilePath(), s.ArchiveFilePath())
-}
-
-func (s *PatchesSource) DirPath() string {
-	return s.dirPath
-}
-
-func (s *PatchesSource) getTmpArchive(url string) error {
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("bad response status: %s", resp.Status)
-	}
-
-	tmpFile, err := os.Create(s.tmpFilePath())
-	if err != nil {
-		return err
-	}
-	defer tmpFile.Close()
-
-	_, err = io.Copy(tmpFile, resp.Body)
-	if err != nil {
-		return err
-	}
-
-	if err := tmpFile.Close(); err != nil {
-		return err
-	}
-
-	return nil
 }

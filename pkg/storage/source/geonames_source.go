@@ -3,15 +3,14 @@ package source
 import (
 	"context"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
-	"time"
+	"sync"
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/gost/log"
+	"github.com/bldsoft/gost/utils/errgroup"
+	"github.com/mkrou/geonames"
 )
 
 const (
@@ -19,20 +18,95 @@ const (
 )
 
 var geonamesFiles = []string{
-	"countryInfo.txt",
-	"admin1CodesASCII.txt",
-	"cities500.zip",
+	geonames.Countries.String(),
+	geonames.AdminDivisions.String(),
+	string(geonames.Cities500),
 }
 
 type GeoNamesSource struct {
-	dirPath string
-	name    entity.Subject
+	dirPath  string
+	name     entity.Subject
+	managers map[string]*DownloadManager
+}
+
+func (s *GeoNamesSource) downloadFiles(ctx context.Context, filenames []string) error {
+	if err := os.MkdirAll(s.dirPath, 0755); err != nil {
+		return fmt.Errorf("failed to create directory %s: %w", s.dirPath, err)
+	}
+
+	var eg errgroup.Group
+
+	for _, filename := range filenames {
+		eg.Go(func() error {
+			manager := s.managers[filename]
+			if manager == nil {
+				return fmt.Errorf("download manager for %s not found", filename)
+			}
+			targetPath := filepath.Join(s.dirPath, filename)
+			if err := manager.Download(ctx, fmt.Sprintf("%s/%s", geonamesBaseURL, filename), targetPath); err != nil {
+				return fmt.Errorf("failed to download file %s: %w", filename, err)
+			}
+			return nil
+		})
+	}
+
+	return eg.Wait()
+}
+
+// prettify me
+func (s *GeoNamesSource) checkUpdates(ctx context.Context) (bool, error) {
+	var eg errgroup.Group
+	var exists bool
+	var m sync.Mutex
+
+	for _, filename := range geonamesFiles {
+		eg.Go(func() error {
+			manager := s.managers[filename]
+			if manager == nil {
+				return fmt.Errorf("download manager for %s not found", filename)
+			}
+
+			targetUrl := fmt.Sprintf("%s/%s", geonamesBaseURL, filename)
+
+			hu, err := manager.CheckUpdates(ctx, targetUrl, filepath.Join(s.dirPath, filename))
+			if err != nil {
+				return fmt.Errorf("failed to check updates for file %s: %w", filename, err)
+			}
+
+			if hu {
+				m.Lock()
+				exists = true
+				m.Unlock()
+			}
+
+			return nil
+		})
+	}
+
+	return exists, eg.Wait()
+}
+
+func (s *GeoNamesSource) applyChanges(ctx context.Context) error {
+	for _, filename := range geonamesFiles {
+		manager := s.managers[filename]
+		if manager == nil {
+			continue
+		}
+
+		targetPath := filepath.Join(s.dirPath, filename)
+		if err := manager.ApplyUpdate(ctx, targetPath); err != nil {
+			continue
+		}
+	}
+
+	return nil
 }
 
 func NewGeoNamesSource(dirPath string, autoUpdatePeriod int) *GeoNamesSource {
 	s := &GeoNamesSource{
-		dirPath: dirPath,
-		name:    entity.SubjectGeonames,
+		dirPath:  dirPath,
+		name:     entity.SubjectGeonames,
+		managers: make(map[string]*DownloadManager),
 	}
 
 	ctx := context.Background()
@@ -42,25 +116,20 @@ func NewGeoNamesSource(dirPath string, autoUpdatePeriod int) *GeoNamesSource {
 		return s
 	}
 
-	if err := s.initAutoUpdates(ctx, autoUpdatePeriod); err != nil {
-		log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to initialize auto updates for %s", s.name)
+	for _, filename := range geonamesFiles {
+		s.managers[filename] = NewDownloadManager(s.name)
 	}
 
-	missing, err := s.checkMissingFiles()
-	if err != nil {
-		log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to check existing files for %s", s.name)
-		return s
-	}
-
-	if len(missing) > 0 {
-		log.FromContext(ctx).Infof("Missing %s files: %s. Downloading...", s.name, strings.Join(missing, ", "))
-		if err := s.downloadFiles(ctx, missing); err != nil {
-			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to download missing %s files", s.name)
-		}
-	}
+	// if err := s.initAutoUpdates(ctx, autoUpdatePeriod); err != nil {
+	// 	log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to initialize auto updates for %s", s.name)
+	// }
 
 	if autoUpdatePeriod == 0 {
 		return s
+	}
+
+	if err := s.downloadFiles(ctx, geonamesFiles); err != nil {
+		log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to download missing %s files", s.name)
 	}
 
 	exist, err := s.checkUpdates(ctx)
@@ -70,13 +139,17 @@ func NewGeoNamesSource(dirPath string, autoUpdatePeriod int) *GeoNamesSource {
 	}
 
 	if !exist {
+		s.removeTmpFiles()
 		return s
 	}
 
-	log.FromContext(ctx).Infof("Found updates for %s during initialization", s.name)
-	if err := s.downloadFiles(ctx, geonamesFiles); err != nil {
-		log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to download %s updates", s.name)
+	log.FromContext(ctx).Infof("Found updates for %s", s.name)
+	if err := s.applyChanges(ctx); err != nil {
+		log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to apply updates for %s", s.name)
+		return s
 	}
+
+	log.FromContext(ctx).Infof("Successfully applied updates for %s", s.name)
 
 	return s
 }
@@ -85,45 +158,56 @@ func (s *GeoNamesSource) DirPath() string {
 	return s.dirPath
 }
 
-func (s *GeoNamesSource) initAutoUpdates(ctx context.Context, autoUpdatePeriod int) error {
-	if autoUpdatePeriod <= 0 {
-		return nil
-	}
+// func (s *GeoNamesSource) initAutoUpdates(ctx context.Context, autoUpdatePeriod int) error {
+// 	if autoUpdatePeriod <= 0 {
+// 		return nil
+// 	}
 
-	if s.dirPath == "" {
-		return fmt.Errorf("missing required directory path")
-	}
+// 	if s.dirPath == "" {
+// 		return fmt.Errorf("missing required directory path")
+// 	}
 
-	go func() {
-		timer := time.NewTicker(time.Duration(autoUpdatePeriod) * time.Hour)
-		defer timer.Stop()
+// 	go func() {
+// 		timer := time.NewTicker(time.Duration(autoUpdatePeriod) * time.Hour)
+// 		defer timer.Stop()
 
-		for range timer.C {
-			log.FromContext(ctx).Infof("Executing auto update for %s", s.name)
+// 		for range timer.C {
+// 			log.FromContext(ctx).Infof("Executing auto update for %s", s.name)
 
-			exist, err := s.checkUpdates(ctx)
-			if err != nil {
-				log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to check for updates for %s", s.name)
-				continue
-			}
+// 			exist, err := s.checkUpdates(ctx)
+// 			if err != nil {
+// 				log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to check for updates for %s", s.name)
+// 				continue
+// 			}
 
-			if !exist {
-				log.FromContext(ctx).Infof("No updates found for %s", s.name)
-				continue
-			}
+// 			if !exist {
+// 				log.FromContext(ctx).Infof("No updates found for %s", s.name)
+// 				continue
+// 			}
 
-			log.FromContext(ctx).Infof("Found updates for %s", s.name)
+// 			log.FromContext(ctx).Infof("Found updates for %s", s.name)
 
-			if err := s.downloadFiles(ctx, geonamesFiles); err != nil {
-				log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to download updates for %s", s.name)
-				continue
-			}
+// 			if err := s.downloadFiles(ctx, geonamesFiles); err != nil {
+// 				log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to download updates for %s", s.name)
+// 				continue
+// 			}
 
-			log.FromContext(ctx).Infof("Successfully applied updates for %s", s.name)
+// 			log.FromContext(ctx).Infof("Successfully applied updates for %s", s.name)
+// 		}
+// 	}()
+
+// 	return nil
+// }
+
+func (s *GeoNamesSource) removeTmpFiles() {
+	for _, filename := range geonamesFiles {
+		manager := s.managers[filename]
+		if manager == nil {
+			continue
 		}
-	}()
 
-	return nil
+		manager.RemoveTmp(filename)
+	}
 }
 
 func (s *GeoNamesSource) CheckUpdates(ctx context.Context) (entity.Updates, error) {
@@ -131,6 +215,11 @@ func (s *GeoNamesSource) CheckUpdates(ctx context.Context) (entity.Updates, erro
 
 	if s.dirPath == "" {
 		updates[s.name] = &entity.UpdateStatus{Error: fmt.Errorf("%s directory path is not set, unable to check for updates", s.name).Error()}
+		return updates, nil
+	}
+
+	if err := s.downloadFiles(ctx, geonamesFiles); err != nil {
+		updates[s.name] = &entity.UpdateStatus{Error: err.Error()}
 		return updates, nil
 	}
 
@@ -144,6 +233,8 @@ func (s *GeoNamesSource) CheckUpdates(ctx context.Context) (entity.Updates, erro
 		updates[s.name] = &entity.UpdateStatus{Available: true}
 	}
 
+	s.removeTmpFiles()
+
 	return updates, nil
 }
 
@@ -152,6 +243,11 @@ func (s *GeoNamesSource) Download(ctx context.Context) (entity.Updates, error) {
 
 	if s.dirPath == "" {
 		updates[s.name] = &entity.UpdateStatus{Error: fmt.Errorf("%s directory path is not set, unable to download", s.name).Error()}
+		return updates, nil
+	}
+
+	if err := s.downloadFiles(ctx, geonamesFiles); err != nil {
+		updates[s.name] = &entity.UpdateStatus{Error: err.Error()}
 		return updates, nil
 	}
 
@@ -165,9 +261,11 @@ func (s *GeoNamesSource) Download(ctx context.Context) (entity.Updates, error) {
 		return nil, nil
 	}
 
-	if err := s.downloadFiles(ctx, geonamesFiles); err != nil {
-		updates[s.name] = &entity.UpdateStatus{Error: err.Error()}
-		return updates, nil
+	for _, manager := range s.managers {
+		if err := manager.ApplyUpdate(ctx, filepath.Join(s.dirPath)); err != nil {
+			updates[s.name] = &entity.UpdateStatus{Error: fmt.Errorf("failed to apply updates for %s: %w", s.name, err).Error()}
+			return updates, nil
+		}
 	}
 
 	log.FromContext(ctx).Infof("Applied updates for %s", s.name)
@@ -175,121 +273,4 @@ func (s *GeoNamesSource) Download(ctx context.Context) (entity.Updates, error) {
 	updates[s.name] = &entity.UpdateStatus{}
 
 	return updates, nil
-}
-
-func (s *GeoNamesSource) checkMissingFiles() ([]string, error) {
-	var missing []string
-	for _, filename := range geonamesFiles {
-		fullPath := filepath.Join(s.dirPath, filename)
-		if _, err := os.Stat(fullPath); os.IsNotExist(err) {
-			missing = append(missing, filename)
-		} else if err != nil {
-			return nil, fmt.Errorf("failed to check file %s: %w", fullPath, err)
-		}
-	}
-	return missing, nil
-}
-
-func (s *GeoNamesSource) checkUpdates(ctx context.Context) (bool, error) {
-	for _, filename := range geonamesFiles {
-		hasUpdate, err := s.checkFileUpdate(ctx, filename)
-		if err != nil {
-			return false, fmt.Errorf("failed to check updates for file %s: %w", filename, err)
-		}
-		if hasUpdate {
-			return true, nil
-		}
-	}
-	return false, nil
-}
-
-func (s *GeoNamesSource) checkFileUpdate(ctx context.Context, filename string) (bool, error) {
-	url := fmt.Sprintf("%s/%s", geonamesBaseURL, filename)
-
-	req, err := http.NewRequestWithContext(ctx, "HEAD", url, nil)
-	if err != nil {
-		return false, err
-	}
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return false, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return false, fmt.Errorf("failed to check file %s: %s", filename, resp.Status)
-	}
-
-	remoteLastModified := resp.Header.Get("Last-Modified")
-	if remoteLastModified == "" {
-		return true, nil
-	}
-
-	remoteTime, err := time.Parse(time.RFC1123, remoteLastModified)
-	if err != nil {
-		return true, nil
-	}
-
-	localPath := filepath.Join(s.dirPath, filename)
-	stat, err := os.Stat(localPath)
-	if os.IsNotExist(err) {
-		return true, nil
-	} else if err != nil {
-		return false, err
-	}
-
-	return remoteTime.After(stat.ModTime().Add(-time.Minute)), nil
-}
-
-func (s *GeoNamesSource) downloadFiles(ctx context.Context, filenames []string) error {
-	if err := os.MkdirAll(s.dirPath, 0755); err != nil {
-		return fmt.Errorf("failed to create directory %s: %w", s.dirPath, err)
-	}
-
-	for _, filename := range filenames {
-		if err := s.downloadFile(ctx, filename); err != nil {
-			return fmt.Errorf("failed to download file %s: %w", filename, err)
-		}
-	}
-	return nil
-}
-
-func (s *GeoNamesSource) downloadFile(ctx context.Context, filename string) error {
-	url := fmt.Sprintf("%s/%s", geonamesBaseURL, filename)
-
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return err
-	}
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to download file: %s", resp.Status)
-	}
-
-	tmpPath := filepath.Join(s.dirPath, filename+".tmp")
-	tmpFile, err := os.Create(tmpPath)
-	if err != nil {
-		return err
-	}
-	defer os.Remove(tmpPath)
-
-	_, err = io.Copy(tmpFile, resp.Body)
-	tmpFile.Close()
-	if err != nil {
-		return err
-	}
-
-	finalPath := filepath.Join(s.dirPath, filename)
-	if err := os.Rename(tmpPath, finalPath); err != nil {
-		return fmt.Errorf("failed to move temporary file to %s: %w", finalPath, err)
-	}
-
-	return nil
 }

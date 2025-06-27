@@ -209,7 +209,7 @@ func (r *GeoNameStorage) Cities(ctx context.Context, filter entity.GeoNameFilter
 
 func (r *GeoNameStorage) State() string {
 	var state string
-	for _, filename := range []string{"countryInfo.txt", "admin1CodesASCII.txt", "cities500.zip"} {
+	for _, filename := range []string{geonames.Countries.String(), geonames.AdminDivisions.String(), string(geonames.Cities500)} {
 		filePath := filepath.Join(r.dir, filename)
 		if info, err := os.Stat(filePath); err == nil {
 			state += fmt.Sprintf("%s:%d,", filename, info.ModTime().Unix())
