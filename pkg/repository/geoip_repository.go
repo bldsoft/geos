@@ -9,6 +9,7 @@ import (
 	"net"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/maxmind"
@@ -275,4 +276,37 @@ func (r *GeoIPRepository) State() (result string) {
 	}
 
 	return
+}
+
+func (r *GeoIPRepository) InitAutoUpdates(ctx context.Context, hoursPeriod int) {
+	go func() {
+		ticker := time.NewTicker(time.Duration(hoursPeriod) * time.Hour)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ticker.C:
+				upd, err := r.Download(ctx)
+				if err != nil {
+					log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to download geoip updates")
+					continue
+				}
+
+				if len(upd) == 0 {
+					log.FromContext(ctx).Info("No geoip updates found")
+					continue
+				}
+
+				for subj, status := range upd {
+					if status.Error != "" {
+						log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": status.Error}, "Failed to download %s updates", subj)
+					} else {
+						log.FromContext(ctx).Infof("Successfully downloaded %s updates", subj)
+					}
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
 }

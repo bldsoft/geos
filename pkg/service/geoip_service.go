@@ -20,6 +20,8 @@ type GeoRepository interface {
 	MetaData(ctx context.Context, dbType DBType) (*entity.MetaData, error)
 	Database(ctx context.Context, dbType DBType, format DumpFormat) (*entity.Database, error)
 
+	InitAutoUpdates(ctx context.Context, hoursPeriod int)
+
 	source.Updater
 	source.Stater
 }
@@ -30,6 +32,10 @@ type GeoIpService struct {
 
 func NewGeoIpService(rep GeoRepository) *GeoIpService {
 	return &GeoIpService{rep: rep}
+}
+
+func (s *GeoIpService) InitAutoUpdates(ctx context.Context, hoursPeriod int) {
+	s.rep.InitAutoUpdates(ctx, hoursPeriod)
 }
 
 func (s *GeoIpService) ip(ctx context.Context, address string) (net.IP, error) {
@@ -95,10 +101,6 @@ func (r *GeoIpService) CheckUpdates(ctx context.Context) (entity.Updates, error)
 
 func (r *GeoIpService) Download(ctx context.Context) (entity.Updates, error) {
 	return r.rep.Download(ctx)
-}
-
-func (r *GeoIpService) InitAutoUpdates(ctx context.Context) error {
-	return nil
 }
 
 func (r *GeoIpService) State() string {

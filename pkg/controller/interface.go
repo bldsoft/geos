@@ -26,6 +26,8 @@ type GeoNameService interface {
 	Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error)
 	Dump(ctx context.Context, format service.DumpFormat) ([]byte, error)
 
+	InitAutoUpdates(ctx context.Context, hoursPeriod int)
+
 	source.Updater
 	source.Stater
 }

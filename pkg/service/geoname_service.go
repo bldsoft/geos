@@ -14,6 +14,8 @@ type GeoNameRepository interface {
 	Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error)
 	Dump(ctx context.Context, format DumpFormat) ([]byte, error)
 
+	InitAutoUpdates(ctx context.Context, hoursPeriod int)
+
 	source.Updater
 	source.Stater
 }
@@ -54,10 +56,10 @@ func (s *GeoNameService) Dump(ctx context.Context, format DumpFormat) ([]byte, e
 	return s.GeoNameRepository.Dump(ctx, format)
 }
 
-func (s *GeoNameService) InitAutoUpdates(ctx context.Context) error {
-	return nil
-}
-
 func (s *GeoNameService) State() string {
 	return s.GeoNameRepository.State()
+}
+
+func (s *GeoNameService) InitAutoUpdates(ctx context.Context, hoursPeriod int) {
+	s.GeoNameRepository.InitAutoUpdates(ctx, hoursPeriod)
 }
