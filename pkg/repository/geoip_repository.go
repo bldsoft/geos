@@ -14,6 +14,7 @@ import (
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/maxmind"
 	"github.com/bldsoft/geos/pkg/storage/source"
+	"github.com/bldsoft/geos/pkg/storage/state"
 	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
 	"github.com/bldsoft/gost/utils/errgroup"
@@ -268,14 +269,20 @@ func (r *GeoIPRepository) Download(ctx context.Context) (entity.Updates, error) 
 	return multiUpdates, nil
 }
 
-func (r *GeoIPRepository) State() (result string) {
-	result += string(MaxmindDBTypeCity) + r.dbCity.State()
+func (r *GeoIPRepository) State() *state.GeosState {
+	result := &state.GeosState{}
 
-	if r.dbISP != nil {
-		result += string(MaxmindDBTypeISP) + r.dbISP.State()
+	if cityState := r.dbCity.State(); cityState != nil {
+		result.Add(cityState)
 	}
 
-	return
+	if r.dbISP != nil {
+		if ispState := r.dbISP.State(); ispState != nil {
+			result.Add(ispState)
+		}
+	}
+
+	return result
 }
 
 func (r *GeoIPRepository) InitAutoUpdates(ctx context.Context, hoursPeriod int) {

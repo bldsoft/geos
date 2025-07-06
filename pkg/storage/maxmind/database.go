@@ -10,6 +10,7 @@ import (
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/source"
+	"github.com/bldsoft/geos/pkg/storage/state"
 	"github.com/oschwald/maxminddb-golang"
 )
 
@@ -37,8 +38,20 @@ func Open(path string) (*MaxmindDatabase, error) {
 	}, nil
 }
 
-func (db *MaxmindDatabase) State() string {
-	return fmt.Sprintf("%s%d.%d", db.reader.Metadata.DatabaseType, db.reader.Metadata.BinaryFormatMajorVersion, db.reader.Metadata.BinaryFormatMinorVersion)
+func (db *MaxmindDatabase) State() *state.GeosState {
+	versionString := fmt.Sprintf("%d.%d", db.reader.Metadata.BinaryFormatMajorVersion, db.reader.Metadata.BinaryFormatMinorVersion)
+	result := &state.GeosState{}
+
+	switch db.reader.Metadata.DatabaseType {
+	case "GeoIP2-City", "GeoLite2-City":
+		result.CityVersion = versionString
+	case "GeoIP2-ISP", "GeoLite2-ISP":
+		result.ISPVersion = versionString
+	default:
+		result.CityVersion = versionString
+	}
+
+	return result
 }
 
 func (db *MaxmindDatabase) SetSource(source *source.MaxmindSource) {

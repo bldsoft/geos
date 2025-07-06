@@ -2,9 +2,11 @@ package maxmind
 
 import (
 	"context"
+	"os"
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/source"
+	"github.com/bldsoft/geos/pkg/storage/state"
 	"github.com/bldsoft/gost/log"
 	"github.com/oschwald/maxminddb-golang"
 )
@@ -61,4 +63,36 @@ func (db *CustomDatabase) CheckUpdates(ctx context.Context) (entity.Updates, err
 		return nil, source.ErrNoSource
 	}
 	return db.source.CheckUpdates(ctx)
+}
+
+func (db *CustomDatabase) State() *state.GeosState {
+	result := &state.GeosState{}
+
+	if db.source == nil {
+		return result
+	}
+
+	var archiveTimestamp int64
+	if info, err := os.Stat(db.archiveFilepath); err == nil {
+		archiveTimestamp = info.ModTime().Unix()
+	} else {
+		var maxTimestamp int64
+		for _, patch := range db.dbs {
+			if patch.state > maxTimestamp {
+				maxTimestamp = patch.state
+			}
+		}
+		archiveTimestamp = maxTimestamp
+	}
+
+	if archiveTimestamp > 0 {
+		switch db.source.Name {
+		case entity.SubjectCitiesDbPatches:
+			result.CityPatchesTimestamp = archiveTimestamp
+		case entity.SubjectISPDbPatches:
+			result.ISPPatchesTimestamp = archiveTimestamp
+		}
+	}
+
+	return result
 }

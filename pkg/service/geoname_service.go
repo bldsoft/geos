@@ -5,6 +5,7 @@ import (
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/source"
+	"github.com/bldsoft/geos/pkg/storage/state"
 )
 
 type GeoNameRepository interface {
@@ -56,7 +57,7 @@ func (s *GeoNameService) Dump(ctx context.Context, format DumpFormat) ([]byte, e
 	return s.GeoNameRepository.Dump(ctx, format)
 }
 
-func (s *GeoNameService) State() string {
+func (s *GeoNameService) State() *state.GeosState {
 	return s.GeoNameRepository.State()
 }
 

@@ -6,12 +6,12 @@ import (
 	"errors"
 	"io"
 	"net"
-	"strings"
 	"sync"
 
 	"maps"
 
 	"github.com/bldsoft/geos/pkg/entity"
+	"github.com/bldsoft/geos/pkg/storage/state"
 	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
 	"github.com/bldsoft/gost/utils/errgroup"
@@ -282,14 +282,11 @@ func (db *MultiMaxMindDB[T]) CheckUpdates(ctx context.Context) (entity.Updates, 
 	return multiUpdates, multiErr
 }
 
-func (db *MultiMaxMindDB[T]) State() string {
-	var res string
+func (db *MultiMaxMindDB[T]) State() *state.GeosState {
+	result := &state.GeosState{}
 	for _, database := range db.dbs {
-		state := database.State()
-		if !strings.HasSuffix(state, ";") {
-			state += ";"
-		}
-		res += state
+		dbState := database.State()
+		result.Add(dbState)
 	}
-	return res
+	return result
 }

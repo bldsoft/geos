@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/bldsoft/geos/pkg/controller"
+	"github.com/bldsoft/geos/pkg/storage/state"
 	gost "github.com/bldsoft/gost/controller"
 )
 
@@ -51,6 +52,17 @@ func (c *ManagementController) UpdateGeonamesHandler(w http.ResponseWriter, r *h
 }
 
 func (c *ManagementController) GetGeosStateHandler(w http.ResponseWriter, r *http.Request) {
-	res := c.geoIpService.State() + c.geoNameService.State()
-	c.ResponseJson(w, r, res)
+	result := &state.GeosState{}
+
+	geoIpState := c.geoIpService.State()
+	if geoIpState != nil {
+		result.Add(geoIpState)
+	}
+
+	geoNameState := c.geoNameService.State()
+	if geoNameState != nil {
+		result.Add(geoNameState)
+	}
+
+	c.ResponseJson(w, r, result)
 }

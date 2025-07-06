@@ -7,6 +7,7 @@ import (
 	"github.com/bldsoft/geos/pkg/client"
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/geonames"
+	"github.com/bldsoft/geos/pkg/storage/state"
 	"github.com/bldsoft/gost/discovery"
 )
 
@@ -100,5 +101,12 @@ func (c *discoveredClient) Update(ctx context.Context) (entity.Updates, error) {
 	return doWithClientLoader(c.clientLoader, true,
 		func(client client.Client) (res entity.Updates, err error) {
 			return client.Update(ctx)
+		})
+}
+
+func (c *discoveredClient) State(ctx context.Context) (*state.GeosState, error) {
+	return doWithClientLoader(c.clientLoader, true,
+		func(client client.Client) (res *state.GeosState, err error) {
+			return client.State(ctx)
 		})
 }

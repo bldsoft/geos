@@ -141,7 +141,7 @@ func (m *Microservice) initServices() {
 func (m *Microservice) geonamesStorage(patchSrc *source.PatchesSource) geonames.Storage {
 	original := geonames.NewStorage(m.config.GeoNameDumpDirPath)
 
-	if m.config.AutoUpdatePeriod > 0 && len(m.config.GeoNameDumpDirPath) > 0 {
+	if len(m.config.GeoNameDumpDirPath) > 0 {
 		geoNamesSource := source.NewGeoNamesSource(m.config.GeoNameDumpDirPath, m.config.AutoUpdatePeriod)
 		original.SetSource(geoNamesSource)
 	}

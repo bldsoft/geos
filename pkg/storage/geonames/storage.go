@@ -2,13 +2,12 @@ package geonames
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/source"
+	"github.com/bldsoft/geos/pkg/storage/state"
 	"github.com/mkrou/geonames"
 	"github.com/mkrou/geonames/models"
 )
@@ -207,14 +206,16 @@ func (r *GeoNameStorage) Cities(ctx context.Context, filter entity.GeoNameFilter
 	}
 }
 
-func (r *GeoNameStorage) State() string {
-	var state string
+func (r *GeoNameStorage) State() *state.GeosState {
+	var timestampsSum int64
 	for _, filename := range []string{geonames.Countries.String(), geonames.AdminDivisions.String(), string(geonames.Cities500)} {
 		filePath := filepath.Join(r.dir, filename)
 		if info, err := os.Stat(filePath); err == nil {
-			state += fmt.Sprintf("%s:%d,", filename, info.ModTime().Unix())
+			timestampsSum += info.ModTime().Unix()
 		}
 	}
-	state = strings.TrimSuffix(state, ",")
-	return state + ";"
+
+	return &state.GeosState{
+		GeonamesTimestamps: timestampsSum,
+	}
 }

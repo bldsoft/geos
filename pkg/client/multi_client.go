@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/bldsoft/geos/pkg/entity"
+	"github.com/bldsoft/geos/pkg/storage/state"
 	"github.com/hashicorp/go-multierror"
 )
 
@@ -85,5 +86,9 @@ func (c *MultiClient) CheckUpdates(ctx context.Context) (entity.Updates, error) 
 }
 
 func (c *MultiClient) Update(ctx context.Context) (entity.Updates, error) {
+	return nil, nil
+}
+
+func (c *MultiClient) State(ctx context.Context) (*state.GeosState, error) {
 	return nil, nil
 }

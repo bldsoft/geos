@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"maps"
-	"strings"
 
 	"github.com/bldsoft/geos/pkg/entity"
+	"github.com/bldsoft/geos/pkg/storage/state"
 )
 
 type MultiStorage[T Storage] struct {
@@ -101,14 +101,11 @@ func (s *MultiStorage[T]) Cities(ctx context.Context, filter entity.GeoNameFilte
 	return res, nil
 }
 
-func (s *MultiStorage[T]) State() string {
-	var res string
+func (s *MultiStorage[T]) State() *state.GeosState {
+	result := &state.GeosState{}
 	for _, storage := range s.storages {
-		state := storage.State()
-		if !strings.HasSuffix(state, ";") {
-			state += ";"
-		}
-		res += state
+		storageState := storage.State()
+		result.Add(storageState)
 	}
-	return res
+	return result
 }

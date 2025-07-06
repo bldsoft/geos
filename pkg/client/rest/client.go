@@ -12,6 +12,7 @@ import (
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/microservice"
 	"github.com/bldsoft/geos/pkg/storage/geonames"
+	"github.com/bldsoft/geos/pkg/storage/state"
 	"github.com/go-resty/resty/v2"
 )
 
@@ -208,4 +209,22 @@ func (c *Client) Update(ctx context.Context) (entity.Updates, error) {
 	maps.Copy(geonameUpdates, geoipUpdates)
 
 	return geonameUpdates, nil
+}
+
+func (c *Client) State(ctx context.Context) (*state.GeosState, error) {
+	resp, err := c.client.R().SetHeader(microservice.APIKey, c.APIKey()).Get("state")
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode() >= 400 {
+		return nil, &RespError{StatusCode: resp.StatusCode(), Response: string(resp.Body())}
+	}
+
+	var result state.GeosState
+	if err := json.Unmarshal(resp.Body(), &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
 }

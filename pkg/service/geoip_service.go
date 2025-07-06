@@ -8,6 +8,7 @@ import (
 	"github.com/bldsoft/geos/pkg/microservice/middleware"
 	"github.com/bldsoft/geos/pkg/repository"
 	"github.com/bldsoft/geos/pkg/storage/source"
+	"github.com/bldsoft/geos/pkg/storage/state"
 )
 
 type DumpFormat = repository.DumpFormat
@@ -103,6 +104,6 @@ func (r *GeoIpService) Download(ctx context.Context) (entity.Updates, error) {
 	return r.rep.Download(ctx)
 }
 
-func (r *GeoIpService) State() string {
+func (r *GeoIpService) State() *state.GeosState {
 	return r.rep.State()
 }

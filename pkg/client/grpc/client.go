@@ -9,6 +9,7 @@ import (
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/microservice/middleware"
 	"github.com/bldsoft/geos/pkg/storage/geonames"
+	"github.com/bldsoft/geos/pkg/storage/state"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
@@ -130,4 +131,8 @@ func (c *Client) CheckUpdates(ctx context.Context) (entity.Updates, error) {
 
 func (c *Client) Update(ctx context.Context) (entity.Updates, error) {
 	return nil, nil
+}
+
+func (c *Client) State(ctx context.Context) (*state.GeosState, error) {
+	return &state.GeosState{}, nil
 }

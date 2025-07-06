@@ -9,6 +9,7 @@ import (
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/geonames"
+	"github.com/bldsoft/geos/pkg/storage/state"
 	"github.com/bldsoft/gost/log"
 )
 
@@ -129,7 +130,7 @@ func writeEntitiesToCSV[T entity.GeoNameEntity](w *csv.Writer, entities []T) err
 	return nil
 }
 
-func (r *GeoNameRepository) State() string {
+func (r *GeoNameRepository) State() *state.GeosState {
 	return r.storage.State()
 }
 

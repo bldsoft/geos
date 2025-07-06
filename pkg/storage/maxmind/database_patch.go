@@ -9,9 +9,9 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"strconv"
 
 	"github.com/bldsoft/geos/pkg/entity"
+	"github.com/bldsoft/geos/pkg/storage/state"
 	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/maxmind/mmdbwriter"
 	"github.com/maxmind/mmdbwriter/inserter"
@@ -32,7 +32,7 @@ type DatabasePatch struct {
 	tree  *mmdbwriter.Tree
 	dbRaw []byte
 	db    *maxminddb.Reader
-	state string
+	state int64
 }
 
 func NewDatabasePatchesFromTarGz(filename string) ([]*DatabasePatch, error) {
@@ -76,7 +76,7 @@ func NewDatabasePatchesFromTarGz(filename string) ([]*DatabasePatch, error) {
 				IPVersion:                db.db.Metadata.IPVersion,
 				NodeCount:                db.db.Metadata.NodeCount,
 				RecordSize:               db.db.Metadata.RecordSize,
-			}).WithState(strconv.FormatInt(stat.ModTime().Unix(), 10)))
+			}).WithState(stat.ModTime().Unix()))
 		}
 	}
 
@@ -120,7 +120,7 @@ func NewDatabasePatchFromFile(path string) (*DatabasePatch, error) {
 		IPVersion:                db.db.Metadata.IPVersion,
 		NodeCount:                db.db.Metadata.NodeCount,
 		RecordSize:               db.db.Metadata.RecordSize,
-	}).WithState(strconv.FormatInt(stat.ModTime().Unix(), 10)), nil
+	}).WithState(stat.ModTime().Unix()), nil
 }
 
 func NewDatabasePatch(reader MMDBRecordReader) (*DatabasePatch, error) {
@@ -165,7 +165,7 @@ func (db *DatabasePatch) WithMetadata(meta maxminddb.Metadata) *DatabasePatch {
 	return db
 }
 
-func (db *DatabasePatch) WithState(state string) *DatabasePatch {
+func (db *DatabasePatch) WithState(state int64) *DatabasePatch {
 	db.state = state
 	return db
 }
@@ -207,6 +207,7 @@ func (db *DatabasePatch) CheckUpdates(_ context.Context) (entity.Updates, error)
 	return nil, nil
 }
 
-func (db *DatabasePatch) State() string {
-	return db.state
+func (db *DatabasePatch) State() *state.GeosState {
+	// patches state is controlled by the custom database
+	return &state.GeosState{}
 }

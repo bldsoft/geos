@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"strconv"
 
 	"github.com/bldsoft/geos/pkg/entity"
+	"github.com/bldsoft/geos/pkg/storage/state"
 	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
 	"github.com/mkrou/geonames/models"
@@ -88,7 +88,7 @@ type StoragePatch struct {
 	subdivisions []*entity.GeoNameAdminSubdivision
 	cities       []*entity.GeoName
 
-	state string
+	state int64
 }
 
 func NewStoragePatchesFromTarGz(archiveFilepath string) []*StoragePatch {
@@ -124,7 +124,7 @@ func NewStoragePatchesFromTarGz(archiveFilepath string) []*StoragePatch {
 			continue
 		}
 
-		customStorages = append(customStorages, NewStoragePatch(records).WithState(strconv.FormatInt(stat.ModTime().Unix(), 10)))
+		customStorages = append(customStorages, NewStoragePatch(records).WithState(stat.ModTime().Unix()))
 	}
 
 	return customStorages
@@ -149,7 +149,7 @@ func NewStoragePatchFromFile(path string) (*StoragePatch, error) {
 	if err := json.Unmarshal(data, &records); err != nil {
 		return nil, err
 	}
-	return NewStoragePatch(records).WithState(strconv.FormatInt(stat.ModTime().Unix(), 10)), nil
+	return NewStoragePatch(records).WithState(stat.ModTime().Unix()), nil
 }
 
 func NewStoragePatch(records []CustomGeonamesRecord) *StoragePatch {
@@ -163,7 +163,7 @@ func NewStoragePatch(records []CustomGeonamesRecord) *StoragePatch {
 	return res
 }
 
-func (s *StoragePatch) WithState(state string) *StoragePatch {
+func (s *StoragePatch) WithState(state int64) *StoragePatch {
 	s.state = state
 	return s
 }
@@ -200,10 +200,14 @@ func (s *StoragePatch) CheckUpdates(_ context.Context) (entity.Updates, error) {
 	return nil, nil
 }
 
-func (s *StoragePatch) Download(ctx context.Context) (entity.Updates, error) {
+func (s *StoragePatch) Download(_ context.Context) (entity.Updates, error) {
 	return nil, nil
 }
 
-func (s *StoragePatch) State() string {
-	return s.state
+func (s *StoragePatch) State() *state.GeosState {
+	result := &state.GeosState{}
+	if s.state != 0 {
+		result.GeonamesPatchesTimestamp = s.state
+	}
+	return result
 }

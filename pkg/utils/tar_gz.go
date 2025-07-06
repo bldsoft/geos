@@ -7,6 +7,7 @@ import (
 	"github.com/klauspost/compress/gzip"
 )
 
+// empty archive is not an error, but an empty map
 func UnpackTarGz(src io.Reader) (map[string][]byte, error) {
 	gr, err := gzip.NewReader(src)
 	if err != nil {
