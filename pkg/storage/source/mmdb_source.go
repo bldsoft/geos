@@ -85,10 +85,6 @@ func NewMMDBSource(sourceUrl, dbPath string, name entity.Subject, autoUpdatePeri
 		log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to handle interrupted downloads for %s database", name)
 	}
 
-	// if err := s.initAutoUpdates(ctx, autoUpdatePeriod); err != nil {
-	// 	log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to initialize auto updates for %s database", name)
-	// }
-
 	f, err := os.Stat(dbPath)
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -198,47 +194,6 @@ func (s *MaxmindSource) Download(ctx context.Context) (entity.Updates, error) {
 
 	return updates, nil
 }
-
-// func (s *MaxmindSource) initAutoUpdates(ctx context.Context, autoUpdatePeriod int) error {
-// 	if autoUpdatePeriod == 0 {
-// 		return nil
-// 	}
-
-// 	if s.sourceUrl == "" || s.dbPath == "" {
-// 		return fmt.Errorf("missing required paths")
-// 	}
-
-// 	go func() {
-// 		timer := time.NewTicker(time.Duration(autoUpdatePeriod) * time.Hour)
-// 		defer timer.Stop()
-
-// 		for range timer.C {
-// 			log.FromContext(ctx).Infof("Executing auto update for %s", s.name)
-
-// 			available, err := s.checkUpdates(ctx)
-// 			if err != nil {
-// 				log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to run auto update for %s", s.name)
-// 				return
-// 			}
-
-// 			if !available {
-// 				log.FromContext(ctx).Infof("No updates found during automatic check for %s", s.name)
-// 				return
-// 			}
-
-// 			log.FromContext(ctx).Infof("Found updates during automatic check for %s", s.name)
-
-// 			if err := s.downloadTmp(ctx); err != nil {
-// 				log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to download updates for %s", s.name)
-// 				return
-// 			}
-
-// 			log.FromContext(ctx).Infof("Updates applied for %s", s.name)
-// 		}
-// 	}()
-
-// 	return nil
-// }
 
 func (s *MaxmindSource) extractVersion(metadataBuf []byte) (*version.Version, error) {
 	meta, err := mmdb.DecodeMetadata(metadataBuf)

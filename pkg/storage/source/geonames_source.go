@@ -166,47 +166,6 @@ func (s *GeoNamesSource) DirPath() string {
 	return s.dirPath
 }
 
-// func (s *GeoNamesSource) initAutoUpdates(ctx context.Context, autoUpdatePeriod int) error {
-// 	if autoUpdatePeriod <= 0 {
-// 		return nil
-// 	}
-
-// 	if s.dirPath == "" {
-// 		return fmt.Errorf("missing required directory path")
-// 	}
-
-// 	go func() {
-// 		timer := time.NewTicker(time.Duration(autoUpdatePeriod) * time.Hour)
-// 		defer timer.Stop()
-
-// 		for range timer.C {
-// 			log.FromContext(ctx).Infof("Executing auto update for %s", s.name)
-
-// 			exist, err := s.checkUpdates(ctx)
-// 			if err != nil {
-// 				log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to check for updates for %s", s.name)
-// 				continue
-// 			}
-
-// 			if !exist {
-// 				log.FromContext(ctx).Infof("No updates found for %s", s.name)
-// 				continue
-// 			}
-
-// 			log.FromContext(ctx).Infof("Found updates for %s", s.name)
-
-// 			if err := s.downloadFiles(ctx, geonamesFiles); err != nil {
-// 				log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to download updates for %s", s.name)
-// 				continue
-// 			}
-
-// 			log.FromContext(ctx).Infof("Successfully applied updates for %s", s.name)
-// 		}
-// 	}()
-
-// 	return nil
-// }
-
 func (s *GeoNamesSource) removeTmpFiles() {
 	for _, filename := range geonamesFiles {
 		manager := s.managers[filename]
@@ -218,6 +177,7 @@ func (s *GeoNamesSource) removeTmpFiles() {
 	}
 }
 
+// takes a lot of time for some reason
 func (s *GeoNamesSource) CheckUpdates(ctx context.Context) (entity.Updates, error) {
 	updates := entity.Updates{}
 

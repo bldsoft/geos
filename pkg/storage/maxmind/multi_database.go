@@ -22,13 +22,11 @@ import (
 )
 
 var ErrNoDatabases = errors.New("no databases")
-var ErrNotReady = errors.New("database is currently being updated")
 
 type MultiMaxMindDB[T Database] struct {
-	dbs        []T
-	logger     log.ServiceLogger
-	isUpdating bool
-	updMutex   sync.RWMutex
+	dbs      []T
+	logger   log.ServiceLogger
+	updMutex sync.Mutex
 }
 
 func NewMultiMaxMindDB[T Database](dbs ...T) *MultiMaxMindDB[T] {
@@ -95,14 +93,7 @@ func (db *MultiMaxMindDB[T]) RawData() (io.Reader, error) {
 	}
 
 	db.updMutex.Lock()
-	db.isUpdating = true
-	db.updMutex.Unlock()
-
-	defer func() {
-		db.updMutex.Lock()
-		db.isUpdating = false
-		db.updMutex.Unlock()
-	}()
+	defer db.updMutex.Unlock()
 
 	opts := mmdbwriter.Options{IncludeReservedNetworks: true}
 	tree, err := mmdbwriter.New(opts)
@@ -231,12 +222,10 @@ func (db *MultiMaxMindDB[T]) MetaData() (*maxminddb.Metadata, error) {
 }
 
 func (db *MultiMaxMindDB[T]) Download(ctx context.Context) (entity.Updates, error) {
-	db.updMutex.RLock()
-	if db.isUpdating {
-		db.updMutex.RUnlock()
-		return nil, ErrNotReady
+	if !db.updMutex.TryLock() {
+		return nil, utils.ErrUpdateInProgress
 	}
-	db.updMutex.RUnlock()
+	defer db.updMutex.Unlock()
 
 	if len(db.dbs) == 0 {
 		return nil, ErrNoDatabases
@@ -257,12 +246,10 @@ func (db *MultiMaxMindDB[T]) Download(ctx context.Context) (entity.Updates, erro
 }
 
 func (db *MultiMaxMindDB[T]) CheckUpdates(ctx context.Context) (entity.Updates, error) {
-	db.updMutex.RLock()
-	if db.isUpdating {
-		db.updMutex.RUnlock()
-		return nil, ErrNotReady
+	if !db.updMutex.TryLock() {
+		return nil, utils.ErrUpdateInProgress
 	}
-	db.updMutex.RUnlock()
+	defer db.updMutex.Unlock()
 
 	if len(db.dbs) == 0 {
 		return nil, ErrNoDatabases

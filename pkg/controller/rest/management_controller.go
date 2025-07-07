@@ -1,10 +1,12 @@
 package rest
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/bldsoft/geos/pkg/controller"
 	"github.com/bldsoft/geos/pkg/storage/state"
+	"github.com/bldsoft/geos/pkg/utils"
 	gost "github.com/bldsoft/gost/controller"
 )
 
@@ -21,23 +23,36 @@ func NewManagementController(geoIpService controller.GeoIpService, geoNameServic
 func (c *ManagementController) CheckGeoIPUpdatesHandler(w http.ResponseWriter, r *http.Request) {
 	exist, err := c.geoIpService.CheckUpdates(r.Context())
 	if err != nil {
-		c.ResponseError(w, err.Error(), http.StatusInternalServerError)
-	} else {
-		c.ResponseJson(w, r, exist)
+		if errors.Is(err, utils.ErrUpdateInProgress) {
+			c.ResponseError(w, err.Error(), http.StatusConflict)
+		} else {
+			c.ResponseError(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
 	}
+	c.ResponseJson(w, r, exist)
 }
 
 func (c *ManagementController) UpdateGeoIPHandler(w http.ResponseWriter, r *http.Request) {
-	if updates, err := c.geoIpService.Download(r.Context()); err != nil {
-		c.ResponseError(w, err.Error(), http.StatusInternalServerError)
-	} else {
-		c.ResponseJson(w, r, updates)
+	updates, err := c.geoIpService.Download(r.Context())
+	if err != nil {
+		if errors.Is(err, utils.ErrUpdateInProgress) {
+			c.ResponseError(w, err.Error(), http.StatusConflict)
+		} else {
+			c.ResponseError(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
 	}
+	c.ResponseJson(w, r, updates)
 }
 
 func (c *ManagementController) CheckGeonamesUpdatesHandler(w http.ResponseWriter, r *http.Request) {
 	if updates, err := c.geoNameService.CheckUpdates(r.Context()); err != nil {
-		c.ResponseError(w, err.Error(), http.StatusInternalServerError)
+		if errors.Is(err, utils.ErrUpdateInProgress) {
+			c.ResponseError(w, err.Error(), http.StatusConflict)
+		} else {
+			c.ResponseError(w, err.Error(), http.StatusInternalServerError)
+		}
 	} else {
 		c.ResponseJson(w, r, updates)
 	}
@@ -45,7 +60,11 @@ func (c *ManagementController) CheckGeonamesUpdatesHandler(w http.ResponseWriter
 
 func (c *ManagementController) UpdateGeonamesHandler(w http.ResponseWriter, r *http.Request) {
 	if updates, err := c.geoNameService.Download(r.Context()); err != nil {
-		c.ResponseError(w, err.Error(), http.StatusInternalServerError)
+		if errors.Is(err, utils.ErrUpdateInProgress) {
+			c.ResponseError(w, err.Error(), http.StatusConflict)
+		} else {
+			c.ResponseError(w, err.Error(), http.StatusInternalServerError)
+		}
 	} else {
 		c.ResponseJson(w, r, updates)
 	}

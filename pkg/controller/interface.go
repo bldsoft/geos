@@ -15,6 +15,8 @@ type GeoIpService interface {
 	MetaData(ctx context.Context, dbType service.DBType) (*entity.MetaData, error)
 	Database(ctx context.Context, dbType service.DBType, format service.DumpFormat) (*entity.Database, error)
 
+	InitAutoUpdates(ctx context.Context, hoursPeriod int)
+
 	source.Updater
 	source.Stater
 }

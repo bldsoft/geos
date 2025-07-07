@@ -73,6 +73,7 @@ type GeoIPRepository struct {
 	dbCity, dbISP       *maxmindDBWithCachedCSVDump
 	cityConf, ispConf   *DBConfig
 	csvDirPath, ispPath string
+	updateMutex         sync.Mutex
 }
 
 func NewGeoIPRepository(cityConf, ispConf *DBConfig, csvDirPath string) *GeoIPRepository {
@@ -196,6 +197,11 @@ func (r *GeoIPRepository) database(ctx context.Context, dbType MaxmindDBType) (m
 }
 
 func (r *GeoIPRepository) CheckUpdates(ctx context.Context) (entity.Updates, error) {
+	if !r.updateMutex.TryLock() {
+		return nil, utils.ErrUpdateInProgress
+	}
+	defer r.updateMutex.Unlock()
+
 	var multiErr error
 	multiUpdates := entity.Updates{}
 
@@ -223,6 +229,11 @@ func (r *GeoIPRepository) CheckUpdates(ctx context.Context) (entity.Updates, err
 }
 
 func (r *GeoIPRepository) Download(ctx context.Context) (entity.Updates, error) {
+	if !r.updateMutex.TryLock() {
+		return nil, utils.ErrUpdateInProgress
+	}
+	defer r.updateMutex.Unlock()
+
 	multiUpdates := entity.Updates{}
 	var updatesM sync.Mutex
 
@@ -287,7 +298,7 @@ func (r *GeoIPRepository) State() *state.GeosState {
 
 func (r *GeoIPRepository) InitAutoUpdates(ctx context.Context, hoursPeriod int) {
 	go func() {
-		ticker := time.NewTicker(time.Duration(hoursPeriod) * time.Hour)
+		ticker := time.NewTicker(time.Duration(hoursPeriod) * time.Hour) //TODO: change to hours
 		defer ticker.Stop()
 
 		for {
@@ -295,7 +306,10 @@ func (r *GeoIPRepository) InitAutoUpdates(ctx context.Context, hoursPeriod int) 
 			case <-ticker.C:
 				upd, err := r.Download(ctx)
 				if err != nil {
-					log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to download geoip updates")
+					if errors.Is(err, utils.ErrUpdateInProgress) {
+						continue
+					}
+					log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to auto-update due to download error")
 					continue
 				}
 
@@ -306,9 +320,9 @@ func (r *GeoIPRepository) InitAutoUpdates(ctx context.Context, hoursPeriod int) 
 
 				for subj, status := range upd {
 					if status.Error != "" {
-						log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": status.Error}, "Failed to download %s updates", subj)
+						log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": status.Error}, "Failed to auto-update due to download error for %s", subj)
 					} else {
-						log.FromContext(ctx).Infof("Successfully downloaded %s updates", subj)
+						log.FromContext(ctx).Infof("Successfully auto-updated %s", subj)
 					}
 				}
 			case <-ctx.Done():

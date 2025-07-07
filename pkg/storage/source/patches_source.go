@@ -92,47 +92,6 @@ func NewPatchesSource(sourceUrl, dirPath, prefix string, name entity.Subject, au
 	return s
 }
 
-// func (s *PatchesSource) initAutoUpdates(ctx context.Context, autoUpdatePeriod int) error {
-// 	if autoUpdatePeriod <= 0 {
-// 		return nil
-// 	}
-
-// 	if s.sourceUrl == "" || s.dirPath == "" {
-// 		return fmt.Errorf("missing required params")
-// 	}
-
-// 	go func() {
-// 		timer := time.NewTicker(time.Duration(autoUpdatePeriod) * time.Hour)
-// 		defer timer.Stop()
-
-// 		for range timer.C {
-// 			log.FromContext(ctx).Infof("Executing auto update for %s", s.Name)
-
-// 			hasUpdates, err := s.downloadManager.CheckUpdates(ctx, s.sourceUrl, s.ArchiveFilePath())
-// 			if err != nil {
-// 				log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to check for updates for %s", s.Name)
-// 				continue
-// 			}
-
-// 			if !hasUpdates {
-// 				log.FromContext(ctx).Infof("No updates found for %s", s.Name)
-// 				continue
-// 			}
-
-// 			log.FromContext(ctx).Infof("Found update for %s", s.Name)
-
-// 			if err := s.downloadManager.ApplyUpdate(ctx, s.ArchiveFilePath()); err != nil {
-// 				log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to apply updates for %s", s.Name)
-// 				continue
-// 			}
-
-// 			log.FromContext(ctx).Infof("Successfully applied updates for %s", s.Name)
-// 		}
-// 	}()
-
-// 	return nil
-// }
-
 func (s *PatchesSource) CheckUpdates(ctx context.Context) (entity.Updates, error) {
 	updates := entity.Updates{}
 

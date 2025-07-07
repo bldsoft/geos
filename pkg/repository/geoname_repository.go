@@ -5,16 +5,19 @@ import (
 	"context"
 	"encoding/csv"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/geonames"
 	"github.com/bldsoft/geos/pkg/storage/state"
+	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
 )
 
 type GeoNameRepository struct {
-	storage geonames.Storage
+	storage     geonames.Storage
+	updateMutex sync.Mutex
 }
 
 func NewGeoNamesRepository(storage geonames.Storage) *GeoNameRepository {
@@ -22,10 +25,19 @@ func NewGeoNamesRepository(storage geonames.Storage) *GeoNameRepository {
 }
 
 func (r *GeoNameRepository) CheckUpdates(ctx context.Context) (entity.Updates, error) {
+	if !r.updateMutex.TryLock() {
+		return nil, utils.ErrUpdateInProgress
+	}
+	defer r.updateMutex.Unlock()
 	return r.storage.CheckUpdates(ctx)
 }
 
 func (r *GeoNameRepository) Download(ctx context.Context) (entity.Updates, error) {
+	if !r.updateMutex.TryLock() {
+		return nil, utils.ErrUpdateInProgress
+	}
+	defer r.updateMutex.Unlock()
+
 	return r.storage.Download(ctx)
 }
 
@@ -144,20 +156,20 @@ func (r *GeoNameRepository) InitAutoUpdates(ctx context.Context, hoursPeriod int
 			case <-ticker.C:
 				upd, err := r.Download(ctx)
 				if err != nil {
-					log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to download geoname updates")
+					log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to auto-update due to download error")
 					continue
 				}
 
 				if len(upd) == 0 {
-					log.FromContext(ctx).Info("No geoip updates found")
+					log.FromContext(ctx).Info("No geoname updates found")
 					continue
 				}
 
 				for subj, status := range upd {
 					if status.Error != "" {
-						log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": status.Error}, "Failed to download %s updates", subj)
+						log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": status.Error}, "Failed to auto-update due to download error for %s", subj)
 					} else {
-						log.FromContext(ctx).Infof("Successfully downloaded %s updates", subj)
+						log.FromContext(ctx).Infof("Successfully auto-updated %s", subj)
 					}
 				}
 			case <-ctx.Done():

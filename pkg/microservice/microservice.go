@@ -116,6 +116,7 @@ func (m *Microservice) initServices() {
 
 	rep := repository.NewGeoIPRepository(cityDBConfig, ispDBConfig, m.config.GeoIPCsvDumpDirPath)
 	m.geoIpService = service.NewGeoIpService(rep)
+	m.geoIpService.InitAutoUpdates(context.Background(), m.config.AutoUpdatePeriod)
 
 	geonamePatchesSource := source.NewPatchesSource(m.config.GeoNamePatchesSource, m.config.GeoNameDumpDirPath, "geonames", entity.SubjectGeonamesPatches, m.config.AutoUpdatePeriod)
 
