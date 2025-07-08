@@ -84,12 +84,31 @@ func (db *MultiMaxMindDB[T]) totalNodes() int {
 	return totalNodes
 }
 
+func (db *MultiMaxMindDB[T]) nonEmptyDatabases() []T {
+	var res []T
+	for _, database := range db.dbs {
+		if !db.isEmptyDatabase(database) {
+			res = append(res, database)
+		}
+	}
+	return res
+}
+
+func (db *MultiMaxMindDB[T]) isEmptyDatabase(database T) bool {
+	meta, err := database.MetaData()
+	if err != nil {
+		return true
+	}
+	return meta.NodeCount == 0
+}
+
 func (db *MultiMaxMindDB[T]) RawData() (io.Reader, error) {
-	if len(db.dbs) == 0 {
+	nonEmtpyDbs := db.nonEmptyDatabases()
+	if len(nonEmtpyDbs) == 0 {
 		return nil, ErrNoDatabases
 	}
-	if len(db.dbs) == 1 {
-		return db.dbs[0].RawData()
+	if len(nonEmtpyDbs) == 1 {
+		return nonEmtpyDbs[0].RawData()
 	}
 
 	db.updMutex.Lock()
@@ -277,3 +296,9 @@ func (db *MultiMaxMindDB[T]) State() *state.GeosState {
 	}
 	return result
 }
+
+/*
+{
+	"csv": "/data/geoip/dump.csv.gz",
+	"db type":"GeoIP2-City","meta":{"BinaryFormatMajorVersion":2,"BinaryFormatMinorVersion":0,"BuildEpoch":1709648927,"BuildVersion":"1.3.0","DatabaseType":"GeoIP2-City","Description":{"en":"GeoIP2City database patched by GEOS service."},"IPVersion":6,"Languages":["de","en","es","fr","ja","pt-BR","ru","zh-CN"],"NodeCount":9351009,"RecordSize":28}}
+*/
