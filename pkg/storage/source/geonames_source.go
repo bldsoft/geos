@@ -123,7 +123,7 @@ func NewGeoNamesSource(dirPath string, autoUpdatePeriod int) *GeoNamesSource {
 
 	for file, manager := range s.managers {
 		if err := manager.RecoverInterruptedDownloads(ctx, filepath.Join(s.dirPath, file), fmt.Sprintf("%s/%s", geonamesBaseURL, file)); err != nil {
-			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to handle interrupted downloads for %s", s.name)
+			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to handle interrupted downloads for %s", s.name)
 			return s
 		}
 	}
@@ -133,12 +133,12 @@ func NewGeoNamesSource(dirPath string, autoUpdatePeriod int) *GeoNamesSource {
 	}
 
 	if err := s.downloadFiles(ctx, geonamesFiles); err != nil {
-		log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to download missing %s files", s.name)
+		log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to download missing %s files", s.name)
 	}
 
 	exist, err := s.checkUpdates(ctx)
 	if err != nil {
-		log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to check for updates for %s", s.name)
+		log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to check for updates for %s", s.name)
 		return s
 	}
 
@@ -149,7 +149,7 @@ func NewGeoNamesSource(dirPath string, autoUpdatePeriod int) *GeoNamesSource {
 
 	log.FromContext(ctx).Infof("Found updates for %s", s.name)
 	if err := s.applyChanges(ctx); err != nil {
-		log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to apply updates for %s", s.name)
+		log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to apply updates for %s", s.name)
 		return s
 	}
 

@@ -38,19 +38,19 @@ func NewPatchesSource(sourceUrl, dirPath, prefix string, name entity.Subject, au
 	}
 
 	if err := s.downloadManager.RecoverInterruptedDownloads(ctx, s.ArchiveFilePath(), s.sourceUrl); err != nil {
-		log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to handle interrupted downloads for %s", s.Name)
+		log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to handle interrupted downloads for %s", s.Name)
 	}
 
 	_, err := os.Stat(s.ArchiveFilePath())
 	if err != nil {
 		if !os.IsNotExist(err) {
-			log.FromContext(ctx).Errorf("Failed to check if %s archive exists: %v", s.Name, err)
+			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to check if %s archive exists", s.Name)
 			return s
 		}
 
 		log.FromContext(ctx).Warnf("No %s archive found, creating empty one", s.Name)
 		if _, err := os.Create(s.ArchiveFilePath()); err != nil {
-			log.FromContext(ctx).Errorf("Failed to create empty archive for %s: %v", s.Name, err)
+			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to create empty archive for %s", s.Name)
 		}
 	}
 
@@ -59,13 +59,13 @@ func NewPatchesSource(sourceUrl, dirPath, prefix string, name entity.Subject, au
 	}
 
 	if err := s.downloadManager.Download(ctx, s.sourceUrl, s.ArchiveFilePath()); err != nil {
-		log.FromContext(ctx).Errorf("Failed to download remote archive to check updates for %s: %v", s.Name, err)
+		log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to download remote archive to check updates for %s", s.Name)
 		return s
 	}
 
 	hasUpdates, err := s.downloadManager.CheckUpdates(ctx, s.sourceUrl, s.ArchiveFilePath())
 	if err != nil {
-		log.FromContext(ctx).Errorf("Failed to check for updates for %s: %v", s.Name, err)
+		log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to check for updates for %s", s.Name)
 		return s
 	}
 
@@ -75,11 +75,11 @@ func NewPatchesSource(sourceUrl, dirPath, prefix string, name entity.Subject, au
 
 	log.FromContext(ctx).Infof("Found updates for %s", s.Name)
 	if err := s.downloadManager.Download(ctx, s.sourceUrl, s.ArchiveFilePath()); err != nil {
-		log.FromContext(ctx).Errorf("Failed to download updates for %s: %v", s.Name, err)
+		log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to download updates for %s", s.Name)
 		return s
 	}
 	if err := s.downloadManager.ApplyUpdate(ctx, s.ArchiveFilePath()); err != nil {
-		log.FromContext(ctx).Errorf("Failed to apply updates for %s: %v", s.Name, err)
+		log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to apply updates for %s", s.Name)
 		return s
 	}
 
