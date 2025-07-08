@@ -128,10 +128,6 @@ func NewGeoNamesSource(dirPath string, autoUpdatePeriod int) *GeoNamesSource {
 		}
 	}
 
-	// if err := s.initAutoUpdates(ctx, autoUpdatePeriod); err != nil {
-	// 	log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to initialize auto updates for %s", s.name)
-	// }
-
 	if autoUpdatePeriod == 0 {
 		return s
 	}
@@ -157,7 +153,7 @@ func NewGeoNamesSource(dirPath string, autoUpdatePeriod int) *GeoNamesSource {
 		return s
 	}
 
-	log.FromContext(ctx).Infof("Successfully applied updates for %s", s.name)
+	log.FromContext(ctx).Infof("Applied updates for %s", s.name)
 
 	return s
 }

@@ -41,10 +41,6 @@ func NewPatchesSource(sourceUrl, dirPath, prefix string, name entity.Subject, au
 		log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to handle interrupted downloads for %s", s.Name)
 	}
 
-	// if err := s.initAutoUpdates(ctx, autoUpdatePeriod); err != nil {
-	// 	log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to initialize auto updates for %s", s.Name)
-	// }
-
 	_, err := os.Stat(s.ArchiveFilePath())
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -87,7 +83,7 @@ func NewPatchesSource(sourceUrl, dirPath, prefix string, name entity.Subject, au
 		return s
 	}
 
-	log.FromContext(ctx).Infof("Successfully applied updates for %s", s.Name)
+	log.FromContext(ctx).Infof("Applied updates for %s", s.Name)
 
 	return s
 }

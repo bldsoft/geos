@@ -22,23 +22,36 @@ type MaxmindSource struct {
 	downloadManager *DownloadManager
 }
 
+type mmdbState struct {
+	version    *version.Version
+	buildEpoch uint
+}
+
+func (s *mmdbState) isNewerThan(other *mmdbState) bool {
+	if s.version.GreaterThan(other.version) {
+		return true
+	}
+
+	return s.buildEpoch > other.buildEpoch
+}
+
 func (s *MaxmindSource) checkUpdates(ctx context.Context, url string, _ string) (bool, error) {
 	res, err := s.downloadRange(ctx, url, -metadataChunkSize)
 	if err != nil {
 		return false, err
 	}
 
-	remoteVersion, err := s.extractVersion(res)
+	remoteState, err := s.extractMmdbState(res)
 	if err != nil {
 		return false, fmt.Errorf("failed to extract version from response: %w", err)
 	}
 
-	localVersion, err := s.fileMetadataVersion(s.dbPath)
+	localState, err := s.fileMetadataMmdbState(s.dbPath)
 	if err != nil {
 		return false, fmt.Errorf("failed to extract version from local file: %w", err)
 	}
 
-	return remoteVersion.GreaterThan(localVersion), nil
+	return remoteState.isNewerThan(localState), nil
 }
 
 func (s *MaxmindSource) download(ctx context.Context, url string, writer io.Writer) error {
@@ -125,9 +138,13 @@ func NewMMDBSource(sourceUrl, dbPath string, name entity.Subject, autoUpdatePeri
 		return s
 	}
 
+	log.FromContext(ctx).Infof("Found updates for %s database", name)
+
 	if err := s.downloadManager.ApplyUpdate(ctx, s.dbPath); err != nil {
 		log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to update %s database files: %v", name, err)
 	}
+
+	log.FromContext(ctx).Infof("Applied updates for %s database", name)
 
 	return s
 }
@@ -195,16 +212,24 @@ func (s *MaxmindSource) Download(ctx context.Context) (entity.Updates, error) {
 	return updates, nil
 }
 
-func (s *MaxmindSource) extractVersion(metadataBuf []byte) (*version.Version, error) {
+func (s *MaxmindSource) extractMmdbState(metadataBuf []byte) (*mmdbState, error) {
 	meta, err := mmdb.DecodeMetadata(metadataBuf)
 	if err != nil {
 		return nil, fmt.Errorf("metadata decoding failed: %w", err)
 	}
 
-	return version.NewVersion(fmt.Sprintf("%d.%d", meta.BinaryFormatMajorVersion, meta.BinaryFormatMinorVersion))
+	v, err := version.NewVersion(fmt.Sprintf("%d.%d", meta.BinaryFormatMajorVersion, meta.BinaryFormatMinorVersion))
+	if err != nil {
+		return nil, err
+	}
+
+	return &mmdbState{
+		version:    v,
+		buildEpoch: meta.BuildEpoch,
+	}, nil
 }
 
-func (s *MaxmindSource) fileMetadataVersion(path string) (*version.Version, error) {
+func (s *MaxmindSource) fileMetadataMmdbState(path string) (*mmdbState, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %w", err)
@@ -229,7 +254,7 @@ func (s *MaxmindSource) fileMetadataVersion(path string) (*version.Version, erro
 		return nil, fmt.Errorf("failed to read file chunk: %w", err)
 	}
 
-	return s.extractVersion(buffer)
+	return s.extractMmdbState(buffer)
 }
 
 func (s *MaxmindSource) downloadRange(ctx context.Context, sourceUrl string, chunkSize int) ([]byte, error) {
