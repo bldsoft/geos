@@ -150,133 +150,99 @@ func (c *Client) GeoNameDump(ctx context.Context, filter entity.GeoNameFilter) (
 	return c.client.R().SetHeader(microservice.APIKey, c.APIKey()).Get("geoname/dump")
 }
 
+func (c *Client) silentUpdateInProgressErr(subjs ...entity.Subject) entity.Updates {
+	res := make(entity.Updates)
+	for _, subj := range subjs {
+		switch subj {
+		case entity.SubjectGeonames:
+			res[entity.SubjectGeonames] = &entity.UpdateStatus{
+				Error: utils.ErrUpdateInProgress.Error(),
+			}
+		case entity.SubjectGeonamesPatches:
+			res[entity.SubjectGeonamesPatches] = &entity.UpdateStatus{
+				Error: utils.ErrUpdateInProgress.Error(),
+			}
+		case entity.SubjectCitiesDb:
+			res[entity.SubjectCitiesDb] = &entity.UpdateStatus{
+				Error: utils.ErrUpdateInProgress.Error(),
+			}
+		case entity.SubjectCitiesDbPatches:
+			res[entity.SubjectCitiesDbPatches] = &entity.UpdateStatus{
+				Error: utils.ErrUpdateInProgress.Error(),
+			}
+		case entity.SubjectISPDb:
+			res[entity.SubjectISPDb] = &entity.UpdateStatus{
+				Error: utils.ErrUpdateInProgress.Error(),
+			}
+		case entity.SubjectISPDbPatches:
+			res[entity.SubjectISPDbPatches] = &entity.UpdateStatus{
+				Error: utils.ErrUpdateInProgress.Error(),
+			}
+		}
+	}
+	return res
+}
+
+func (c *Client) processUpdateResponse(resp *resty.Response, subjs ...entity.Subject) (entity.Updates, error) {
+	if resp.StatusCode() >= 400 && !c.silentUpdateErr && resp.StatusCode() != 409 {
+		return nil, &RespError{StatusCode: resp.StatusCode(), Response: string(resp.Body())}
+	}
+
+	if c.silentUpdateErr && resp.StatusCode() == 409 {
+		return c.silentUpdateInProgressErr(subjs...), nil
+	}
+
+	var updates entity.Updates
+	if err := json.Unmarshal(resp.Body(), &updates); err != nil {
+		return nil, err
+	}
+	return updates, nil
+}
+
+func (c *Client) makeUpdateRequest(method string) (entity.Updates, error) {
+	request := c.client.R().SetHeader(microservice.APIKey, c.APIKey())
+
+	var resp *resty.Response
+	var err error
+
+	sendReq := func(path string) (*resty.Response, error) {
+		switch method {
+		case http.MethodGet:
+			return request.Get(path)
+		case http.MethodPut:
+			return request.Put(path)
+		}
+		return nil, fmt.Errorf("unsupported HTTP method: %s", method)
+	}
+
+	resp, err = sendReq("geoname/update")
+	if err != nil {
+		return nil, err
+	}
+	geonameUpd, err := c.processUpdateResponse(resp, entity.SubjectGeonames, entity.SubjectGeonamesPatches)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err = sendReq("update")
+	if err != nil {
+		return nil, err
+	}
+	geoipUpd, err := c.processUpdateResponse(resp, entity.SubjectCitiesDb, entity.SubjectCitiesDbPatches, entity.SubjectISPDb, entity.SubjectISPDbPatches)
+	if err != nil {
+		return nil, err
+	}
+
+	maps.Copy(geonameUpd, geoipUpd)
+	return geonameUpd, nil
+}
+
 func (c *Client) CheckUpdates(ctx context.Context) (entity.Updates, error) {
-	resp, err := c.client.R().SetHeader(microservice.APIKey, c.APIKey()).Get("geoname/update")
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode() >= 400 && !c.silentUpdateErr && resp.StatusCode() != 409 {
-		return nil, &RespError{StatusCode: resp.StatusCode(), Response: string(resp.Body())}
-	}
-
-	var geonameUpdates entity.Updates
-	if c.silentUpdateErr && resp.StatusCode() == 409 {
-		geonameUpdates = entity.Updates{
-			entity.SubjectGeonames: &entity.UpdateStatus{
-				Error: utils.ErrUpdateInProgress.Error(),
-			},
-			entity.SubjectGeonamesPatches: &entity.UpdateStatus{
-				Error: utils.ErrUpdateInProgress.Error(),
-			},
-		}
-	} else {
-		err = json.Unmarshal(resp.Body(), &geonameUpdates)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	resp, err = c.client.R().SetHeader(microservice.APIKey, c.APIKey()).Get("update")
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode() >= 400 && !c.silentUpdateErr && resp.StatusCode() != 409 {
-		return nil, &RespError{StatusCode: resp.StatusCode(), Response: string(resp.Body())}
-	}
-	var geoipUpdates entity.Updates
-	if c.silentUpdateErr && resp.StatusCode() == 409 {
-		geoipUpdates = entity.Updates{
-			entity.SubjectCitiesDb: &entity.UpdateStatus{
-				Error: utils.ErrUpdateInProgress.Error(),
-			},
-			entity.SubjectCitiesDbPatches: &entity.UpdateStatus{
-				Error: utils.ErrUpdateInProgress.Error(),
-			},
-			entity.SubjectISPDb: &entity.UpdateStatus{
-				Error: utils.ErrUpdateInProgress.Error(),
-			},
-			entity.SubjectISPDbPatches: &entity.UpdateStatus{
-				Error: utils.ErrUpdateInProgress.Error(),
-			},
-		}
-	} else {
-		err = json.Unmarshal(resp.Body(), &geoipUpdates)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	maps.Copy(geonameUpdates, geoipUpdates)
-
-	return geonameUpdates, nil
+	return c.makeUpdateRequest(http.MethodGet)
 }
 
 func (c *Client) Update(ctx context.Context) (entity.Updates, error) {
-	resp, err := c.client.R().SetHeader(microservice.APIKey, c.APIKey()).Put("geoname/update")
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode() >= 400 && !c.silentUpdateErr && resp.StatusCode() != 409 {
-		return nil, &RespError{StatusCode: resp.StatusCode(), Response: string(resp.Body())}
-	}
-
-	var geonameUpdates entity.Updates
-
-	if c.silentUpdateErr && resp.StatusCode() == 409 {
-		geonameUpdates = entity.Updates{
-			entity.SubjectGeonames: &entity.UpdateStatus{
-				Error: utils.ErrUpdateInProgress.Error(),
-			},
-			entity.SubjectGeonamesPatches: &entity.UpdateStatus{
-				Error: utils.ErrUpdateInProgress.Error(),
-			},
-		}
-	} else {
-		err = json.Unmarshal(resp.Body(), &geonameUpdates)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	resp, err = c.client.R().SetHeader(microservice.APIKey, c.APIKey()).Put("update")
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode() >= 400 && !c.silentUpdateErr && resp.StatusCode() != 409 {
-		return nil, &RespError{StatusCode: resp.StatusCode(), Response: string(resp.Body())}
-	}
-
-	var geoipUpdates entity.Updates
-
-	if c.silentUpdateErr && resp.StatusCode() == 409 {
-		geoipUpdates = entity.Updates{
-			entity.SubjectCitiesDb: &entity.UpdateStatus{
-				Error: utils.ErrUpdateInProgress.Error(),
-			},
-			entity.SubjectCitiesDbPatches: &entity.UpdateStatus{
-				Error: utils.ErrUpdateInProgress.Error(),
-			},
-			entity.SubjectISPDb: &entity.UpdateStatus{
-				Error: utils.ErrUpdateInProgress.Error(),
-			},
-			entity.SubjectISPDbPatches: &entity.UpdateStatus{
-				Error: utils.ErrUpdateInProgress.Error(),
-			},
-		}
-	} else {
-		err = json.Unmarshal(resp.Body(), &geoipUpdates)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	maps.Copy(geonameUpdates, geoipUpdates)
-
-	return geonameUpdates, nil
+	return c.makeUpdateRequest(http.MethodPut)
 }
 
 func (c *Client) State(ctx context.Context) (*state.GeosState, error) {

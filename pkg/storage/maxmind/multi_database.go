@@ -296,9 +296,3 @@ func (db *MultiMaxMindDB[T]) State() *state.GeosState {
 	}
 	return result
 }
-
-/*
-{
-	"csv": "/data/geoip/dump.csv.gz",
-	"db type":"GeoIP2-City","meta":{"BinaryFormatMajorVersion":2,"BinaryFormatMinorVersion":0,"BuildEpoch":1709648927,"BuildVersion":"1.3.0","DatabaseType":"GeoIP2-City","Description":{"en":"GeoIP2City database patched by GEOS service."},"IPVersion":6,"Languages":["de","en","es","fr","ja","pt-BR","ru","zh-CN"],"NodeCount":9351009,"RecordSize":28}}
-*/

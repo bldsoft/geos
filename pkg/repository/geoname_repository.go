@@ -13,11 +13,13 @@ import (
 	"github.com/bldsoft/geos/pkg/storage/state"
 	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
+	"golang.org/x/sync/singleflight"
 )
 
 type GeoNameRepository struct {
-	storage     geonames.Storage
-	updateMutex sync.Mutex
+	storage        geonames.Storage
+	updateMutex    sync.Mutex
+	checkUpdatesSF singleflight.Group
 }
 
 func NewGeoNamesRepository(storage geonames.Storage) *GeoNameRepository {
@@ -25,11 +27,16 @@ func NewGeoNamesRepository(storage geonames.Storage) *GeoNameRepository {
 }
 
 func (r *GeoNameRepository) CheckUpdates(ctx context.Context) (entity.Updates, error) {
-	if !r.updateMutex.TryLock() {
-		return nil, utils.ErrUpdateInProgress
+	result, err, _ := r.checkUpdatesSF.Do("check_updates", func() (interface{}, error) {
+		updates, err := r.storage.CheckUpdates(ctx)
+		return updates, err
+	})
+
+	if err != nil {
+		return nil, err
 	}
-	defer r.updateMutex.Unlock()
-	return r.storage.CheckUpdates(ctx)
+
+	return result.(entity.Updates), nil
 }
 
 func (r *GeoNameRepository) Download(ctx context.Context) (entity.Updates, error) {
@@ -37,7 +44,6 @@ func (r *GeoNameRepository) Download(ctx context.Context) (entity.Updates, error
 		return nil, utils.ErrUpdateInProgress
 	}
 	defer r.updateMutex.Unlock()
-
 	return r.storage.Download(ctx)
 }
 
@@ -156,7 +162,7 @@ func (r *GeoNameRepository) InitAutoUpdates(ctx context.Context, hoursPeriod int
 			case <-ticker.C:
 				upd, err := r.Download(ctx)
 				if err != nil {
-					log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to auto-update due to download error")
+					log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to auto-update due to download error")
 					continue
 				}
 
@@ -167,7 +173,7 @@ func (r *GeoNameRepository) InitAutoUpdates(ctx context.Context, hoursPeriod int
 
 				for subj, status := range upd {
 					if status.Error != "" {
-						log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": status.Error}, "Failed to auto-update due to download error for %s", subj)
+						log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": status.Error}, "failed to auto-update due to download error for %s", subj)
 					} else {
 						log.FromContext(ctx).Infof("Successfully auto-updated %s", subj)
 					}

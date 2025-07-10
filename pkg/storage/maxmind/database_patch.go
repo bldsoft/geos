@@ -197,17 +197,16 @@ func (db *DatabasePatch) MetaData() (*maxminddb.Metadata, error) {
 	return &db.db.Metadata, nil
 }
 
+//--- these are controlled by the custom database
+
 func (db *DatabasePatch) Download(_ context.Context) (entity.Updates, error) {
-	// patches download is controlled by the custom database
 	return nil, nil
 }
 
 func (db *DatabasePatch) CheckUpdates(_ context.Context) (entity.Updates, error) {
-	// patches updates check is controlled by the custom database
 	return nil, nil
 }
 
 func (db *DatabasePatch) State() *state.GeosState {
-	// patches state is controlled by the custom database
 	return &state.GeosState{}
 }

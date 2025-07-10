@@ -129,14 +129,14 @@ func (m *Microservice) initServices() {
 
 	m.asyncRunners = append(m.asyncRunners, m.discovery)
 
-	// if m.config.NeedGrpc() {
-	// 	grpcService := NewGrpcMicroservice(m.config.GRPCServiceBindAddress.HostPort(), m.geoIpService, m.geoNameService)
-	// 	m.asyncRunners = append(m.asyncRunners, grpcService)
+	if m.config.NeedGrpc() {
+		grpcService := NewGrpcMicroservice(m.config.GRPCServiceBindAddress.HostPort(), m.geoIpService, m.geoNameService)
+		m.asyncRunners = append(m.asyncRunners, grpcService)
 
-	// 	m.discovery.SetMetadata(GrpcAddressMetaKey, m.config.GRPCServiceAddress.String())
-	// } else {
-	// 	log.Info("gRPC is off")
-	// }
+		m.discovery.SetMetadata(GrpcAddressMetaKey, m.config.GRPCServiceAddress.String())
+	} else {
+		log.Info("gRPC is off")
+	}
 }
 
 func (m *Microservice) geonamesStorage(patchSrc *source.PatchesSource) geonames.Storage {

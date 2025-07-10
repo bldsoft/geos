@@ -40,7 +40,7 @@ func Open(path string) (*MaxmindDatabase, error) {
 
 func (db *MaxmindDatabase) State() *state.GeosState {
 	versionString := fmt.Sprintf("%d.%d", db.reader.Metadata.BinaryFormatMajorVersion, db.reader.Metadata.BinaryFormatMinorVersion)
-	result := &state.GeosState{}
+	result := new(state.GeosState)
 
 	switch db.reader.Metadata.DatabaseType {
 	case "GeoIP2-City", "GeoLite2-City":

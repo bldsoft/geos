@@ -58,11 +58,6 @@ func NewCustomDownloadManager(name entity.Subject, downloadFunc DownloadFunc, up
 	return dm
 }
 
-type DownloadResult struct {
-	Downloaded bool
-	Updated    bool
-}
-
 func (dm *DownloadManager) RecoverInterruptedDownloads(ctx context.Context, targetPath string, sourceUrl string) error {
 	tmpPath := dm.tmpFilePath(targetPath)
 

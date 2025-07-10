@@ -103,7 +103,7 @@ func NewStoragePatchesFromTarGz(archiveFilepath string) []*StoragePatch {
 
 	stat, err := f.Stat()
 	if err != nil {
-		log.Errorf("failed to stat custom geonames storage archive %s: %v", archiveFilepath, err)
+		log.ErrorfWithFields(log.Fields{"err": err}, "failed to stat custom geonames storage archive %s", archiveFilepath)
 	}
 
 	content, err := utils.UnpackTarGz(f)
@@ -193,8 +193,6 @@ func (s *StoragePatch) Subdivisions(_ context.Context, filter entity.GeoNameFilt
 func (s *StoragePatch) Cities(_ context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error) {
 	return customFilter(s.cities, filter), nil
 }
-
-//Source stuff is managed by the CustomStorage so no source for you
 
 func (s *StoragePatch) CheckUpdates(_ context.Context) (entity.Updates, error) {
 	return nil, nil

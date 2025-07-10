@@ -18,6 +18,7 @@ import (
 	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
 	"github.com/bldsoft/gost/utils/errgroup"
+	"golang.org/x/sync/singleflight"
 )
 
 var (
@@ -74,6 +75,7 @@ type GeoIPRepository struct {
 	cityConf, ispConf   *DBConfig
 	csvDirPath, ispPath string
 	updateMutex         sync.Mutex
+	checkUpdatesSF      singleflight.Group
 }
 
 func NewGeoIPRepository(cityConf, ispConf *DBConfig, csvDirPath string) *GeoIPRepository {
@@ -197,35 +199,38 @@ func (r *GeoIPRepository) database(ctx context.Context, dbType MaxmindDBType) (m
 }
 
 func (r *GeoIPRepository) CheckUpdates(ctx context.Context) (entity.Updates, error) {
-	if !r.updateMutex.TryLock() {
-		return nil, utils.ErrUpdateInProgress
-	}
-	defer r.updateMutex.Unlock()
+	result, err, _ := r.checkUpdatesSF.Do("check_updates", func() (interface{}, error) {
+		var multiErr error
+		multiUpdates := entity.Updates{}
 
-	var multiErr error
-	multiUpdates := entity.Updates{}
+		updates, err := r.dbCity.CheckUpdates(ctx)
+		if err != nil {
+			multiErr = errors.Join(multiErr, err)
+		}
+		if updates != nil {
+			maps.Copy(multiUpdates, updates)
+		}
 
-	updates, err := r.dbCity.CheckUpdates(ctx)
-	if err != nil {
-		multiErr = errors.Join(multiErr, err)
-	}
-	if updates != nil {
-		maps.Copy(multiUpdates, updates)
-	}
+		if r.dbISP == nil {
+			return multiUpdates, multiErr
+		}
 
-	if r.dbISP == nil {
+		updates, err = r.dbISP.CheckUpdates(ctx)
+		if err != nil {
+			multiErr = errors.Join(multiErr, err)
+		}
+		if updates != nil {
+			maps.Copy(multiUpdates, updates)
+		}
+
 		return multiUpdates, multiErr
-	}
+	})
 
-	updates, err = r.dbISP.CheckUpdates(ctx)
 	if err != nil {
-		multiErr = errors.Join(multiErr, err)
-	}
-	if updates != nil {
-		maps.Copy(multiUpdates, updates)
+		return nil, err
 	}
 
-	return multiUpdates, multiErr
+	return result.(entity.Updates), nil
 }
 
 func (r *GeoIPRepository) Download(ctx context.Context) (entity.Updates, error) {
@@ -298,7 +303,7 @@ func (r *GeoIPRepository) State() *state.GeosState {
 
 func (r *GeoIPRepository) InitAutoUpdates(ctx context.Context, hoursPeriod int) {
 	go func() {
-		ticker := time.NewTicker(time.Duration(hoursPeriod) * time.Hour) //TODO: change to hours
+		ticker := time.NewTicker(time.Duration(hoursPeriod) * time.Hour)
 		defer ticker.Stop()
 
 		for {
@@ -309,7 +314,7 @@ func (r *GeoIPRepository) InitAutoUpdates(ctx context.Context, hoursPeriod int) 
 					if errors.Is(err, utils.ErrUpdateInProgress) {
 						continue
 					}
-					log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "Failed to auto-update due to download error")
+					log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to auto-update due to download error")
 					continue
 				}
 
@@ -320,7 +325,7 @@ func (r *GeoIPRepository) InitAutoUpdates(ctx context.Context, hoursPeriod int) 
 
 				for subj, status := range upd {
 					if status.Error != "" {
-						log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": status.Error}, "Failed to auto-update due to download error for %s", subj)
+						log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": status.Error}, "failed to auto-update due to download error for %s", subj)
 					} else {
 						log.FromContext(ctx).Infof("Successfully auto-updated %s", subj)
 					}

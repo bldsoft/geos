@@ -161,9 +161,12 @@ func TestDownloadManager_RecoverInterruptedDownloads_WithTempFile(t *testing.T) 
 	err = dm.RecoverInterruptedDownloads(context.Background(), targetPath, server.URL)
 	require.NoError(t, err)
 
-	content, err := os.ReadFile(tmpPath)
+	content, err := os.ReadFile(targetPath)
 	require.NoError(t, err)
 	assert.Equal(t, testContent, string(content))
+
+	_, err = os.Stat(tmpPath)
+	assert.True(t, os.IsNotExist(err))
 }
 
 func TestDownloadManager_RecoverInterruptedDownloads_NoTempFile(t *testing.T) {
