@@ -18,7 +18,7 @@ import (
 
 type GeoNameRepository struct {
 	storage        geonames.Storage
-	updateMutex    sync.Mutex
+	updateM        sync.Mutex
 	checkUpdatesSF singleflight.Group
 }
 
@@ -40,10 +40,10 @@ func (r *GeoNameRepository) CheckUpdates(ctx context.Context) (entity.Updates, e
 }
 
 func (r *GeoNameRepository) Download(ctx context.Context) (entity.Updates, error) {
-	if !r.updateMutex.TryLock() {
+	if !r.updateM.TryLock() {
 		return nil, utils.ErrUpdateInProgress
 	}
-	defer r.updateMutex.Unlock()
+	defer r.updateM.Unlock()
 	return r.storage.Download(ctx)
 }
 

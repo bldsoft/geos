@@ -105,7 +105,6 @@ func TestDownloadManager_CheckForUpdates_HasUpdate(t *testing.T) {
 
 	dm := NewDownloadManager(entity.Subject("test"))
 
-	// First download to create the temporary file
 	err = dm.Download(context.Background(), server.URL, targetPath)
 	require.NoError(t, err)
 
@@ -130,7 +129,6 @@ func TestDownloadManager_CheckForUpdates_NoUpdate(t *testing.T) {
 
 	dm := NewDownloadManager(entity.Subject("test"))
 
-	// First download to create the temporary file
 	err = dm.Download(context.Background(), server.URL, targetPath)
 	require.NoError(t, err)
 

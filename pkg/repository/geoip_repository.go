@@ -27,6 +27,8 @@ var (
 
 	ErrCSVNotSupported = fmt.Errorf("%w: csv format", errors.ErrUnsupported)
 	ErrDBNotAvailable  = fmt.Errorf("db %w", utils.ErrNotAvailable)
+
+	csvDumpOnce = sync.Once{}
 )
 
 type DumpFormat string
@@ -74,7 +76,7 @@ type GeoIPRepository struct {
 	dbCity, dbISP       *maxmindDBWithCachedCSVDump
 	cityConf, ispConf   *DBConfig
 	csvDirPath, ispPath string
-	updateMutex         sync.Mutex
+	updateM             sync.Mutex
 	checkUpdatesSF      singleflight.Group
 }
 
@@ -93,11 +95,12 @@ func NewGeoIPRepository(cityConf, ispConf *DBConfig, csvDirPath string) *GeoIPRe
 }
 
 func (r *GeoIPRepository) initCSVDumps(ctx context.Context, csvDirPath string) {
-	r.dbCity.initCSVDump(ctx, filepath.Join(csvDirPath, "dump.csv"))
-
-	if r.dbISP != nil {
-		r.dbISP.initCSVDump(ctx, filepath.Join(csvDirPath, "isp.csv"))
-	}
+	csvDumpOnce.Do(func() { //just in case
+		r.dbCity.initCSVDump(ctx, filepath.Join(csvDirPath, "dump.csv"))
+		if r.dbISP != nil {
+			r.dbISP.initCSVDump(ctx, filepath.Join(csvDirPath, "isp.csv"))
+		}
+	})
 }
 
 func lookup[T any](db maxmind.Database, ip net.IP) (*T, error) {
@@ -234,13 +237,12 @@ func (r *GeoIPRepository) CheckUpdates(ctx context.Context) (entity.Updates, err
 }
 
 func (r *GeoIPRepository) Download(ctx context.Context) (entity.Updates, error) {
-	if !r.updateMutex.TryLock() {
+	if !r.updateM.TryLock() {
 		return nil, utils.ErrUpdateInProgress
 	}
-	defer r.updateMutex.Unlock()
 
 	multiUpdates := entity.Updates{}
-	var updatesM sync.Mutex
+	var resultsM sync.Mutex
 
 	var eg errgroup.Group
 	eg.Go(func() error {
@@ -249,8 +251,8 @@ func (r *GeoIPRepository) Download(ctx context.Context) (entity.Updates, error) 
 			return err
 		}
 
-		updatesM.Lock()
-		defer updatesM.Unlock()
+		resultsM.Lock()
+		defer resultsM.Unlock()
 		maps.Copy(multiUpdates, updates)
 		return nil
 	})
@@ -265,8 +267,8 @@ func (r *GeoIPRepository) Download(ctx context.Context) (entity.Updates, error) 
 			return err
 		}
 
-		updatesM.Lock()
-		defer updatesM.Unlock()
+		resultsM.Lock()
+		defer resultsM.Unlock()
 		maps.Copy(multiUpdates, updates)
 		return nil
 	})
@@ -279,7 +281,9 @@ func (r *GeoIPRepository) Download(ctx context.Context) (entity.Updates, error) 
 		r.dbCity = openPatchedDB[entity.City](r.cityConf, string(MaxmindDBTypeCity), true)
 		r.dbISP = openPatchedDB[entity.ISP](r.ispConf, string(MaxmindDBTypeISP), false)
 
-		go r.initCSVDumps(ctx, r.csvDirPath)
+		r.initCSVDumps(ctx, r.csvDirPath)
+
+		r.updateM.Unlock()
 	}()
 
 	return multiUpdates, nil

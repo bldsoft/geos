@@ -271,7 +271,7 @@ func (s *MaxmindSource) downloadRange(ctx context.Context, sourceUrl string, chu
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusPartialContent {
-		return nil, fmt.Errorf("server does not support range requests")
+		return nil, fmt.Errorf("server did not return partial content: %s", resp.Status)
 	}
 
 	data, err := io.ReadAll(resp.Body)

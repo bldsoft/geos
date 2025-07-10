@@ -23,11 +23,7 @@ func NewManagementController(geoIpService controller.GeoIpService, geoNameServic
 func (c *ManagementController) CheckGeoIPUpdatesHandler(w http.ResponseWriter, r *http.Request) {
 	exist, err := c.geoIpService.CheckUpdates(r.Context())
 	if err != nil {
-		if errors.Is(err, utils.ErrUpdateInProgress) {
-			c.ResponseError(w, err.Error(), http.StatusConflict)
-		} else {
-			c.ResponseError(w, err.Error(), http.StatusInternalServerError)
-		}
+		c.ResponseError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	c.ResponseJson(w, r, exist)
@@ -47,27 +43,25 @@ func (c *ManagementController) UpdateGeoIPHandler(w http.ResponseWriter, r *http
 }
 
 func (c *ManagementController) CheckGeonamesUpdatesHandler(w http.ResponseWriter, r *http.Request) {
-	if updates, err := c.geoNameService.CheckUpdates(r.Context()); err != nil {
-		if errors.Is(err, utils.ErrUpdateInProgress) {
-			c.ResponseError(w, err.Error(), http.StatusConflict)
-		} else {
-			c.ResponseError(w, err.Error(), http.StatusInternalServerError)
-		}
-	} else {
-		c.ResponseJson(w, r, updates)
+	updates, err := c.geoNameService.CheckUpdates(r.Context())
+	if err != nil {
+		c.ResponseError(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
+	c.ResponseJson(w, r, updates)
 }
 
 func (c *ManagementController) UpdateGeonamesHandler(w http.ResponseWriter, r *http.Request) {
-	if updates, err := c.geoNameService.Download(r.Context()); err != nil {
+	updates, err := c.geoNameService.Download(r.Context())
+	if err != nil {
 		if errors.Is(err, utils.ErrUpdateInProgress) {
 			c.ResponseError(w, err.Error(), http.StatusConflict)
 		} else {
 			c.ResponseError(w, err.Error(), http.StatusInternalServerError)
 		}
-	} else {
-		c.ResponseJson(w, r, updates)
+		return
 	}
+	c.ResponseJson(w, r, updates)
 }
 
 func (c *ManagementController) GetGeosStateHandler(w http.ResponseWriter, r *http.Request) {

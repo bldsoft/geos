@@ -173,7 +173,6 @@ func (s *GeoNamesSource) removeTmpFiles() {
 	}
 }
 
-// takes a lot of time for some reason
 func (s *GeoNamesSource) CheckUpdates(ctx context.Context) (entity.Updates, error) {
 	updates := entity.Updates{}
 

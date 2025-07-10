@@ -14,6 +14,6 @@ const (
 type Updates map[Subject]*UpdateStatus
 
 type UpdateStatus struct {
-	Error     string `json:"error,omitempty"` //source interaction errors
+	Error     string `json:"error,omitempty"` //external errors during update/update check
 	Available bool   `json:"available"`
 }
