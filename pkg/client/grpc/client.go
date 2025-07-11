@@ -126,13 +126,13 @@ func (c *Client) Close() {
 }
 
 func (c *Client) CheckUpdates(ctx context.Context) (entity.Updates, error) {
-	return nil, nil
+	return nil, errors.ErrUnsupported
 }
 
 func (c *Client) Update(ctx context.Context) (entity.Updates, error) {
-	return nil, nil
+	return nil, errors.ErrUnsupported
 }
 
 func (c *Client) State(ctx context.Context) (*state.GeosState, error) {
-	return &state.GeosState{}, nil
+	return &state.GeosState{}, errors.ErrUnsupported
 }

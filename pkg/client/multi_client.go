@@ -82,13 +82,13 @@ func (c *MultiClient) GeoNameCities(ctx context.Context, filter entity.GeoNameFi
 }
 
 func (c *MultiClient) CheckUpdates(ctx context.Context) (entity.Updates, error) {
-	return nil, nil
+	return nil, errors.ErrUnsupported
 }
 
 func (c *MultiClient) Update(ctx context.Context) (entity.Updates, error) {
-	return nil, nil
+	return nil, errors.ErrUnsupported
 }
 
 func (c *MultiClient) State(ctx context.Context) (*state.GeosState, error) {
-	return nil, nil
+	return nil, errors.ErrUnsupported
 }
