@@ -20,6 +20,6 @@ type Source interface {
 	DirPath() string
 }
 
-type Stater interface {
+type Stater interface { // TODO: move??
 	State() *state.GeosState
 }

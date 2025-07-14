@@ -35,7 +35,7 @@ func (s *mmdbState) isNewerThan(other *mmdbState) bool {
 	return s.buildEpoch > other.buildEpoch
 }
 
-func (s *MaxmindSource) checkUpdates(ctx context.Context, url string, _ string) (bool, error) {
+func (s *MaxmindSource) checkUpdates(ctx context.Context, rep url string, _ string) (bool, error) {
 	res, err := s.downloadRange(ctx, url, -metadataChunkSize)
 	if err != nil {
 		return false, err
