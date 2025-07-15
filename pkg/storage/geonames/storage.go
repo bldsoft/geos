@@ -38,7 +38,7 @@ func GeoNameContinents() []*entity.GeoNameContinent {
 
 type GeoNameStorage struct {
 	dir    string
-	source source.Source
+	source source.Updater
 
 	countries    *geonameEntityStorage[*entity.GeoNameCountry]
 	subdivisions *geonameEntityStorage[*entity.GeoNameAdminSubdivision]
@@ -56,7 +56,7 @@ func NewStorage(dir string) *GeoNameStorage {
 	return s
 }
 
-func (s *GeoNameStorage) SetSource(source source.Source) {
+func (s *GeoNameStorage) SetSource(source source.Updater) {
 	s.source = source
 }
 

@@ -15,8 +15,6 @@ type GeoIpService interface {
 	MetaData(ctx context.Context, dbType service.DBType) (*entity.MetaData, error)
 	Database(ctx context.Context, dbType service.DBType, format service.DumpFormat) (*entity.Database, error)
 
-	InitAutoUpdates(ctx context.Context, hoursPeriod int)
-
 	source.Updater
 	source.Stater
 }
@@ -27,8 +25,6 @@ type GeoNameService interface {
 	Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameAdminSubdivision, error)
 	Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error)
 	Dump(ctx context.Context, format service.DumpFormat) ([]byte, error)
-
-	InitAutoUpdates(ctx context.Context, hoursPeriod int)
 
 	source.Updater
 	source.Stater

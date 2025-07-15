@@ -11,7 +11,7 @@ import (
 
 type CustomStorage struct {
 	*MultiStorage[*StoragePatch]
-	source          source.Source
+	source          source.Updater
 	archiveFilepath string
 }
 
@@ -27,7 +27,7 @@ func NewCustomStorageFromTarGz(archiveFilepath string) *CustomStorage {
 	return NewCustomStorage(archiveFilepath, customs...)
 }
 
-func (s *CustomStorage) SetSource(source source.Source) {
+func (s *CustomStorage) SetSource(source source.Updater) {
 	s.source = source
 }
 

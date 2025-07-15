@@ -14,7 +14,6 @@ import (
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/repository"
 	"github.com/bldsoft/geos/pkg/service"
-	"github.com/bldsoft/geos/pkg/storage/geonames"
 	"github.com/bldsoft/geos/pkg/storage/source"
 	"github.com/bldsoft/gost/auth"
 	"github.com/bldsoft/gost/clickhouse"
@@ -94,34 +93,43 @@ func (m *Microservice) initServices() {
 		log.Debug("Log export to ClickHouse is off")
 	}
 
-	citySource := source.NewMMDBSource(m.config.GeoDbSource, m.config.GeoDbPath, entity.SubjectCitiesDb, m.config.AutoUpdatePeriod)
+	citySource := source.NewMMDBSource(m.config.GeoDbSource, m.config.GeoDbPath, entity.SubjectCitiesDb)
 
-	cityPatchesSource := source.NewPatchesSource(m.config.GeoDbPatchesSource, filepath.Dir(m.config.GeoDbPath), string(repository.MaxmindDBTypeCity), entity.SubjectCitiesDbPatches, m.config.AutoUpdatePeriod)
+	cityPatchesSource := source.NewPatchesSource(m.config.GeoDbPatchesSource, filepath.Dir(m.config.GeoDbPath), string(repository.MaxmindDBTypeCity), entity.SubjectCitiesDbPatches)
 
-	ispSource := source.NewMMDBSource(m.config.GeoDbISPSource, m.config.GeoDbISPPath, entity.SubjectISPDb, m.config.AutoUpdatePeriod)
+	ispSource := source.NewMMDBSource(m.config.GeoDbISPSource, m.config.GeoDbISPPath, entity.SubjectISPDb)
 
-	ispPatchesSource := source.NewPatchesSource(m.config.GeoDbISPPatchesSource, filepath.Dir(m.config.GeoDbISPPath), string(repository.MaxmindDBTypeISP), entity.SubjectISPDbPatches, m.config.AutoUpdatePeriod)
+	ispPatchesSource := source.NewPatchesSource(m.config.GeoDbISPPatchesSource, filepath.Dir(m.config.GeoDbISPPath), string(repository.MaxmindDBTypeISP), entity.SubjectISPDbPatches)
 
 	cityDBConfig := &repository.DBConfig{
-		Path:          m.config.GeoDbPath,
-		DBSource:      citySource,
-		PatchesSource: cityPatchesSource,
+		Path:             m.config.GeoDbPath,
+		DBSource:         citySource,
+		PatchesSource:    cityPatchesSource,
+		AutoUpdatePeriod: m.config.AutoUpdatePeriod,
 	}
 
 	ispDBConfig := &repository.DBConfig{
-		Path:          m.config.GeoDbISPPath,
-		DBSource:      ispSource,
-		PatchesSource: ispPatchesSource,
+		Path:             m.config.GeoDbISPPath,
+		DBSource:         ispSource,
+		PatchesSource:    ispPatchesSource,
+		AutoUpdatePeriod: m.config.AutoUpdatePeriod,
 	}
 
 	rep := repository.NewGeoIPRepository(cityDBConfig, ispDBConfig, m.config.GeoIPCsvDumpDirPath)
 	m.geoIpService = service.NewGeoIpService(rep)
-	m.geoIpService.InitAutoUpdates(context.Background(), m.config.AutoUpdatePeriod)
 
-	geonamePatchesSource := source.NewPatchesSource(m.config.GeoNamePatchesSource, m.config.GeoNameDumpDirPath, "geonames", entity.SubjectGeonamesPatches, m.config.AutoUpdatePeriod)
+	geoNamesSource := source.NewGeoNamesSource(m.config.GeoNameDumpDirPath)
+	geonamePatchesSource := source.NewPatchesSource(m.config.GeoNamePatchesSource, m.config.GeoNameDumpDirPath, "geonames", entity.SubjectGeonamesPatches)
 
-	geoNameStorage := m.geonamesStorage(geonamePatchesSource)
-	geoNameRep := repository.NewGeoNamesRepository(geoNameStorage)
+	geonameStorageConfig := &repository.StorageConfig{
+		DirPath:          m.config.GeoNameDumpDirPath,
+		Source:           geoNamesSource,
+		PatchesSource:    geonamePatchesSource,
+		AutoUpdatePeriod: m.config.AutoUpdatePeriod,
+	}
+
+	// geoNameStorage := m.geonamesStorage(geonamePatchesSource)
+	geoNameRep := repository.NewGeoNamesRepository(geonameStorageConfig)
 	m.geoNameService = service.NewGeoNameService(geoNameRep)
 
 	m.discovery = common.NewDiscovery(m.config.Server, m.config.Discovery)
@@ -139,18 +147,16 @@ func (m *Microservice) initServices() {
 	}
 }
 
-func (m *Microservice) geonamesStorage(patchSrc *source.PatchesSource) geonames.Storage {
-	original := geonames.NewStorage(m.config.GeoNameDumpDirPath)
+// func (m *Microservice) geonamesStorage(patchSrc *source.PatchesSource) geonames.Storage {
+// 	original := geonames.NewStorage(m.config.GeoNameDumpDirPath)
 
-	if len(m.config.GeoNameDumpDirPath) > 0 {
-		geoNamesSource := source.NewGeoNamesSource(m.config.GeoNameDumpDirPath, m.config.AutoUpdatePeriod)
-		original.SetSource(geoNamesSource)
-	}
+// 	if len(m.config.GeoNameDumpDirPath) > 0 {
+// 	}
 
-	custom := geonames.NewCustomStorageFromTarGz(patchSrc.ArchiveFilePath())
-	custom.SetSource(patchSrc)
-	return geonames.NewMultiStorage[geonames.Storage](original).Add(custom)
-}
+// 	custom := geonames.NewCustomStorageFromTarGz(patchSrc.ArchiveFilePath())
+// 	custom.SetSource(patchSrc)
+// 	return geonames.NewMultiStorage[geonames.Storage](original).Add(custom)
+// }
 
 func (m *Microservice) BuildRoutes(router chi.Router) {
 	if d, ok := m.discovery.(*inhouse.Discovery); ok {

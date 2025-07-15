@@ -15,11 +15,6 @@ type Updater interface {
 	CheckUpdates(ctx context.Context) (entity.Updates, error)
 }
 
-type Source interface {
-	Updater
-	DirPath() string
-}
-
 type Stater interface { // TODO: move??
 	State() *state.GeosState
 }

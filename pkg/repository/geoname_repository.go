@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/csv"
+	"errors"
 	"strconv"
 	"sync"
 	"time"
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/geonames"
+	"github.com/bldsoft/geos/pkg/storage/source"
 	"github.com/bldsoft/geos/pkg/storage/state"
 	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
@@ -22,8 +24,65 @@ type GeoNameRepository struct {
 	checkUpdatesSF singleflight.Group
 }
 
-func NewGeoNamesRepository(storage geonames.Storage) *GeoNameRepository {
-	return &GeoNameRepository{storage: storage}
+type StorageConfig struct {
+	DirPath          string
+	Source           *source.GeoNamesSource
+	PatchesSource    *source.PatchesSource
+	AutoUpdatePeriod int
+}
+
+func NewGeoNamesRepository(config *StorageConfig) *GeoNameRepository {
+	rep := &GeoNameRepository{}
+
+	ctx := context.Background()
+	interrupted := config.Source.HasBeenInterrupted()
+	if interrupted {
+		log.FromContext(ctx).Warnf("Found interrupted update for geonames")
+		updates, err := config.PatchesSource.Download(ctx)
+		if err != nil || updates.Error() != nil {
+			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": errors.Join(err, updates.Error())}, "failed to recover interrupted update for geonames")
+		}
+	}
+
+	if !interrupted && config.AutoUpdatePeriod > 0 {
+		updates, err := config.Source.Download(ctx)
+		if err != nil || updates.Error() != nil {
+			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": errors.Join(err, updates.Error())}, "failed to download geonames on start")
+		}
+		if len(updates) > 0 {
+			log.FromContext(ctx).Infof("Updated geonames on start")
+		}
+	}
+
+	original := geonames.NewStorage(config.DirPath)
+	original.SetSource(config.Source)
+
+	interrupted = config.PatchesSource.HasBeenInterrupted()
+	if interrupted {
+		log.FromContext(ctx).Warnf("Found interrupted update for geonames patches")
+		updates, err := config.PatchesSource.Download(ctx)
+		if err != nil || updates.Error() != nil {
+			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": errors.Join(err, updates.Error())}, "failed to recover interrupted update for geonames patches")
+		}
+	}
+
+	if !interrupted && config.AutoUpdatePeriod > 0 {
+		updates, err := config.PatchesSource.Download(ctx)
+		if err != nil || updates.Error() != nil {
+			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": errors.Join(err, updates.Error())}, "failed to download geonames patches on start")
+		}
+		if len(updates) > 0 {
+			log.FromContext(ctx).Infof("Updated geonames patches on start")
+		}
+	}
+
+	custom := geonames.NewCustomStorageFromTarGz(config.PatchesSource.ArchiveFilePath())
+	custom.SetSource(config.PatchesSource)
+
+	rep.storage = geonames.NewMultiStorage[geonames.Storage](original).Add(custom)
+
+	go rep.initAutoUpdates(context.Background(), config.AutoUpdatePeriod)
+	return rep
 }
 
 func (r *GeoNameRepository) CheckUpdates(ctx context.Context) (entity.Updates, error) {
@@ -152,7 +211,7 @@ func (r *GeoNameRepository) State() *state.GeosState {
 	return r.storage.State()
 }
 
-func (r *GeoNameRepository) InitAutoUpdates(ctx context.Context, hoursPeriod int) {
+func (r *GeoNameRepository) initAutoUpdates(ctx context.Context, hoursPeriod int) {
 	go func() {
 		ticker := time.NewTicker(time.Duration(hoursPeriod) * time.Hour)
 		defer ticker.Stop()

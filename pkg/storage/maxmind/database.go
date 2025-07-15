@@ -18,7 +18,7 @@ type MaxmindDatabase struct {
 	path   string
 	reader *maxminddb.Reader
 	dbRaw  []byte
-	source *source.MaxmindSource
+	source *source.MMDBSource
 }
 
 func Open(path string) (*MaxmindDatabase, error) {
@@ -54,7 +54,7 @@ func (db *MaxmindDatabase) State() *state.GeosState {
 	return result
 }
 
-func (db *MaxmindDatabase) SetSource(source *source.MaxmindSource) {
+func (db *MaxmindDatabase) SetSource(source *source.MMDBSource) {
 	db.source = source
 }
 

@@ -9,7 +9,6 @@ import (
 	"github.com/bldsoft/geos/pkg/repository"
 	"github.com/bldsoft/geos/pkg/storage/source"
 	"github.com/bldsoft/geos/pkg/storage/state"
-	"github.com/bldsoft/gost/log"
 )
 
 type DumpFormat = repository.DumpFormat
@@ -22,8 +21,6 @@ type GeoRepository interface {
 	MetaData(ctx context.Context, dbType DBType) (*entity.MetaData, error)
 	Database(ctx context.Context, dbType DBType, format DumpFormat) (*entity.Database, error)
 
-	InitAutoUpdates(ctx context.Context, hoursPeriod int)
-
 	source.Updater
 	source.Stater
 }
@@ -34,15 +31,6 @@ type GeoIpService struct {
 
 func NewGeoIpService(rep GeoRepository) *GeoIpService {
 	return &GeoIpService{rep: rep}
-}
-
-func (s *GeoIpService) InitAutoUpdates(ctx context.Context, hoursPeriod int) {
-	if hoursPeriod <= 0 {
-		log.FromContext(ctx).Warnf("Auto updates are disabled because hoursPeriod is %d", hoursPeriod)
-		return
-	}
-
-	s.rep.InitAutoUpdates(ctx, hoursPeriod)
 }
 
 func (s *GeoIpService) ip(ctx context.Context, address string) (net.IP, error) {

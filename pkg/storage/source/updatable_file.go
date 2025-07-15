@@ -1,4 +1,4 @@
-package source2
+package source
 
 import (
 	"context"
@@ -23,7 +23,7 @@ type ReadFileRepository interface {
 }
 
 type WriteFileRepository interface {
-	CreateIfNotExists(ctx context.Context, path string) (io.WriteCloser, error)
+	Open(ctx context.Context, path string) (io.WriteCloser, error)
 	Write(ctx context.Context, path string, reader io.Reader) error
 	Rename(ctx context.Context, oldPath, newPath string) error
 	Remove(ctx context.Context, path string) error
@@ -70,11 +70,15 @@ func (u *UpdatableFile[V]) RemoteVersion(ctx context.Context) (V, error) {
 	return u.VersionFunc(ctx, u.RemoteURL, u.RemoteFileRepository)
 }
 
-func (u *UpdatableFile[V]) Update(ctx context.Context) error {
+func (u *UpdatableFile[V]) Update(ctx context.Context) (bool, error) {
 	if need, err := u.needUpdate(ctx); !need || err != nil {
-		return err
+		return false, err
 	}
-	return u.update(ctx)
+	err := u.update(ctx)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (u *UpdatableFile[V]) update(ctx context.Context) error {
@@ -91,7 +95,7 @@ func (u *UpdatableFile[V]) update(ctx context.Context) error {
 }
 
 func (u *UpdatableFile[V]) downloadTempFile(ctx context.Context) error {
-	tmpFile, err := u.LocalFileRepository.CreateIfNotExists(ctx, u.tmpFilePath())
+	tmpFile, err := u.LocalFileRepository.Open(ctx, u.tmpFilePath())
 	if err != nil {
 		if errors.Is(err, ErrFileExists) {
 			return nil
@@ -102,7 +106,7 @@ func (u *UpdatableFile[V]) downloadTempFile(ctx context.Context) error {
 
 	reader, err := u.RemoteFileRepository.Reader(ctx, u.RemoteURL)
 	if err != nil {
-		return fmt.Errorf("failed to get remote reader: %w", err)
+		return err
 	}
 	defer reader.Close()
 
@@ -122,6 +126,9 @@ func (u *UpdatableFile[V]) needUpdate(ctx context.Context) (bool, error) {
 
 	localVersion, err := u.Version(ctx)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return true, nil
+		}
 		return false, err
 	}
 
@@ -146,14 +153,7 @@ func (u *UpdatableFile[V]) CheckUpdates(ctx context.Context) (available bool, er
 	return remoteVersion.IsHigher(localVersion), nil
 }
 
-func (u *UpdatableFile[V]) RecoverInterruptedDownloads(ctx context.Context) error {
-	exists, err := u.LocalFileRepository.Exists(ctx, u.tmpFilePath())
-	if err != nil {
-		return fmt.Errorf("failed to check if temporary file exists: %w", err)
-	}
-	if !exists {
-		return nil
-	}
-
-	return u.update(ctx)
+func (u *UpdatableFile[V]) HasBeenInterrupted() bool {
+	exists, _ := u.LocalFileRepository.Exists(context.Background(), u.tmpFilePath())
+	return exists
 }

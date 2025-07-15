@@ -1,4 +1,4 @@
-package source2
+package source
 
 import (
 	"context"
@@ -34,7 +34,7 @@ func (r *RemoteFileRepository) TailReader(ctx context.Context, path string, offs
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Add("Range", fmt.Sprintf("bytes=%d", offset))
+	req.Header.Add("Range", fmt.Sprintf("bytes=-%d", offset))
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

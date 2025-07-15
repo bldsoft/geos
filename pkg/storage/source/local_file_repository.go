@@ -1,4 +1,4 @@
-package source2
+package source
 
 import (
 	"context"
@@ -24,8 +24,21 @@ func (r *LocalFileRepository) TailReader(ctx context.Context, path string, offse
 		return nil, err
 	}
 
-	_, err = file.Seek(offset, io.SeekEnd)
+	fileInfo, err := file.Stat()
 	if err != nil {
+		file.Close()
+		return nil, err
+	}
+
+	fileSize := fileInfo.Size()
+	startOffset := fileSize - offset
+	if startOffset < 0 {
+		startOffset = 0
+	}
+
+	_, err = file.Seek(startOffset, io.SeekStart)
+	if err != nil {
+		file.Close()
 		return nil, err
 	}
 
@@ -35,6 +48,9 @@ func (r *LocalFileRepository) TailReader(ctx context.Context, path string, offse
 func (r *LocalFileRepository) LastModified(ctx context.Context, path string) (time.Time, error) {
 	info, err := os.Stat(path)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return time.Time{}, nil
+		}
 		return time.Time{}, err
 	}
 	return info.ModTime(), nil
@@ -51,8 +67,8 @@ func (r *LocalFileRepository) Exists(ctx context.Context, path string) (bool, er
 	return true, nil
 }
 
-func (r *LocalFileRepository) CreateIfNotExists(ctx context.Context, path string) (io.WriteCloser, error) {
-	return os.OpenFile(path, os.O_CREATE|os.O_EXCL, 0644)
+func (r *LocalFileRepository) Open(ctx context.Context, path string) (io.WriteCloser, error) {
+	return os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_RDWR, 0644)
 }
 
 func (r *LocalFileRepository) Write(ctx context.Context, path string, reader io.Reader) error {
