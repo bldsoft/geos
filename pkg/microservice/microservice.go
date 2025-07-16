@@ -128,7 +128,6 @@ func (m *Microservice) initServices() {
 		AutoUpdatePeriod: m.config.AutoUpdatePeriod,
 	}
 
-	// geoNameStorage := m.geonamesStorage(geonamePatchesSource)
 	geoNameRep := repository.NewGeoNamesRepository(geonameStorageConfig)
 	m.geoNameService = service.NewGeoNameService(geoNameRep)
 
@@ -146,17 +145,6 @@ func (m *Microservice) initServices() {
 		log.Info("gRPC is off")
 	}
 }
-
-// func (m *Microservice) geonamesStorage(patchSrc *source.PatchesSource) geonames.Storage {
-// 	original := geonames.NewStorage(m.config.GeoNameDumpDirPath)
-
-// 	if len(m.config.GeoNameDumpDirPath) > 0 {
-// 	}
-
-// 	custom := geonames.NewCustomStorageFromTarGz(patchSrc.ArchiveFilePath())
-// 	custom.SetSource(patchSrc)
-// 	return geonames.NewMultiStorage[geonames.Storage](original).Add(custom)
-// }
 
 func (m *Microservice) BuildRoutes(router chi.Router) {
 	if d, ok := m.discovery.(*inhouse.Discovery); ok {
