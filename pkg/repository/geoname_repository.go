@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/csv"
-	"errors"
 	"strconv"
 	"sync"
 	"time"
@@ -35,46 +34,12 @@ func NewGeoNamesRepository(config *StorageConfig) *GeoNameRepository {
 	rep := &GeoNameRepository{}
 
 	ctx := context.Background()
-	interrupted := config.Source.HasBeenInterrupted()
-	if interrupted {
-		log.FromContext(ctx).Warnf("Found interrupted update for geonames")
-		updates, err := config.PatchesSource.Download(ctx)
-		if err != nil || updates.Error() != nil {
-			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": errors.Join(err, updates.Error())}, "failed to recover interrupted update for geonames")
-		}
-	}
 
-	if !interrupted && config.AutoUpdatePeriod > 0 {
-		updates, err := config.Source.Download(ctx)
-		if err != nil || updates.Error() != nil {
-			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": errors.Join(err, updates.Error())}, "failed to download geonames on start")
-		}
-		if len(updates) > 0 {
-			log.FromContext(ctx).Infof("Updated geonames on start")
-		}
-	}
+	performSourceCheck(ctx, config.Source, "geonames", config.AutoUpdatePeriod)
+	performSourceCheck(ctx, config.PatchesSource, "geonames patches", config.AutoUpdatePeriod)
 
 	original := geonames.NewStorage(config.DirPath)
 	original.SetSource(config.Source)
-
-	interrupted = config.PatchesSource.HasBeenInterrupted()
-	if interrupted {
-		log.FromContext(ctx).Warnf("Found interrupted update for geonames patches")
-		updates, err := config.PatchesSource.Download(ctx)
-		if err != nil || updates.Error() != nil {
-			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": errors.Join(err, updates.Error())}, "failed to recover interrupted update for geonames patches")
-		}
-	}
-
-	if !interrupted && config.AutoUpdatePeriod > 0 {
-		updates, err := config.PatchesSource.Download(ctx)
-		if err != nil || updates.Error() != nil {
-			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": errors.Join(err, updates.Error())}, "failed to download geonames patches on start")
-		}
-		if len(updates) > 0 {
-			log.FromContext(ctx).Infof("Updated geonames patches on start")
-		}
-	}
 
 	custom := geonames.NewCustomStorageFromTarGz(config.PatchesSource.ArchiveFilePath())
 	custom.SetSource(config.PatchesSource)
