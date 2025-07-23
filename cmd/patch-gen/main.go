@@ -13,6 +13,7 @@ import (
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/geonames"
+	"github.com/bldsoft/geos/pkg/storage/source"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/exp/slices"
 
@@ -158,13 +159,13 @@ func main() {
 }
 
 func geonamesStorage(ctx context.Context, customFilePath string) geonames.Storage {
-	originalStorage := geonames.NewStorage("/tmp/")
+	source := source.NewGeoNamesSource("/tmp/")
+	originalStorage := geonames.NewStorage(source, true)
 	geonameStorage := geonames.NewMultiStorage[geonames.Storage](originalStorage)
 
 	if customStorage, err := geonames.NewStoragePatchFromFile(customFilePath); err == nil {
 		return geonameStorage.Add(customStorage)
 	}
-	originalStorage.WaitReady()
 	return geonameStorage
 }
 

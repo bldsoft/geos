@@ -24,3 +24,7 @@ type ModTimeVersion time.Time
 func (v ModTimeVersion) IsHigher(other ModTimeVersion) bool {
 	return time.Time(v).After(time.Time(other))
 }
+
+func (v ModTimeVersion) Time() time.Time {
+	return time.Time(v)
+}

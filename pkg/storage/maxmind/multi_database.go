@@ -296,3 +296,16 @@ func (db *MultiMaxMindDB[T]) State() *state.GeosState {
 	}
 	return result
 }
+
+func (db *MultiMaxMindDB[T]) LastUpdateInterrupted(ctx context.Context) (bool, error) {
+	for _, database := range db.dbs {
+		interrupted, err := database.LastUpdateInterrupted(ctx)
+		if err != nil {
+			return false, err
+		}
+		if interrupted {
+			return true, nil
+		}
+	}
+	return false, nil
+}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -15,7 +16,14 @@ func NewLocalFileRepository() *LocalFileRepository {
 }
 
 func (r *LocalFileRepository) Reader(ctx context.Context, path string) (io.ReadCloser, error) {
-	return os.Open(path)
+	file, err := os.Open(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, ErrFileNotExists
+		}
+		return nil, err
+	}
+	return file, nil
 }
 
 func (r *LocalFileRepository) TailReader(ctx context.Context, path string, offset int64) (io.ReadCloser, error) {
@@ -68,6 +76,9 @@ func (r *LocalFileRepository) Exists(ctx context.Context, path string) (bool, er
 }
 
 func (r *LocalFileRepository) Open(ctx context.Context, path string) (io.WriteCloser, error) {
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return nil, err
+	}
 	return os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_RDWR, 0644)
 }
 

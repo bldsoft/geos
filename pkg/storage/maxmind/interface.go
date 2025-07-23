@@ -22,7 +22,7 @@ type Database interface {
 	MetaData() (*maxminddb.Metadata, error)
 
 	source.Stater
-	source.Updater
+	source.RecoverableUpdater
 }
 
 type CSVDumper interface {

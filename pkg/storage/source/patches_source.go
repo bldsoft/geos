@@ -2,6 +2,7 @@ package source
 
 import (
 	"context"
+	"io"
 	"path/filepath"
 
 	"github.com/bldsoft/geos/pkg/entity"
@@ -10,23 +11,25 @@ import (
 type PatchesSource struct {
 	Name        entity.Subject
 	patchesFile *UpdatableFile[ModTimeVersion]
-	prefix      string
 }
 
 func NewPatchesSource(sourceUrl, dirPath, prefix string, name entity.Subject) *PatchesSource {
 	return &PatchesSource{
 		patchesFile: NewTSUpdatableFile(filepath.Join(dirPath, prefix+"_patches.tar.gz"), sourceUrl),
 		Name:        name,
-		prefix:      prefix,
 	}
 }
 
-func (s *PatchesSource) HasBeenInterrupted() bool {
-	return s.patchesFile.HasBeenInterrupted()
+func (s *PatchesSource) Reader(ctx context.Context) (io.ReadCloser, error) {
+	return s.patchesFile.Reader(ctx)
 }
 
-func (s *PatchesSource) ArchiveFilePath() string {
-	return s.patchesFile.LocalPath
+func (s *PatchesSource) Version(ctx context.Context) (ModTimeVersion, error) {
+	return s.patchesFile.Version(ctx)
+}
+
+func (s *PatchesSource) LastUpdateInterrupted(ctx context.Context) (bool, error) {
+	return s.patchesFile.LastUpdateInterrupted(ctx)
 }
 
 func (s *PatchesSource) Download(ctx context.Context) (entity.Updates, error) {

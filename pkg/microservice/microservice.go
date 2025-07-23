@@ -4,17 +4,14 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"path/filepath"
 	"sync"
 	"time"
 
 	"github.com/bldsoft/geos/pkg/config"
 	"github.com/bldsoft/geos/pkg/controller"
 	"github.com/bldsoft/geos/pkg/controller/rest"
-	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/repository"
 	"github.com/bldsoft/geos/pkg/service"
-	"github.com/bldsoft/geos/pkg/storage/source"
 	"github.com/bldsoft/gost/auth"
 	"github.com/bldsoft/gost/clickhouse"
 	gost "github.com/bldsoft/gost/controller"
@@ -93,39 +90,27 @@ func (m *Microservice) initServices() {
 		log.Debug("Log export to ClickHouse is off")
 	}
 
-	citySource := source.NewMMDBSource(m.config.GeoDbSource, m.config.GeoDbPath, entity.SubjectCitiesDb)
-
-	cityPatchesSource := source.NewPatchesSource(m.config.GeoDbPatchesSource, filepath.Dir(m.config.GeoDbPath), string(repository.MaxmindDBTypeCity), entity.SubjectCitiesDbPatches)
-
-	ispSource := source.NewMMDBSource(m.config.GeoDbISPSource, m.config.GeoDbISPPath, entity.SubjectISPDb)
-
-	ispPatchesSource := source.NewPatchesSource(m.config.GeoDbISPPatchesSource, filepath.Dir(m.config.GeoDbISPPath), string(repository.MaxmindDBTypeISP), entity.SubjectISPDbPatches)
-
-	cityDBConfig := &repository.DBConfig{
-		Path:             m.config.GeoDbPath,
-		DBSource:         citySource,
-		PatchesSource:    cityPatchesSource,
-		AutoUpdatePeriod: m.config.AutoUpdatePeriod,
+	cityDBConfig := repository.DBConfig{
+		LocalPath:        m.config.GeoDbPath,
+		RemoteURL:        m.config.GeoDbSource,
+		PatchesRemoteURL: m.config.GeoDbPatchesSource,
+		AutoUpdatePeriod: time.Duration(m.config.AutoUpdatePeriod) * time.Hour,
 	}
 
-	ispDBConfig := &repository.DBConfig{
-		Path:             m.config.GeoDbISPPath,
-		DBSource:         ispSource,
-		PatchesSource:    ispPatchesSource,
-		AutoUpdatePeriod: m.config.AutoUpdatePeriod,
+	ispDBConfig := repository.DBConfig{
+		LocalPath:        m.config.GeoDbISPPath,
+		RemoteURL:        m.config.GeoDbISPSource,
+		PatchesRemoteURL: m.config.GeoDbISPPatchesSource,
+		AutoUpdatePeriod: time.Duration(m.config.AutoUpdatePeriod) * time.Hour,
 	}
 
 	rep := repository.NewGeoIPRepository(cityDBConfig, ispDBConfig, m.config.GeoIPCsvDumpDirPath)
 	m.geoIpService = service.NewGeoIpService(rep)
 
-	geoNamesSource := source.NewGeoNamesSource(m.config.GeoNameDumpDirPath)
-	geonamePatchesSource := source.NewPatchesSource(m.config.GeoNamePatchesSource, m.config.GeoNameDumpDirPath, "geonames", entity.SubjectGeonamesPatches)
-
-	geonameStorageConfig := &repository.StorageConfig{
-		DirPath:          m.config.GeoNameDumpDirPath,
-		Source:           geoNamesSource,
-		PatchesSource:    geonamePatchesSource,
-		AutoUpdatePeriod: m.config.AutoUpdatePeriod,
+	geonameStorageConfig := repository.StorageConfig{
+		LocalDir:         m.config.GeoNameDumpDirPath,
+		PatchesRemoteURL: m.config.GeoNamePatchesSource,
+		AutoUpdatePeriod: time.Duration(m.config.AutoUpdatePeriod) * time.Hour,
 	}
 
 	geoNameRep := repository.NewGeoNamesRepository(geonameStorageConfig)

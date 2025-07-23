@@ -3,10 +3,12 @@ package geonames
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 
 	"github.com/bldsoft/geos/pkg/entity"
+	"github.com/bldsoft/geos/pkg/storage/source"
 	"github.com/bldsoft/geos/pkg/storage/state"
 	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
@@ -91,24 +93,20 @@ type StoragePatch struct {
 	state int64
 }
 
-func NewStoragePatchesFromTarGz(archiveFilepath string) []*StoragePatch {
-	var customStorages []*StoragePatch
+func NewStoragePatchesFromTarGz(source *source.PatchesSource) []*StoragePatch {
+	ctx := context.Background()
 
-	f, err := os.Open(archiveFilepath)
+	var customStorages []*StoragePatch
+	r, err := source.Reader(ctx)
 	if err != nil {
-		log.ErrorWithFields(log.Fields{"err": err, "archiveFilepath": archiveFilepath}, "failed to open custom geonames storage archive")
+		log.ErrorWithFields(log.Fields{"err": err}, "failed to open custom geonames storage archive")
 		return nil
 	}
-	defer f.Close()
+	defer r.Close()
 
-	stat, err := f.Stat()
+	content, err := utils.UnpackTarGz(r)
 	if err != nil {
-		log.ErrorfWithFields(log.Fields{"err": err}, "failed to stat custom geonames storage archive %s", archiveFilepath)
-	}
-
-	content, err := utils.UnpackTarGz(f)
-	if err != nil {
-		log.ErrorWithFields(log.Fields{"err": err, "archiveFilepath": archiveFilepath}, "failed to unpack custom geonames storage archive")
+		log.ErrorWithFields(log.Fields{"err": err}, "failed to unpack custom geonames storage archive")
 		return nil
 	}
 
@@ -124,7 +122,7 @@ func NewStoragePatchesFromTarGz(archiveFilepath string) []*StoragePatch {
 			continue
 		}
 
-		customStorages = append(customStorages, NewStoragePatch(records).WithState(stat.ModTime().Unix()))
+		customStorages = append(customStorages, NewStoragePatch(records))
 	}
 
 	return customStorages
@@ -195,11 +193,15 @@ func (s *StoragePatch) Cities(_ context.Context, filter entity.GeoNameFilter) ([
 }
 
 func (s *StoragePatch) CheckUpdates(_ context.Context) (entity.Updates, error) {
-	return nil, nil
+	return nil, errors.ErrUnsupported
 }
 
 func (s *StoragePatch) Download(_ context.Context) (entity.Updates, error) {
-	return nil, nil
+	return nil, errors.ErrUnsupported
+}
+
+func (s *StoragePatch) LastUpdateInterrupted(_ context.Context) (bool, error) {
+	return false, errors.ErrUnsupported
 }
 
 func (s *StoragePatch) State() *state.GeosState {

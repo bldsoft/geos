@@ -109,3 +109,16 @@ func (s *MultiStorage[T]) State() *state.GeosState {
 	}
 	return result
 }
+
+func (s *MultiStorage[T]) LastUpdateInterrupted(ctx context.Context) (bool, error) {
+	for _, storage := range s.storages {
+		interrupted, err := storage.LastUpdateInterrupted(ctx)
+		if err != nil {
+			return false, err
+		}
+		if interrupted {
+			return true, nil
+		}
+	}
+	return false, nil
+}

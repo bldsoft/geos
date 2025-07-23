@@ -5,49 +5,107 @@ import (
 	"context"
 	"encoding/csv"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/geonames"
 	"github.com/bldsoft/geos/pkg/storage/source"
 	"github.com/bldsoft/geos/pkg/storage/state"
-	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
 	"golang.org/x/sync/singleflight"
 )
 
+type StorageConfig struct {
+	LocalDir         string
+	PatchesRemoteURL string
+	AutoUpdatePeriod time.Duration
+}
 type GeoNameRepository struct {
+	cfg            StorageConfig
 	storage        geonames.Storage
-	updateM        sync.Mutex
 	checkUpdatesSF singleflight.Group
 }
 
-type StorageConfig struct {
-	DirPath          string
-	Source           *source.GeoNamesSource
-	PatchesSource    *source.PatchesSource
-	AutoUpdatePeriod int
+func NewGeoNamesRepository(config StorageConfig) *GeoNameRepository {
+	origSource := source.NewGeoNamesSource(config.LocalDir)
+	patchSource := source.NewPatchesSource(config.PatchesRemoteURL, config.LocalDir, "geonames", entity.SubjectGeonamesPatches)
+
+	original := geonames.NewStorage(origSource)
+	custom := geonames.NewCustomStorageFromTarGz(patchSource)
+
+	return &GeoNameRepository{
+		cfg:     config,
+		storage: geonames.NewMultiStorage[geonames.Storage](original).Add(custom),
+	}
 }
 
-func NewGeoNamesRepository(config *StorageConfig) *GeoNameRepository {
-	rep := &GeoNameRepository{}
+func (r *GeoNameRepository) Run(ctx context.Context) error {
+	logger := log.FromContext(ctx).WithFields(log.Fields{"db": "geonames"})
+	ctx = context.WithValue(ctx, log.LoggerCtxKey, logger)
 
-	ctx := context.Background()
+	r.updateIfInterrupted(ctx)
 
-	performSourceCheck(ctx, config.Source, "geonames", config.AutoUpdatePeriod)
-	performSourceCheck(ctx, config.PatchesSource, "geonames patches", config.AutoUpdatePeriod)
+	if r.cfg.AutoUpdatePeriod <= 0 {
+		return nil
+	}
 
-	original := geonames.NewStorage(config.DirPath)
-	original.SetSource(config.Source)
+	for {
+		select {
+		case <-time.After(r.cfg.AutoUpdatePeriod):
+			upd, err := r.Download(ctx)
+			if err != nil {
+				log.FromContext(ctx).ErrorfWithFields(log.Fields{
+					"err": err,
+				}, "failed to update")
+			}
+			if len(upd) == 0 {
+				logger.Info("No geoip updates found")
+				continue
+			}
 
-	custom := geonames.NewCustomStorageFromTarGz(config.PatchesSource.ArchiveFilePath())
-	custom.SetSource(config.PatchesSource)
+			for subj, status := range upd {
+				if status.Error != "" {
+					log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": status.Error}, "failed to auto-update due to download error for %s", subj)
+				} else {
+					log.FromContext(ctx).Infof("Successfully auto-updated %s", subj)
+				}
+			}
+		case <-ctx.Done():
+			return nil
+		}
+	}
+}
 
-	rep.storage = geonames.NewMultiStorage[geonames.Storage](original).Add(custom)
+func (r *GeoNameRepository) updateIfInterrupted(ctx context.Context) {
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
 
-	go rep.initAutoUpdates(context.Background(), config.AutoUpdatePeriod)
-	return rep
+	for {
+		interrupted, err := r.storage.LastUpdateInterrupted(ctx)
+		if err != nil {
+			log.FromContext(ctx).ErrorfWithFields(log.Fields{
+				"err": err,
+			}, "failed to check if update was interrupted")
+			continue
+		}
+		if !interrupted {
+			continue
+		}
+
+		_, err = r.storage.Download(ctx)
+		if err == nil {
+			break
+		}
+		log.FromContext(ctx).ErrorfWithFields(log.Fields{
+			"err": err,
+		}, "failed to update")
+
+		select {
+		case <-ticker.C:
+		case <-ctx.Done():
+			return
+		}
+	}
 }
 
 func (r *GeoNameRepository) CheckUpdates(ctx context.Context) (entity.Updates, error) {
@@ -64,10 +122,6 @@ func (r *GeoNameRepository) CheckUpdates(ctx context.Context) (entity.Updates, e
 }
 
 func (r *GeoNameRepository) Download(ctx context.Context) (entity.Updates, error) {
-	if !r.updateM.TryLock() {
-		return nil, utils.ErrUpdateInProgress
-	}
-	defer r.updateM.Unlock()
 	return r.storage.Download(ctx)
 }
 

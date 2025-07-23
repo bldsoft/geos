@@ -46,34 +46,13 @@ const (
 	MaxmindDBTypeISP  MaxmindDBType = "isp"
 )
 
-type interruptableSource interface {
-	HasBeenInterrupted() bool
-	source.Updater
-}
-
-func performSourceCheck(ctx context.Context, source interruptableSource, customPrefix string, autoUpdatePeriod int) {
-	interrupted := source.HasBeenInterrupted()
-	if interrupted {
-		log.FromContext(ctx).Warnf("Found interrupted update for %s", customPrefix)
-		updates, err := source.Download(ctx)
-		if err != nil || updates.Error() != nil {
-			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": errors.Join(err, updates.Error())}, "failed to recover interrupted update for %s", customPrefix)
-		}
-	}
-
-	if !interrupted && autoUpdatePeriod > 0 {
-		updates, err := source.Download(ctx)
-		if err != nil || updates.Error() != nil {
-			log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": errors.Join(err, updates.Error())}, "failed to download %s on start", customPrefix)
-		}
-		if len(updates) > 0 {
-			log.FromContext(ctx).Infof("Updated %s on start", customPrefix)
-		}
-	}
-}
-
-func openPatchedDB[T maxmind.CSVEntity](conf *DBConfig, customPrefix string, required bool) *maxmindDBWithCachedCSVDump {
-	originalDB, err := maxmind.Open(conf.Path)
+func openPatchedDB[T maxmind.CSVEntity](
+	conf DBConfig, customPrefix, csvDumpDir string, required bool,
+	subject entity.Subject, // TODO: REMOVE
+	patchesSubject entity.Subject, // TODO: REMOVE
+) *maxmindDBWithCachedCSVDump {
+	dbSource := source.NewMMDBSource(conf.RemoteURL, conf.LocalPath, subject)
+	originalDB, err := maxmind.Open(dbSource)
 	if err != nil {
 		if required {
 			log.Fatalf("Failed to read %s db: %s", customPrefix, err)
@@ -81,62 +60,38 @@ func openPatchedDB[T maxmind.CSVEntity](conf *DBConfig, customPrefix string, req
 		log.Warnf("Failed to read %s db: %s", customPrefix, err)
 		return nil
 	}
-	originalDB.SetSource(conf.DBSource)
 
-	customDB := maxmind.NewCustomDatabaseFromTarGz(conf.PatchesSource.ArchiveFilePath())
-	customDB.SetSource(conf.PatchesSource)
+	patchesSource := source.NewPatchesSource(conf.PatchesRemoteURL, filepath.Dir(conf.LocalPath), string(patchesSubject), patchesSubject)
+	customDB := maxmind.NewCustomDatabaseFromTarGz(patchesSource)
 
 	multiDB := maxmind.NewMultiMaxMindDB[maxmind.Database](originalDB).Add(customDB).WithLogger(
 		*log.Logger.WithFields(log.Fields{"db": customPrefix}),
 	)
-	return withCachedCSVDump[T](multiDB)
+	return withCachedCSVDump[T](multiDB, csvDumpDir)
 }
 
 type DBConfig struct {
-	Path             string
-	DBSource         *source.MMDBSource
-	PatchesSource    *source.PatchesSource
-	AutoUpdatePeriod int
+	LocalPath        string
+	RemoteURL        string
+	PatchesRemoteURL string
+	AutoUpdatePeriod time.Duration
 }
 
 type GeoIPRepository struct {
-	dbCity, dbISP       *maxmindDBWithCachedCSVDump
-	cityConf, ispConf   *DBConfig
-	csvDirPath, ispPath string
-	updateM             sync.Mutex
-	checkUpdatesSF      singleflight.Group
+	dbCity, dbISP     *maxmindDBWithCachedCSVDump
+	cityConf, ispConf DBConfig
+	csvDirPath        string
+	checkUpdatesSF    singleflight.Group
 }
 
-func NewGeoIPRepository(cityConf, ispConf *DBConfig, csvDirPath string) *GeoIPRepository {
-	ctx := context.Background()
-
-	performSourceCheck(ctx, cityConf.DBSource, string(MaxmindDBTypeCity), cityConf.AutoUpdatePeriod)
-	performSourceCheck(ctx, cityConf.PatchesSource, string(MaxmindDBTypeCity), cityConf.AutoUpdatePeriod)
-	performSourceCheck(ctx, ispConf.DBSource, string(MaxmindDBTypeISP), ispConf.AutoUpdatePeriod)
-	performSourceCheck(ctx, ispConf.PatchesSource, string(MaxmindDBTypeISP), ispConf.AutoUpdatePeriod)
-
-	rep := GeoIPRepository{
+func NewGeoIPRepository(cityConf, ispConf DBConfig, csvDirPath string) *GeoIPRepository {
+	return &GeoIPRepository{
 		csvDirPath: csvDirPath,
 		cityConf:   cityConf,
 		ispConf:    ispConf,
-		dbCity:     openPatchedDB[entity.City](cityConf, string(MaxmindDBTypeCity), true),
-		dbISP:      openPatchedDB[entity.ISP](ispConf, string(MaxmindDBTypeISP), false),
-		ispPath:    ispConf.Path,
+		dbCity:     openPatchedDB[entity.City](cityConf, string(MaxmindDBTypeCity), csvDirPath, true, entity.SubjectCitiesDb, entity.SubjectCitiesDbPatches),
+		dbISP:      openPatchedDB[entity.ISP](ispConf, string(MaxmindDBTypeISP), csvDirPath, false, entity.SubjectISPDb, entity.SubjectISPDbPatches),
 	}
-
-	go rep.initCSVDumps(ctx, csvDirPath)
-	go rep.initAutoUpdates(ctx, cityConf.AutoUpdatePeriod)
-	return &rep
-}
-
-func (r *GeoIPRepository) initCSVDumps(ctx context.Context, csvDirPath string) {
-	csvDumpOnce.Do(func() { //just in case
-		r.dbCity.initCSVDump(ctx, filepath.Join(csvDirPath, "dump.csv"))
-		if r.dbISP != nil {
-			r.dbISP.initCSVDump(ctx, filepath.Join(csvDirPath, "isp.csv"))
-		}
-	})
-	csvDumpOnce = sync.Once{}
 }
 
 func lookup[T any](db maxmind.Database, ip net.IP) (*T, error) {
@@ -223,7 +178,7 @@ func (r *GeoIPRepository) database(ctx context.Context, dbType MaxmindDBType) (m
 	case MaxmindDBTypeCity:
 		db = r.dbCity
 	case MaxmindDBTypeISP:
-		if len(r.ispPath) == 0 {
+		if r.dbISP == nil {
 			return nil, ErrGeoIPCSVDisabled
 		}
 		db = r.dbISP
@@ -273,54 +228,30 @@ func (r *GeoIPRepository) CheckUpdates(ctx context.Context) (entity.Updates, err
 }
 
 func (r *GeoIPRepository) Download(ctx context.Context) (entity.Updates, error) {
-	if !r.updateM.TryLock() {
-		return nil, utils.ErrUpdateInProgress
-	}
-
 	multiUpdates := entity.Updates{}
-	var resultsM sync.Mutex
+	var resultsMtx sync.Mutex
 
 	var eg errgroup.Group
-	eg.Go(func() error {
-		updates, err := r.dbCity.Download(ctx)
-		if err != nil {
-			return err
+	for _, db := range []*maxmindDBWithCachedCSVDump{r.dbCity, r.dbISP} {
+		if db == nil {
+			continue
 		}
+		eg.Go(func() error {
+			updates, err := db.Download(ctx)
+			if err != nil {
+				return err
+			}
 
-		resultsM.Lock()
-		defer resultsM.Unlock()
-		maps.Copy(multiUpdates, updates)
-		return nil
-	})
-
-	eg.Go(func() error {
-		if r.dbISP == nil {
+			resultsMtx.Lock()
+			defer resultsMtx.Unlock()
+			maps.Copy(multiUpdates, updates)
 			return nil
-		}
-
-		updates, err := r.dbISP.Download(ctx)
-		if err != nil {
-			return err
-		}
-
-		resultsM.Lock()
-		defer resultsM.Unlock()
-		maps.Copy(multiUpdates, updates)
-		return nil
-	})
+		})
+	}
 
 	if err := eg.Wait(); err != nil {
 		return nil, err
 	}
-
-	go func() {
-		r.dbCity = openPatchedDB[entity.City](r.cityConf, string(MaxmindDBTypeCity), true)
-		r.dbISP = openPatchedDB[entity.ISP](r.ispConf, string(MaxmindDBTypeISP), false)
-
-		r.initCSVDumps(ctx, r.csvDirPath)
-
-		r.updateM.Unlock()
-	}()
 
 	return multiUpdates, nil
 }
@@ -341,42 +272,73 @@ func (r *GeoIPRepository) State() *state.GeosState {
 	return result
 }
 
-func (r *GeoIPRepository) initAutoUpdates(ctx context.Context, hoursPeriod int) {
-	if hoursPeriod == 0 {
-		return
-	}
+func (r *GeoIPRepository) Run(ctx context.Context) error {
+	for _, db := range []*maxmindDBWithCachedCSVDump{r.dbCity, r.dbISP} {
+		if db == nil {
+			continue
+		}
+		logger := log.FromContext(ctx).WithFields(log.Fields{"db": db.metadata().DatabaseType})
+		ctx = context.WithValue(ctx, log.LoggerCtxKey, logger)
 
-	go func() {
-		ticker := time.NewTicker(time.Duration(hoursPeriod) * time.Hour)
-		defer ticker.Stop()
-
+		ticker := time.NewTicker(time.Minute)
 		for {
+			interrupted, err := db.lastUpdateInterrupted(ctx)
+			if err != nil {
+				logger.ErrorfWithFields(log.Fields{
+					"err": err,
+				}, "failed to check if update was interrupted")
+				continue
+			}
+			if !interrupted {
+				continue
+			}
+
+			logger.Infof("Found interrupted update, retrying...")
+
+			_, err = db.Download(ctx)
+			if err == nil {
+				logger.Infof("Successfully updated %s", db.metadata().DatabaseType)
+				break
+			}
+			logger.ErrorfWithFields(log.Fields{
+				"err": err,
+			}, "failed to update")
+
 			select {
 			case <-ticker.C:
-				upd, err := r.Download(ctx)
-				if err != nil {
-					if errors.Is(err, utils.ErrUpdateInProgress) {
-						continue
-					}
-					log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": err}, "failed to auto-update due to download error")
-					continue
-				}
-
-				if len(upd) == 0 {
-					log.FromContext(ctx).Info("No geoip updates found")
-					continue
-				}
-
-				for subj, status := range upd {
-					if status.Error != "" {
-						log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": status.Error}, "failed to auto-update due to download error for %s", subj)
-					} else {
-						log.FromContext(ctx).Infof("Successfully auto-updated %s", subj)
-					}
-				}
 			case <-ctx.Done():
-				return
+				return nil
 			}
 		}
-	}()
+	}
+
+	if r.cityConf.AutoUpdatePeriod <= 0 {
+		return nil
+	}
+
+	for {
+		select {
+		case <-time.After(r.cityConf.AutoUpdatePeriod):
+			upd, err := r.Download(ctx)
+			if err != nil {
+				log.FromContext(ctx).ErrorfWithFields(log.Fields{
+					"err": err,
+				}, "failed to update")
+			}
+			if len(upd) == 0 {
+				log.FromContext(ctx).Info("No geoip updates found")
+				continue
+			}
+
+			for subj, status := range upd {
+				if status.Error != "" {
+					log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": status.Error}, "failed to auto-update due to download error for %s", subj)
+				} else {
+					log.FromContext(ctx).Infof("Successfully auto-updated %s", subj)
+				}
+			}
+		case <-ctx.Done():
+			return nil
+		}
+	}
 }

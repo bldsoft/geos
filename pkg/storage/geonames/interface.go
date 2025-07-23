@@ -13,6 +13,6 @@ type Storage interface {
 	Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameAdminSubdivision, error)
 	Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error)
 
-	source.Updater
+	source.RecoverableUpdater
 	source.Stater
 }

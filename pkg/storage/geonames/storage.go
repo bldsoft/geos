@@ -2,12 +2,12 @@ package geonames
 
 import (
 	"context"
-	"os"
-	"path/filepath"
+	"sync/atomic"
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/source"
 	"github.com/bldsoft/geos/pkg/storage/state"
+	"github.com/bldsoft/gost/utils/errgroup"
 	"github.com/mkrou/geonames"
 	"github.com/mkrou/geonames/models"
 )
@@ -37,92 +37,87 @@ func GeoNameContinents() []*entity.GeoNameContinent {
 }
 
 type GeoNameStorage struct {
-	dir    string
-	source source.Updater
+	source *source.GeoNamesSource
 
-	countries    *geonameEntityStorage[*entity.GeoNameCountry]
-	subdivisions *geonameEntityStorage[*entity.GeoNameAdminSubdivision]
-	cities       *geonameEntityStorage[*entity.GeoName]
-
-	additionalInfoReadyC chan struct{}
+	countries    atomic.Pointer[geonameEntityStorage[*entity.GeoNameCountry]]
+	subdivisions atomic.Pointer[geonameEntityStorage[*entity.GeoNameAdminSubdivision]]
+	cities       atomic.Pointer[geonameEntityStorage[*entity.GeoName]]
 }
 
-func NewStorage(dir string) *GeoNameStorage {
-	s := new(GeoNameStorage)
-	s.dir = dir
+func NewStorage(source *source.GeoNamesSource, syncInit ...bool) *GeoNameStorage {
+	s := &GeoNameStorage{
+		source: source,
+	}
 
-	s.fill()
+	if len(syncInit) > 0 && syncInit[0] {
+		s.fill()
+	} else {
+		go s.fill()
+	}
 
 	return s
 }
 
-func (s *GeoNameStorage) SetSource(source source.Updater) {
-	s.source = source
-}
-
 func (s *GeoNameStorage) fill() {
-	s.countries = newGeonameEntityStorage(s.dir, func(parser geonames.Parser) ([]*entity.GeoNameCountry, error) {
-		var countries []*entity.GeoNameCountry
-		err := parser.GetCountries(func(c *models.Country) error {
-			countries = append(countries, &entity.GeoNameCountry{Country: c})
-			return nil
+	var eg errgroup.Group
+
+	var countries *geonameEntityStorage[*entity.GeoNameCountry]
+	eg.Go(func() error {
+		countries = newGeonameEntityStorage(s.source.CountriesFile, func(parser geonames.Parser) ([]*entity.GeoNameCountry, error) {
+			var countries []*entity.GeoNameCountry
+			err := parser.GetCountries(func(c *models.Country) error {
+				countries = append(countries, &entity.GeoNameCountry{Country: c})
+				return nil
+			})
+			return countries, err
 		})
-		return countries, err
+		return nil
 	})
 
-	s.subdivisions = newGeonameEntityStorage(s.dir, func(parser geonames.Parser) ([]*entity.GeoNameAdminSubdivision, error) {
-		var subdivisions []*entity.GeoNameAdminSubdivision
-		err := parser.GetAdminDivisions(func(division *models.AdminDivision) error {
-			subdivisions = append(subdivisions, &entity.GeoNameAdminSubdivision{AdminDivision: division})
-			return nil
+	var subdivisions *geonameEntityStorage[*entity.GeoNameAdminSubdivision]
+	eg.Go(func() error {
+		subdivisions = newGeonameEntityStorage(s.source.AdminDivisionsFile, func(parser geonames.Parser) ([]*entity.GeoNameAdminSubdivision, error) {
+			var subdivisions []*entity.GeoNameAdminSubdivision
+			err := parser.GetAdminDivisions(func(division *models.AdminDivision) error {
+				subdivisions = append(subdivisions, &entity.GeoNameAdminSubdivision{AdminDivision: division})
+				return nil
+			})
+			return subdivisions, err
 		})
-		return subdivisions, err
+		return nil
 	})
 
-	s.cities = newGeonameEntityStorage(s.dir, func(parser geonames.Parser) ([]*entity.GeoName, error) {
-		var cities []*entity.GeoName
-		err := parser.GetGeonames(geonames.Cities500, func(c *models.Geoname) error {
-			cities = append(cities, &entity.GeoName{Geoname: c})
-			return nil
+	var cities *geonameEntityStorage[*entity.GeoName]
+	eg.Go(func() error {
+		cities = newGeonameEntityStorage(s.source.Cities500File, func(parser geonames.Parser) ([]*entity.GeoName, error) {
+			var cities []*entity.GeoName
+			err := parser.GetGeonames(geonames.Cities500, func(c *models.Geoname) error {
+				cities = append(cities, &entity.GeoName{Geoname: c})
+				return nil
+			})
+			return cities, err
 		})
-		return cities, err
+		return nil
 	})
 
-	s.additionalInfoReadyC = make(chan struct{})
-	go s.fillAdditionalFields()
+	_ = eg.Wait()
+	s.fillAdditionalFields(countries, subdivisions, cities)
+
+	s.countries.Store(countries)
+	s.subdivisions.Store(subdivisions)
+	s.cities.Store(cities)
 }
 
-func (s *GeoNameStorage) CheckUpdates(ctx context.Context) (entity.Updates, error) {
-	if s.source == nil {
-		return nil, source.ErrNoSource
-	}
-	return s.source.CheckUpdates(ctx)
-}
-
-func (s *GeoNameStorage) Download(ctx context.Context) (entity.Updates, error) {
-	if s.source == nil {
-		return nil, source.ErrNoSource
-	}
-
-	updates, err := s.source.Download(ctx)
-	if err != nil {
-		return updates, err
-	}
-
-	s.fill()
-
-	return updates, nil
-}
-
-func (r *GeoNameStorage) fillAdditionalFields() {
-	defer close(r.additionalInfoReadyC)
-	r.waitInit()
-
+func (r *GeoNameStorage) fillAdditionalFields(
+	countries *geonameEntityStorage[*entity.GeoNameCountry],
+	subdivisions *geonameEntityStorage[*entity.GeoNameAdminSubdivision],
+	cities *geonameEntityStorage[*entity.GeoName],
+) {
 	countryCodeToContinent := make(map[string]*entity.GeoNameContinent)
 	countryCodeToCountry := make(map[string]*entity.GeoNameCountry)
 	subdivisionCodeToSubdivision := make(map[string]*entity.GeoNameAdminSubdivision)
 
-	for _, country := range r.countries.collection {
+	for _, country := range countries.collection {
 		var continent *entity.GeoNameContinent
 		for _, c := range r.Continents(context.Background()) {
 			if c.Code() == country.Continent {
@@ -137,7 +132,7 @@ func (r *GeoNameStorage) fillAdditionalFields() {
 		countryCodeToContinent[country.GetCountryCode()] = continent
 	}
 
-	for _, subdiv := range r.subdivisions.collection {
+	for _, subdiv := range subdivisions.collection {
 		if country, ok := countryCodeToCountry[subdiv.GetCountryCode()]; ok {
 			subdiv.CountryName = country.GetName()
 		}
@@ -150,7 +145,7 @@ func (r *GeoNameStorage) fillAdditionalFields() {
 		subdivisionCodeToSubdivision[subdiv.Code] = subdiv
 	}
 
-	for _, city := range r.cities.collection {
+	for _, city := range cities.collection {
 		if country, ok := countryCodeToCountry[city.GetCountryCode()]; ok {
 			city.CountryCode = country.GetCountryCode()
 			city.CountryName = country.GetCountryName()
@@ -165,57 +160,65 @@ func (r *GeoNameStorage) fillAdditionalFields() {
 	}
 }
 
-func (r *GeoNameStorage) waitInit() {
-	<-r.cities.readyC
-	<-r.subdivisions.readyC
-	<-r.countries.readyC
-}
-
-func (r *GeoNameStorage) WaitReady() {
-	<-r.additionalInfoReadyC
-}
-
 func (r *GeoNameStorage) Continents(ctx context.Context) []*entity.GeoNameContinent {
 	return GeoNameContinents()
 }
 
 func (r *GeoNameStorage) Countries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error) {
-	select {
-	case <-r.additionalInfoReadyC:
-		return r.countries.GetEntities(ctx, filter)
-	case <-ctx.Done():
-		return nil, ctx.Err()
+	countries := r.countries.Load()
+	if countries == nil {
+		return nil, ErrGeoNameNotReady
 	}
+	return countries.GetEntities(ctx, filter)
 }
 
 func (r *GeoNameStorage) Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameAdminSubdivision, error) {
-	select {
-	case <-r.additionalInfoReadyC:
-		return r.subdivisions.GetEntities(ctx, filter)
-	case <-ctx.Done():
-		return nil, ctx.Err()
+	subdivisions := r.subdivisions.Load()
+	if subdivisions == nil {
+		return nil, ErrGeoNameNotReady
 	}
+	return subdivisions.GetEntities(ctx, filter)
 }
 
 func (r *GeoNameStorage) Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error) {
-	select {
-	case <-r.additionalInfoReadyC:
-		return r.cities.GetEntities(ctx, filter)
-	case <-ctx.Done():
-		return nil, ctx.Err()
+	cities := r.cities.Load()
+	if cities == nil {
+		return nil, ErrGeoNameNotReady
 	}
+	return cities.GetEntities(ctx, filter)
 }
 
 func (r *GeoNameStorage) State() *state.GeosState {
 	var timestampsSum int64
-	for _, filename := range []string{geonames.Countries.String(), geonames.AdminDivisions.String(), string(geonames.Cities500)} {
-		filePath := filepath.Join(r.dir, filename)
-		if info, err := os.Stat(filePath); err == nil {
-			timestampsSum += info.ModTime().Unix()
+	for _, file := range []*source.UpdatableFile[source.ModTimeVersion]{
+		r.source.CountriesFile,
+		r.source.AdminDivisionsFile,
+		r.source.Cities500File,
+	} {
+		if version, err := file.Version(context.Background()); err == nil {
+			timestampsSum += version.Time().Unix()
 		}
 	}
 
 	return &state.GeosState{
 		GeonamesTimestamps: timestampsSum,
 	}
+}
+
+func (s *GeoNameStorage) CheckUpdates(ctx context.Context) (entity.Updates, error) {
+	return s.source.CheckUpdates(ctx)
+}
+
+func (s *GeoNameStorage) Download(ctx context.Context) (entity.Updates, error) {
+	updates, err := s.source.Download(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	s.fill()
+	return updates, nil
+}
+
+func (r *GeoNameStorage) LastUpdateInterrupted(ctx context.Context) (bool, error) {
+	return r.source.LastUpdateInterrupted(ctx)
 }

@@ -43,8 +43,12 @@ func NewMMDBSource(sourceUrl, dbPath string, name entity.Subject) *MMDBSource {
 	return res
 }
 
-func (s *MMDBSource) HasBeenInterrupted() bool {
-	return s.dbFile.HasBeenInterrupted()
+func (s *MMDBSource) Reader(ctx context.Context) (io.ReadCloser, error) {
+	return s.dbFile.Reader(ctx)
+}
+
+func (s *MMDBSource) LastUpdateInterrupted(ctx context.Context) (bool, error) {
+	return s.dbFile.LastUpdateInterrupted(ctx)
 }
 
 func (s *MMDBSource) Download(ctx context.Context) (entity.Updates, error) {

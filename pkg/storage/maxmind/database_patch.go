@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"os"
 	"path/filepath"
 
 	"github.com/bldsoft/geos/pkg/entity"
+	"github.com/bldsoft/geos/pkg/storage/source"
 	"github.com/bldsoft/geos/pkg/storage/state"
 	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/maxmind/mmdbwriter"
@@ -35,92 +35,54 @@ type DatabasePatch struct {
 	state int64
 }
 
-func NewDatabasePatchesFromTarGz(filename string) ([]*DatabasePatch, error) {
+func NewDatabasePatchesFromTarGz(source *source.PatchesSource) ([]*DatabasePatch, error) {
+	ctx := context.Background()
+	r, err := source.Reader(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	contents, err := utils.UnpackTarGz(r)
+	if err != nil {
+		return nil, err
+	}
+
 	var customDBs []*DatabasePatch
-	file, err := os.OpenFile(filename, os.O_RDONLY, 0666)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	stat, err := file.Stat()
-	if err != nil {
-		return nil, err
-	}
-
-	contents, err := utils.UnpackTarGz(file)
-	if err != nil {
-		return nil, err
-	}
-
 	for fileName, content := range contents {
 		if filepath.Ext(fileName) != ".json" {
 			return nil, utils.ErrUnknownFormat
 		}
 
-		reader, err := NewJSONRecordReader(bytes.NewReader(content))
+		jsonReader, err := NewJSONRecordReader(bytes.NewReader(content))
 		if err != nil {
 			return nil, err
 		}
 
-		if db, err := NewDatabasePatch(reader); err != nil {
+		db, err := NewDatabasePatch(jsonReader)
+		if err != nil {
 			return nil, err
-		} else {
-			customDBs = append(customDBs, db.WithMetadata(maxminddb.Metadata{
-				Description:              map[string]string{"en": fmt.Sprintf("path = %s", fileName)},
-				DatabaseType:             db.db.Metadata.DatabaseType,
-				Languages:                db.db.Metadata.Languages,
-				BinaryFormatMajorVersion: db.db.Metadata.BinaryFormatMajorVersion,
-				BinaryFormatMinorVersion: db.db.Metadata.BinaryFormatMinorVersion,
-				BuildEpoch:               uint(stat.ModTime().Unix()),
-				IPVersion:                db.db.Metadata.IPVersion,
-				NodeCount:                db.db.Metadata.NodeCount,
-				RecordSize:               db.db.Metadata.RecordSize,
-			}).WithState(stat.ModTime().Unix()))
 		}
+
+		ver, err := source.Version(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		customDBs = append(customDBs, db.WithMetadata(maxminddb.Metadata{
+			Description:              map[string]string{"en": fmt.Sprintf("path = %s", fileName)},
+			DatabaseType:             db.db.Metadata.DatabaseType,
+			Languages:                db.db.Metadata.Languages,
+			BinaryFormatMajorVersion: db.db.Metadata.BinaryFormatMajorVersion,
+			BinaryFormatMinorVersion: db.db.Metadata.BinaryFormatMinorVersion,
+			BuildEpoch:               uint(ver.Time().Unix()),
+			IPVersion:                db.db.Metadata.IPVersion,
+			NodeCount:                db.db.Metadata.NodeCount,
+			RecordSize:               db.db.Metadata.RecordSize,
+		}).WithState(ver.Time().Unix()))
 	}
 
 	return customDBs, nil
-}
-
-func NewDatabasePatchFromFile(path string) (*DatabasePatch, error) {
-	file, err := os.OpenFile(path, os.O_RDONLY, 0666)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	var reader MMDBRecordReader
-	switch filepath.Ext(path) {
-	case ".json":
-		reader, err = NewJSONRecordReader(file)
-	default:
-		return nil, utils.ErrUnknownFormat
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	db, err := NewDatabasePatch(reader)
-	if err != nil {
-		return nil, err
-	}
-
-	stat, err := file.Stat()
-	if err != nil {
-		return nil, err
-	}
-	return db.WithMetadata(maxminddb.Metadata{
-		Description:              map[string]string{"en": fmt.Sprintf("path = %s", path)},
-		DatabaseType:             db.db.Metadata.DatabaseType,
-		Languages:                db.db.Metadata.Languages,
-		BinaryFormatMajorVersion: db.db.Metadata.BinaryFormatMajorVersion,
-		BinaryFormatMinorVersion: db.db.Metadata.BinaryFormatMinorVersion,
-		BuildEpoch:               uint(stat.ModTime().Unix()),
-		IPVersion:                db.db.Metadata.IPVersion,
-		NodeCount:                db.db.Metadata.NodeCount,
-		RecordSize:               db.db.Metadata.RecordSize,
-	}).WithState(stat.ModTime().Unix()), nil
 }
 
 func NewDatabasePatch(reader MMDBRecordReader) (*DatabasePatch, error) {
@@ -200,11 +162,15 @@ func (db *DatabasePatch) MetaData() (*maxminddb.Metadata, error) {
 //--- these are controlled by the custom database
 
 func (db *DatabasePatch) Download(_ context.Context) (entity.Updates, error) {
-	return nil, nil
+	return nil, errors.ErrUnsupported
 }
 
 func (db *DatabasePatch) CheckUpdates(_ context.Context) (entity.Updates, error) {
-	return nil, nil
+	return nil, errors.ErrUnsupported
+}
+
+func (db *DatabasePatch) LastUpdateInterrupted(_ context.Context) (bool, error) {
+	return false, errors.ErrUnsupported
 }
 
 func (db *DatabasePatch) State() *state.GeosState {

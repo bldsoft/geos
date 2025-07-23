@@ -43,10 +43,21 @@ func NewGeoNamesSource(dirPath string) *GeoNamesSource {
 	return res
 }
 
-func (s *GeoNamesSource) HasBeenInterrupted() bool {
-	return s.CountriesFile.HasBeenInterrupted() ||
-		s.AdminDivisionsFile.HasBeenInterrupted() ||
-		s.Cities500File.HasBeenInterrupted()
+func (s *GeoNamesSource) LastUpdateInterrupted(ctx context.Context) (bool, error) {
+	for _, file := range []*UpdatableFile[ModTimeVersion]{
+		s.CountriesFile,
+		s.AdminDivisionsFile,
+		s.Cities500File,
+	} {
+		interrupted, err := file.LastUpdateInterrupted(ctx)
+		if err != nil {
+			return false, err
+		}
+		if interrupted {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func (s *GeoNamesSource) Download(ctx context.Context) (entity.Updates, error) {

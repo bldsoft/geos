@@ -2,7 +2,6 @@ package geonames
 
 import (
 	"context"
-	"os"
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/source"
@@ -11,53 +10,38 @@ import (
 
 type CustomStorage struct {
 	*MultiStorage[*StoragePatch]
-	source          source.Updater
-	archiveFilepath string
+	source *source.PatchesSource
 }
 
-func NewCustomStorage(archiveFilepath string, patches ...*StoragePatch) *CustomStorage {
+func NewCustomStorageFromTarGz(source *source.PatchesSource) *CustomStorage {
+	patches := NewStoragePatchesFromTarGz(source)
 	return &CustomStorage{
-		MultiStorage:    &MultiStorage[*StoragePatch]{storages: patches},
-		archiveFilepath: archiveFilepath,
+		MultiStorage: NewMultiStorage[*StoragePatch](patches...),
+		source:       source,
 	}
-}
-
-func NewCustomStorageFromTarGz(archiveFilepath string) *CustomStorage {
-	customs := NewStoragePatchesFromTarGz(archiveFilepath)
-	return NewCustomStorage(archiveFilepath, customs...)
-}
-
-func (s *CustomStorage) SetSource(source source.Updater) {
-	s.source = source
 }
 
 func (s *CustomStorage) CheckUpdates(ctx context.Context) (entity.Updates, error) {
-	if s.source == nil {
-		return nil, source.ErrNoSource
-	}
-
 	return s.source.CheckUpdates(ctx)
 }
 
 func (s *CustomStorage) Download(ctx context.Context) (updates entity.Updates, err error) {
-	if s.source == nil {
-		return nil, source.ErrNoSource
-	}
-
 	if updates, err = s.source.Download(ctx); err != nil {
 		return nil, err
 	}
 
-	s.storages = NewStoragePatchesFromTarGz(s.archiveFilepath)
+	patches := NewStoragePatchesFromTarGz(s.source)
+	s.MultiStorage = NewMultiStorage(patches...)
 	return updates, nil
 }
 
 func (s *CustomStorage) State() *state.GeosState {
+	ctx := context.Background()
 	result := &state.GeosState{}
 
 	var archiveTimestamp int64
-	if info, err := os.Stat(s.archiveFilepath); err == nil {
-		archiveTimestamp = info.ModTime().Unix()
+	if v, err := s.source.Version(ctx); err == nil {
+		archiveTimestamp = v.Time().Unix()
 	} else {
 		for _, storage := range s.storages {
 			storageState := storage.State()

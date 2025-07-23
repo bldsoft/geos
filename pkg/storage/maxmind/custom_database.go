@@ -2,7 +2,6 @@ package maxmind
 
 import (
 	"context"
-	"os"
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/source"
@@ -13,68 +12,57 @@ import (
 
 type CustomDatabase struct {
 	*MultiMaxMindDB[*DatabasePatch]
-	source          *source.PatchesSource
-	archiveFilepath string
+	source *source.PatchesSource
 }
 
-func NewCustomDatabase(archiveFilepath string, patches ...*DatabasePatch) *CustomDatabase {
-	return &CustomDatabase{
-		archiveFilepath: archiveFilepath,
-		MultiMaxMindDB:  &MultiMaxMindDB[*DatabasePatch]{dbs: patches, logger: log.Logger},
-	}
-}
-
-func NewCustomDatabaseFromTarGz(archiveFilepath string) *CustomDatabase {
-	customDBs, err := NewDatabasePatchesFromTarGz(archiveFilepath)
+func NewCustomDatabaseFromTarGz(source *source.PatchesSource) *CustomDatabase {
+	customDBs, err := NewDatabasePatchesFromTarGz(source)
 	if err != nil {
-		log.Logger.Errorf("failed to load custom databases from %s: %v", archiveFilepath, err)
+		log.Logger.Errorf("failed to load custom databases %s: %v", source.Name, err)
 	}
-
-	return NewCustomDatabase(archiveFilepath, customDBs...)
-}
-
-func (db *CustomDatabase) SetSource(source *source.PatchesSource) {
-	db.source = source
+	res := &CustomDatabase{
+		MultiMaxMindDB: NewMultiMaxMindDB(customDBs...),
+		source:         source,
+	}
+	return res
 }
 
 func (db *CustomDatabase) MetaData() (*maxminddb.Metadata, error) {
 	if len(db.dbs) == 0 {
 		return &maxminddb.Metadata{}, nil //there is no problem if there are no patches
 	}
-
 	return db.MultiMaxMindDB.MetaData()
 }
 
 func (db *CustomDatabase) Download(ctx context.Context) (updates entity.Updates, err error) {
-	if db.source == nil {
-		return nil, source.ErrNoSource
-	}
-
 	if updates, err = db.source.Download(ctx); err != nil {
 		return nil, err
 	}
 
-	db.dbs = NewCustomDatabaseFromTarGz(db.archiveFilepath).dbs
+	customDBs, err := NewDatabasePatchesFromTarGz(db.source)
+	if err != nil {
+		return nil, err
+	}
+
+	db.MultiMaxMindDB = NewMultiMaxMindDB(customDBs...)
 	return
 }
 
 func (db *CustomDatabase) CheckUpdates(ctx context.Context) (entity.Updates, error) {
-	if db.source == nil {
-		return nil, source.ErrNoSource
-	}
 	return db.source.CheckUpdates(ctx)
 }
 
+func (db *CustomDatabase) LastUpdateInterrupted(ctx context.Context) (bool, error) {
+	return db.source.LastUpdateInterrupted(ctx)
+}
+
 func (db *CustomDatabase) State() *state.GeosState {
+	ctx := context.TODO()
 	result := &state.GeosState{}
 
-	if db.source == nil {
-		return result
-	}
-
 	var archiveTimestamp int64
-	if info, err := os.Stat(db.archiveFilepath); err == nil {
-		archiveTimestamp = info.ModTime().Unix()
+	if v, err := db.source.Version(ctx); err == nil {
+		archiveTimestamp = v.Time().Unix()
 	} else {
 		var maxTimestamp int64
 		for _, patch := range db.dbs {

@@ -10,6 +10,7 @@ import (
 )
 
 var ErrFileExists = errors.New("file exists")
+var ErrFileNotExists = errors.New("file not exists")
 
 type Comparable[T any] interface {
 	IsHigher(other T) bool
@@ -59,6 +60,19 @@ func NewUpdatableFile[V Comparable[V]](
 }
 
 func (u *UpdatableFile[V]) Reader(ctx context.Context) (io.ReadCloser, error) {
+	reader, err := u.LocalFileRepository.Reader(ctx, u.LocalPath)
+	if err == nil {
+		return reader, nil
+	}
+
+	if !errors.Is(err, ErrFileNotExists) {
+		return nil, fmt.Errorf("failed to open local file: %w", err)
+	}
+
+	if err := u.update(ctx); err != nil {
+		return nil, fmt.Errorf("failed to update file: %w", err)
+	}
+
 	return u.LocalFileRepository.Reader(ctx, u.LocalPath)
 }
 
@@ -153,7 +167,7 @@ func (u *UpdatableFile[V]) CheckUpdates(ctx context.Context) (available bool, er
 	return remoteVersion.IsHigher(localVersion), nil
 }
 
-func (u *UpdatableFile[V]) HasBeenInterrupted() bool {
-	exists, _ := u.LocalFileRepository.Exists(context.Background(), u.tmpFilePath())
-	return exists
+func (u *UpdatableFile[V]) LastUpdateInterrupted(ctx context.Context) (bool, error) {
+	exists, err := u.LocalFileRepository.Exists(ctx, u.tmpFilePath())
+	return exists, err
 }
