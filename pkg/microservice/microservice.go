@@ -151,8 +151,8 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 			r.Get("/dump", geoIpController.GetDumpHandler) // deprecated, used by streampool
 			r.Get("/update", managementController.CheckGeoIPUpdatesHandler)
 			r.Put("/update", managementController.UpdateGeoIPHandler)
-			r.Get("/state", managementController.GetGeosStateHandler)
 		})
+		r.With(m.ApiKeyMiddleware()).Get("/update", managementController.GetGeosUpdateStateHandler)
 
 		r.Route("/dump/{db}", func(r chi.Router) {
 			r.Use(m.ApiKeyMiddleware())

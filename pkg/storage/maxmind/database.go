@@ -65,17 +65,12 @@ func (db *MaxmindDatabase) Networks(options ...maxminddb.NetworksOption) (*maxmi
 	return db.reader.Load().Networks(), nil
 }
 
-func (db *MaxmindDatabase) Download(ctx context.Context) (entity.Updates, error) {
-	updates, err := db.source.Download(ctx)
-	if err != nil {
-		return nil, err
+func (db *MaxmindDatabase) TryUpdate(ctx context.Context) error {
+	if err := db.source.TryUpdate(ctx); err != nil {
+		return err
 	}
 
-	if err := db.update(ctx); err != nil {
-		return nil, err
-	}
-
-	return updates, nil
+	return db.update(ctx)
 }
 
 func (db *MaxmindDatabase) update(ctx context.Context) error {
@@ -100,7 +95,7 @@ func (db *MaxmindDatabase) update(ctx context.Context) error {
 	return nil
 }
 
-func (db *MaxmindDatabase) CheckUpdates(ctx context.Context) (entity.Updates, error) {
+func (db *MaxmindDatabase) CheckUpdates(ctx context.Context) (entity.Update, error) {
 	return db.source.CheckUpdates(ctx)
 }
 

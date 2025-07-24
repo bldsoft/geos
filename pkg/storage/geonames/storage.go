@@ -205,18 +205,17 @@ func (r *GeoNameStorage) State() *state.GeosState {
 	}
 }
 
-func (s *GeoNameStorage) CheckUpdates(ctx context.Context) (entity.Updates, error) {
+func (s *GeoNameStorage) CheckUpdates(ctx context.Context) (entity.Update, error) {
 	return s.source.CheckUpdates(ctx)
 }
 
-func (s *GeoNameStorage) Download(ctx context.Context) (entity.Updates, error) {
-	updates, err := s.source.Download(ctx)
-	if err != nil {
-		return nil, err
+func (s *GeoNameStorage) TryUpdate(ctx context.Context) error {
+	if err := s.source.TryUpdate(ctx); err != nil {
+		return err
 	}
 
 	s.fill()
-	return updates, nil
+	return nil
 }
 
 func (r *GeoNameStorage) LastUpdateInterrupted(ctx context.Context) (bool, error) {

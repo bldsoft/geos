@@ -2,6 +2,7 @@ package source
 
 import (
 	"context"
+	"fmt"
 	"time"
 )
 
@@ -27,4 +28,8 @@ func (v ModTimeVersion) IsHigher(other ModTimeVersion) bool {
 
 func (v ModTimeVersion) Time() time.Time {
 	return time.Time(v)
+}
+
+func (v ModTimeVersion) String() string {
+	return fmt.Sprintf("%d", time.Time(v).Unix())
 }

@@ -5,7 +5,6 @@ import (
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/service"
-	"github.com/bldsoft/geos/pkg/storage/source"
 )
 
 type GeoIpService interface {
@@ -15,8 +14,8 @@ type GeoIpService interface {
 	MetaData(ctx context.Context, dbType service.DBType) (*entity.MetaData, error)
 	Database(ctx context.Context, dbType service.DBType, format service.DumpFormat) (*entity.Database, error)
 
-	source.Updater
-	source.Stater
+	StartUpdate(ctx context.Context) error
+	CheckUpdates(ctx context.Context) ([]entity.DBUpdate, error)
 }
 
 type GeoNameService interface {
@@ -26,6 +25,6 @@ type GeoNameService interface {
 	Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error)
 	Dump(ctx context.Context, format service.DumpFormat) ([]byte, error)
 
-	source.Updater
-	source.Stater
+	StartUpdate(ctx context.Context) error
+	CheckUpdates(ctx context.Context) (entity.DBUpdate, error)
 }

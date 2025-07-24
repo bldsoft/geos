@@ -7,13 +7,17 @@ import (
 	"io"
 	"os"
 	"time"
+
+	"github.com/bldsoft/geos/pkg/entity"
+	"github.com/bldsoft/geos/pkg/utils"
 )
 
 var ErrFileExists = errors.New("file exists")
 var ErrFileNotExists = errors.New("file not exists")
 
-type Comparable[T any] interface {
+type Version[T any] interface {
 	IsHigher(other T) bool
+	fmt.Stringer
 }
 
 type ReadFileRepository interface {
@@ -35,7 +39,7 @@ type FileRepository interface {
 	WriteFileRepository
 }
 
-type UpdatableFile[V Comparable[V]] struct {
+type UpdatableFile[V Version[V]] struct {
 	LocalPath string
 	RemoteURL string
 
@@ -45,7 +49,7 @@ type UpdatableFile[V Comparable[V]] struct {
 	VersionFunc func(ctx context.Context, path string, rep ReadFileRepository) (V, error)
 }
 
-func NewUpdatableFile[V Comparable[V]](
+func NewUpdatableFile[V Version[V]](
 	path,
 	url string,
 	versionFunc func(ctx context.Context, path string, rep ReadFileRepository) (V, error),
@@ -84,15 +88,11 @@ func (u *UpdatableFile[V]) RemoteVersion(ctx context.Context) (V, error) {
 	return u.VersionFunc(ctx, u.RemoteURL, u.RemoteFileRepository)
 }
 
-func (u *UpdatableFile[V]) Update(ctx context.Context) (bool, error) {
+func (u *UpdatableFile[V]) TryUpdate(ctx context.Context) error {
 	if need, err := u.needUpdate(ctx); !need || err != nil {
-		return false, err
+		return err
 	}
-	err := u.update(ctx)
-	if err != nil {
-		return false, err
-	}
-	return true, nil
+	return u.update(ctx)
 }
 
 func (u *UpdatableFile[V]) update(ctx context.Context) error {
@@ -108,11 +108,19 @@ func (u *UpdatableFile[V]) update(ctx context.Context) error {
 	return nil
 }
 
+func (u *UpdatableFile[V]) updateInProgress(ctx context.Context) bool {
+	exists, err := u.LocalFileRepository.Exists(ctx, u.tmpFilePath())
+	if err != nil {
+		return false
+	}
+	return exists
+}
+
 func (u *UpdatableFile[V]) downloadTempFile(ctx context.Context) error {
 	tmpFile, err := u.LocalFileRepository.Open(ctx, u.tmpFilePath())
 	if err != nil {
 		if errors.Is(err, ErrFileExists) {
-			return nil
+			return utils.ErrUpdateInProgress
 		}
 		return fmt.Errorf("failed to create temporary file: %w", err)
 	}
@@ -153,18 +161,22 @@ func (u *UpdatableFile[V]) tmpFilePath() string {
 	return u.LocalPath + ".tmp"
 }
 
-func (u *UpdatableFile[V]) CheckUpdates(ctx context.Context) (available bool, err error) {
+func (u *UpdatableFile[V]) CheckUpdates(ctx context.Context) (upd entity.Update, err error) {
 	remoteVersion, err := u.RemoteVersion(ctx)
 	if err != nil {
-		return false, err
+		return upd, err
 	}
 
 	localVersion, err := u.Version(ctx)
 	if err != nil {
-		return false, err
+		return upd, err
 	}
 
-	return remoteVersion.IsHigher(localVersion), nil
+	return entity.Update{
+		CurrentVersion:   localVersion.String(),
+		AvailableVersion: remoteVersion.String(),
+		InProgress:       u.updateInProgress(ctx),
+	}, nil
 }
 
 func (u *UpdatableFile[V]) LastUpdateInterrupted(ctx context.Context) (bool, error) {

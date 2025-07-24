@@ -21,7 +21,6 @@ type Database interface {
 	RawData() (io.Reader, error) // mmdb
 	MetaData() (*maxminddb.Metadata, error)
 
-	source.Stater
 	source.RecoverableUpdater
 }
 

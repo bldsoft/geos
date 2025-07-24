@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/bldsoft/geos/pkg/controller"
-	"github.com/bldsoft/geos/pkg/storage/state"
 	"github.com/bldsoft/geos/pkg/utils"
 	gost "github.com/bldsoft/gost/controller"
 )
@@ -30,7 +29,7 @@ func (c *ManagementController) CheckGeoIPUpdatesHandler(w http.ResponseWriter, r
 }
 
 func (c *ManagementController) UpdateGeoIPHandler(w http.ResponseWriter, r *http.Request) {
-	updates, err := c.geoIpService.Download(r.Context())
+	err := c.geoIpService.StartUpdate(r.Context())
 	if err != nil {
 		if errors.Is(err, utils.ErrUpdateInProgress) {
 			c.ResponseError(w, err.Error(), http.StatusConflict)
@@ -39,7 +38,7 @@ func (c *ManagementController) UpdateGeoIPHandler(w http.ResponseWriter, r *http
 		}
 		return
 	}
-	c.ResponseJson(w, r, updates)
+	c.ResponseOK(w)
 }
 
 func (c *ManagementController) CheckGeonamesUpdatesHandler(w http.ResponseWriter, r *http.Request) {
@@ -52,7 +51,7 @@ func (c *ManagementController) CheckGeonamesUpdatesHandler(w http.ResponseWriter
 }
 
 func (c *ManagementController) UpdateGeonamesHandler(w http.ResponseWriter, r *http.Request) {
-	updates, err := c.geoNameService.Download(r.Context())
+	err := c.geoNameService.StartUpdate(r.Context())
 	if err != nil {
 		if errors.Is(err, utils.ErrUpdateInProgress) {
 			c.ResponseError(w, err.Error(), http.StatusConflict)
@@ -61,21 +60,20 @@ func (c *ManagementController) UpdateGeonamesHandler(w http.ResponseWriter, r *h
 		}
 		return
 	}
-	c.ResponseJson(w, r, updates)
+	c.ResponseOK(w)
 }
 
-func (c *ManagementController) GetGeosStateHandler(w http.ResponseWriter, r *http.Request) {
-	result := &state.GeosState{}
-
-	geoIpState := c.geoIpService.State()
-	if geoIpState != nil {
-		result.Add(geoIpState)
+func (c *ManagementController) GetGeosUpdateStateHandler(w http.ResponseWriter, r *http.Request) {
+	updates, err := c.geoIpService.CheckUpdates(r.Context())
+	if err != nil {
+		c.ResponseError(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-
-	geoNameState := c.geoNameService.State()
-	if geoNameState != nil {
-		result.Add(geoNameState)
+	geonamesUpdates, err := c.geoNameService.CheckUpdates(r.Context())
+	if err != nil {
+		c.ResponseError(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-
-	c.ResponseJson(w, r, result)
+	updates = append(updates, geonamesUpdates)
+	c.ResponseJson(w, r, updates)
 }

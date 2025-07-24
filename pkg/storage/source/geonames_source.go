@@ -15,17 +15,13 @@ const (
 )
 
 type GeoNamesSource struct {
-	name entity.Subject
-
 	CountriesFile      *UpdatableFile[ModTimeVersion]
 	AdminDivisionsFile *UpdatableFile[ModTimeVersion]
 	Cities500File      *UpdatableFile[ModTimeVersion]
 }
 
 func NewGeoNamesSource(dirPath string) *GeoNamesSource {
-	res := &GeoNamesSource{
-		name: entity.SubjectGeonames,
-	}
+	res := &GeoNamesSource{}
 
 	res.CountriesFile = NewTSUpdatableFile(
 		fmt.Sprintf("%s/%s", dirPath, geonames.Countries.String()),
@@ -43,6 +39,50 @@ func NewGeoNamesSource(dirPath string) *GeoNamesSource {
 	return res
 }
 
+func (s *GeoNamesSource) TryUpdate(ctx context.Context) error {
+	var eg errgroup.Group
+
+	for _, file := range []*UpdatableFile[ModTimeVersion]{
+		s.CountriesFile,
+		s.AdminDivisionsFile,
+		s.Cities500File,
+	} {
+		eg.Go(func() error {
+			return file.TryUpdate(ctx)
+		})
+	}
+
+	return eg.Wait()
+}
+
+func (s *GeoNamesSource) CheckUpdates(ctx context.Context) (entity.Update, error) {
+	var eg errgroup.Group
+	var res atomic.Pointer[entity.Update]
+
+	for _, file := range []*UpdatableFile[ModTimeVersion]{
+		s.CountriesFile,
+		s.AdminDivisionsFile,
+		s.Cities500File,
+	} {
+		eg.Go(func() error {
+			update, err := file.CheckUpdates(ctx)
+			if err != nil {
+				return err
+			}
+			if res.Load() == nil || update.AvailableVersion != "" {
+				res.Store(&update)
+			}
+			return nil
+		})
+	}
+
+	if err := eg.Wait(); err != nil {
+		return entity.Update{}, err
+	}
+
+	return *res.Load(), nil
+}
+
 func (s *GeoNamesSource) LastUpdateInterrupted(ctx context.Context) (bool, error) {
 	for _, file := range []*UpdatableFile[ModTimeVersion]{
 		s.CountriesFile,
@@ -58,71 +98,4 @@ func (s *GeoNamesSource) LastUpdateInterrupted(ctx context.Context) (bool, error
 		}
 	}
 	return false, nil
-}
-
-func (s *GeoNamesSource) Download(ctx context.Context) (entity.Updates, error) {
-	var eg errgroup.Group
-	updated := atomic.Bool{}
-
-	for _, file := range []*UpdatableFile[ModTimeVersion]{
-		s.CountriesFile,
-		s.AdminDivisionsFile,
-		s.Cities500File,
-	} {
-		eg.Go(func() error {
-			u, err := file.Update(ctx)
-			if err != nil {
-				return nil
-			}
-			if u {
-				updated.Store(true)
-			}
-			return nil
-		})
-	}
-
-	upd := entity.Updates{}
-	if err := eg.Wait(); err != nil {
-		upd[s.name] = &entity.UpdateStatus{Error: err.Error()}
-		return upd, nil
-	}
-
-	if updated.Load() {
-		upd[s.name] = &entity.UpdateStatus{}
-	}
-
-	return upd, nil
-}
-
-func (s *GeoNamesSource) CheckUpdates(ctx context.Context) (entity.Updates, error) {
-	var eg errgroup.Group
-	var hasUpdates atomic.Bool
-
-	for _, file := range []*UpdatableFile[ModTimeVersion]{
-		s.CountriesFile,
-		s.AdminDivisionsFile,
-		s.Cities500File,
-	} {
-		eg.Go(func() error {
-			available, err := file.CheckUpdates(ctx)
-			if err != nil {
-				return err
-			}
-			if available {
-				hasUpdates.Store(true)
-			}
-			return nil
-		})
-	}
-
-	upd := entity.Updates{}
-	if err := eg.Wait(); err != nil {
-		upd[s.name] = &entity.UpdateStatus{Error: err.Error()}
-		return upd, nil
-	}
-	if hasUpdates.Load() {
-		upd[s.name] = &entity.UpdateStatus{Available: true}
-	}
-
-	return upd, nil
 }

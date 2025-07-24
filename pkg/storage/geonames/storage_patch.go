@@ -9,7 +9,6 @@ import (
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/source"
-	"github.com/bldsoft/geos/pkg/storage/state"
 	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
 	"github.com/mkrou/geonames/models"
@@ -192,22 +191,14 @@ func (s *StoragePatch) Cities(_ context.Context, filter entity.GeoNameFilter) ([
 	return customFilter(s.cities, filter), nil
 }
 
-func (s *StoragePatch) CheckUpdates(_ context.Context) (entity.Updates, error) {
-	return nil, errors.ErrUnsupported
+func (s *StoragePatch) CheckUpdates(_ context.Context) (entity.Update, error) {
+	return entity.Update{}, errors.ErrUnsupported
 }
 
-func (s *StoragePatch) Download(_ context.Context) (entity.Updates, error) {
-	return nil, errors.ErrUnsupported
+func (s *StoragePatch) TryUpdate(_ context.Context) error {
+	return errors.ErrUnsupported
 }
 
 func (s *StoragePatch) LastUpdateInterrupted(_ context.Context) (bool, error) {
 	return false, errors.ErrUnsupported
-}
-
-func (s *StoragePatch) State() *state.GeosState {
-	result := &state.GeosState{}
-	if s.state != 0 {
-		result.GeonamesPatchesTimestamp = s.state
-	}
-	return result
 }

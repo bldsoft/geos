@@ -3,10 +3,8 @@ package geonames
 import (
 	"context"
 	"errors"
-	"maps"
 
 	"github.com/bldsoft/geos/pkg/entity"
-	"github.com/bldsoft/geos/pkg/storage/state"
 )
 
 type MultiStorage[T Storage] struct {
@@ -15,38 +13,6 @@ type MultiStorage[T Storage] struct {
 
 func NewMultiStorage[T Storage](storages ...T) *MultiStorage[T] {
 	return &MultiStorage[T]{storages: storages}
-}
-
-func (s *MultiStorage[T]) CheckUpdates(ctx context.Context) (entity.Updates, error) {
-	multiUpdates := entity.Updates{}
-	var multiErr error
-	for _, storage := range s.storages {
-		updates, err := storage.CheckUpdates(ctx)
-		if err != nil || updates == nil {
-			multiErr = errors.Join(multiErr, err)
-			continue
-		}
-
-		maps.Copy(multiUpdates, updates)
-	}
-
-	return multiUpdates, multiErr
-}
-
-func (s *MultiStorage[T]) Download(ctx context.Context) (entity.Updates, error) {
-	multiUpdate := entity.Updates{}
-	var multiErr error
-	for _, storage := range s.storages {
-		updates, err := storage.Download(ctx)
-		if err != nil || updates == nil {
-			multiErr = errors.Join(multiErr, err)
-			continue
-		}
-
-		maps.Copy(multiUpdate, updates)
-	}
-
-	return multiUpdate, multiErr
 }
 
 func (s *MultiStorage[T]) Add(storages ...T) *MultiStorage[T] {
@@ -101,13 +67,26 @@ func (s *MultiStorage[T]) Cities(ctx context.Context, filter entity.GeoNameFilte
 	return res, nil
 }
 
-func (s *MultiStorage[T]) State() *state.GeosState {
-	result := &state.GeosState{}
+func (s *MultiStorage[T]) CheckUpdates(ctx context.Context) (entity.Update, error) {
+	res := entity.Update{}
+	var multiErr error
 	for _, storage := range s.storages {
-		storageState := storage.State()
-		result.Add(storageState)
+		update, err := storage.CheckUpdates(ctx)
+		if err != nil {
+			multiErr = errors.Join(multiErr, err)
+			continue
+		}
+		res = entity.JoinUpdates(res, update)
 	}
-	return result
+	return res, multiErr
+}
+
+func (s *MultiStorage[T]) TryUpdate(ctx context.Context) error {
+	var multiErr error
+	for _, storage := range s.storages {
+		multiErr = errors.Join(multiErr, storage.TryUpdate(ctx))
+	}
+	return multiErr
 }
 
 func (s *MultiStorage[T]) LastUpdateInterrupted(ctx context.Context) (bool, error) {

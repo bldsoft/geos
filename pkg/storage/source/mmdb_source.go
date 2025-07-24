@@ -25,19 +25,21 @@ func (s MMDBState) IsHigher(other MMDBState) bool {
 	return s.buildEpoch > other.buildEpoch
 }
 
-type MMDBSource struct {
-	dbFile *UpdatableFile[MMDBState]
-	name   entity.Subject
+func (s MMDBState) String() string {
+	return fmt.Sprintf("%s-%d", s.version.String(), s.buildEpoch)
 }
 
-func NewMMDBSource(sourceUrl, dbPath string, name entity.Subject) *MMDBSource {
+type MMDBSource struct {
+	dbFile *UpdatableFile[MMDBState]
+}
+
+func NewMMDBSource(sourceUrl, dbPath string) *MMDBSource {
 	res := &MMDBSource{
 		dbFile: NewUpdatableFile(
 			dbPath,
 			sourceUrl,
 			mmdbVersionFunc,
 		),
-		name: name,
 	}
 
 	return res
@@ -51,31 +53,12 @@ func (s *MMDBSource) LastUpdateInterrupted(ctx context.Context) (bool, error) {
 	return s.dbFile.LastUpdateInterrupted(ctx)
 }
 
-func (s *MMDBSource) Download(ctx context.Context) (entity.Updates, error) {
-	upd := entity.Updates{}
-	updated, err := s.dbFile.Update(ctx)
-	if err != nil {
-		upd[s.name] = &entity.UpdateStatus{Error: err.Error()}
-		return upd, nil
-	}
-	if updated {
-		upd[s.name] = &entity.UpdateStatus{}
-	}
-
-	return upd, nil
+func (s *MMDBSource) TryUpdate(ctx context.Context) error {
+	return s.dbFile.TryUpdate(ctx)
 }
 
-func (s *MMDBSource) CheckUpdates(ctx context.Context) (entity.Updates, error) {
-	upd := entity.Updates{}
-	available, err := s.dbFile.CheckUpdates(ctx)
-	if err != nil {
-		upd[s.name] = &entity.UpdateStatus{Error: err.Error()}
-		return upd, nil
-	}
-	if available {
-		upd[s.name] = &entity.UpdateStatus{Available: true}
-	}
-	return upd, nil
+func (s *MMDBSource) CheckUpdates(ctx context.Context) (entity.Update, error) {
+	return s.dbFile.CheckUpdates(ctx)
 }
 
 func mmdbVersionFunc(ctx context.Context, path string, rep ReadFileRepository) (MMDBState, error) {

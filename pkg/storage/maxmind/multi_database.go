@@ -6,12 +6,10 @@ import (
 	"errors"
 	"io"
 	"net"
-	"sync"
 
 	"maps"
 
 	"github.com/bldsoft/geos/pkg/entity"
-	"github.com/bldsoft/geos/pkg/storage/state"
 	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
 	"github.com/bldsoft/gost/utils/errgroup"
@@ -24,9 +22,8 @@ import (
 var ErrNoDatabases = errors.New("no databases")
 
 type MultiMaxMindDB[T Database] struct {
-	dbs     []T
-	logger  log.ServiceLogger
-	updateM sync.Mutex
+	dbs    []T
+	logger log.ServiceLogger
 }
 
 func NewMultiMaxMindDB[T Database](dbs ...T) *MultiMaxMindDB[T] {
@@ -110,9 +107,6 @@ func (db *MultiMaxMindDB[T]) RawData() (io.Reader, error) {
 	if len(nonEmtpyDbs) == 1 {
 		return nonEmtpyDbs[0].RawData()
 	}
-
-	db.updateM.Lock()
-	defer db.updateM.Unlock()
 
 	opts := mmdbwriter.Options{IncludeReservedNetworks: true}
 	tree, err := mmdbwriter.New(opts)
@@ -240,61 +234,34 @@ func (db *MultiMaxMindDB[T]) MetaData() (*maxminddb.Metadata, error) {
 	return &res, nil
 }
 
-func (db *MultiMaxMindDB[T]) Download(ctx context.Context) (entity.Updates, error) {
-	if !db.updateM.TryLock() {
-		return nil, utils.ErrUpdateInProgress
-	}
-	defer db.updateM.Unlock()
-
+func (db *MultiMaxMindDB[T]) TryUpdate(ctx context.Context) error {
 	if len(db.dbs) == 0 {
-		return nil, ErrNoDatabases
+		return ErrNoDatabases
 	}
 
-	multiUpdates := entity.Updates{}
 	var multiErr error
 	for _, database := range db.dbs {
-		updates, err := database.Download(ctx)
-		if err != nil || updates == nil {
+		multiErr = errors.Join(multiErr, database.TryUpdate(ctx))
+	}
+	return multiErr
+}
+
+func (db *MultiMaxMindDB[T]) CheckUpdates(ctx context.Context) (entity.Update, error) {
+	if len(db.dbs) == 0 {
+		return entity.Update{}, ErrNoDatabases
+	}
+
+	res := entity.Update{}
+	var multiErr error
+	for _, database := range db.dbs {
+		update, err := database.CheckUpdates(ctx)
+		if err != nil {
 			multiErr = errors.Join(multiErr, err)
 			continue
 		}
-
-		maps.Copy(multiUpdates, updates)
+		res = entity.JoinUpdates(res, update)
 	}
-	return multiUpdates, multiErr
-}
-
-func (db *MultiMaxMindDB[T]) CheckUpdates(ctx context.Context) (entity.Updates, error) {
-	if !db.updateM.TryLock() {
-		return nil, utils.ErrUpdateInProgress
-	}
-	defer db.updateM.Unlock()
-
-	if len(db.dbs) == 0 {
-		return nil, ErrNoDatabases
-	}
-
-	multiUpdates := entity.Updates{}
-	var multiErr error
-	for _, database := range db.dbs {
-		updates, err := database.CheckUpdates(ctx)
-		if err != nil || updates == nil {
-			multiErr = errors.Join(multiErr, err)
-			continue
-		}
-		maps.Copy(multiUpdates, updates)
-	}
-
-	return multiUpdates, multiErr
-}
-
-func (db *MultiMaxMindDB[T]) State() *state.GeosState {
-	result := &state.GeosState{}
-	for _, database := range db.dbs {
-		dbState := database.State()
-		result.Add(dbState)
-	}
-	return result
+	return res, multiErr
 }
 
 func (db *MultiMaxMindDB[T]) LastUpdateInterrupted(ctx context.Context) (bool, error) {

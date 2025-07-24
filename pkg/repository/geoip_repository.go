@@ -5,19 +5,19 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"maps"
 	"net"
 	"path/filepath"
+	"slices"
 	"sync"
 	"time"
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/maxmind"
 	"github.com/bldsoft/geos/pkg/storage/source"
-	"github.com/bldsoft/geos/pkg/storage/state"
 	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
 	"github.com/bldsoft/gost/utils/errgroup"
+	"go.uber.org/atomic"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -48,10 +48,8 @@ const (
 
 func openPatchedDB[T maxmind.CSVEntity](
 	conf DBConfig, customPrefix, csvDumpDir string, required bool,
-	subject entity.Subject, // TODO: REMOVE
-	patchesSubject entity.Subject, // TODO: REMOVE
 ) *maxmindDBWithCachedCSVDump {
-	dbSource := source.NewMMDBSource(conf.RemoteURL, conf.LocalPath, subject)
+	dbSource := source.NewMMDBSource(conf.RemoteURL, conf.LocalPath)
 	originalDB, err := maxmind.Open(dbSource)
 	if err != nil {
 		if required {
@@ -61,7 +59,7 @@ func openPatchedDB[T maxmind.CSVEntity](
 		return nil
 	}
 
-	patchesSource := source.NewPatchesSource(conf.PatchesRemoteURL, filepath.Dir(conf.LocalPath), string(patchesSubject), patchesSubject)
+	patchesSource := source.NewPatchesSource(conf.PatchesRemoteURL, filepath.Dir(conf.LocalPath), customPrefix)
 	customDB := maxmind.NewCustomDatabaseFromTarGz(patchesSource)
 
 	multiDB := maxmind.NewMultiMaxMindDB[maxmind.Database](originalDB).Add(customDB).WithLogger(
@@ -78,10 +76,12 @@ type DBConfig struct {
 }
 
 type GeoIPRepository struct {
-	dbCity, dbISP     *maxmindDBWithCachedCSVDump
-	cityConf, ispConf DBConfig
-	csvDirPath        string
-	checkUpdatesSF    singleflight.Group
+	dbCity, dbISP                       *maxmindDBWithCachedCSVDump
+	cityConf, ispConf                   DBConfig
+	csvDirPath                          string
+	checkUpdatesSF                      singleflight.Group
+	cityUpdateLastErr, ispUpdateLastErr atomic.Pointer[string]
+	fileRep                             source.LocalFileRepository
 }
 
 func NewGeoIPRepository(cityConf, ispConf DBConfig, csvDirPath string) *GeoIPRepository {
@@ -89,8 +89,8 @@ func NewGeoIPRepository(cityConf, ispConf DBConfig, csvDirPath string) *GeoIPRep
 		csvDirPath: csvDirPath,
 		cityConf:   cityConf,
 		ispConf:    ispConf,
-		dbCity:     openPatchedDB[entity.City](cityConf, string(MaxmindDBTypeCity), csvDirPath, true, entity.SubjectCitiesDb, entity.SubjectCitiesDbPatches),
-		dbISP:      openPatchedDB[entity.ISP](ispConf, string(MaxmindDBTypeISP), csvDirPath, false, entity.SubjectISPDb, entity.SubjectISPDbPatches),
+		dbCity:     openPatchedDB[entity.City](cityConf, string(MaxmindDBTypeCity), csvDirPath, true),
+		dbISP:      openPatchedDB[entity.ISP](ispConf, string(MaxmindDBTypeISP), csvDirPath, false),
 	}
 }
 
@@ -192,84 +192,80 @@ func (r *GeoIPRepository) database(ctx context.Context, dbType MaxmindDBType) (m
 	return db, nil
 }
 
-func (r *GeoIPRepository) CheckUpdates(ctx context.Context) (entity.Updates, error) {
+func (r *GeoIPRepository) CheckUpdates(ctx context.Context) ([]entity.DBUpdate, error) {
 	result, err, _ := r.checkUpdatesSF.Do("check_updates", func() (interface{}, error) {
 		var multiErr error
-		multiUpdates := entity.Updates{}
 
-		updates, err := r.dbCity.CheckUpdates(ctx)
+		cityUpdate, err := r.dbCity.CheckUpdates(ctx)
 		if err != nil {
 			multiErr = errors.Join(multiErr, err)
 		}
-		if updates != nil {
-			maps.Copy(multiUpdates, updates)
-		}
 
+		res := make([]entity.DBUpdate, 0, 2)
+		res = append(res, entity.NewDBUpdate(string(MaxmindDBTypeCity), cityUpdate, r.cityUpdateLastErr.Load()))
 		if r.dbISP == nil {
-			return multiUpdates, multiErr
+			return res, multiErr
 		}
 
-		updates, err = r.dbISP.CheckUpdates(ctx)
+		ispUpdate, err := r.dbISP.CheckUpdates(ctx)
 		if err != nil {
 			multiErr = errors.Join(multiErr, err)
 		}
-		if updates != nil {
-			maps.Copy(multiUpdates, updates)
+
+		if multiErr != nil {
+			return nil, multiErr
 		}
 
-		return multiUpdates, multiErr
+		res = append(res, entity.NewDBUpdate(string(MaxmindDBTypeISP), ispUpdate, r.ispUpdateLastErr.Load()))
+		return res, nil
 	})
 
 	if err != nil {
 		return nil, err
 	}
-
-	return result.(entity.Updates), nil
+	return result.([]entity.DBUpdate), nil
 }
 
-func (r *GeoIPRepository) Download(ctx context.Context) (entity.Updates, error) {
-	multiUpdates := entity.Updates{}
-	var resultsMtx sync.Mutex
+func (r *GeoIPRepository) StartUpdate(ctx context.Context) error {
+	ok, close, err := r.fileRep.TryLock(ctx, filepath.Join(r.cityConf.LocalPath, "geoip.lock"))
+	if !ok || err != nil {
+		if errors.Is(err, source.ErrFileExists) {
+			return utils.ErrUpdateInProgress
+		}
+		return err
+	}
 
-	var eg errgroup.Group
-	for _, db := range []*maxmindDBWithCachedCSVDump{r.dbCity, r.dbISP} {
-		if db == nil {
+	g := errgroup.Group{}
+	g.Go(func() error {
+		defer close()
+		return r.TryUpdate(ctx)
+	})
+	return g.Wait()
+}
+
+func (r *GeoIPRepository) TryUpdate(ctx context.Context) error {
+	var multiErr error
+
+	for _, db := range []struct {
+		db      *maxmindDBWithCachedCSVDump
+		lastErr *atomic.Pointer[string]
+	}{
+		{db: r.dbCity, lastErr: &r.cityUpdateLastErr},
+		{db: r.dbISP, lastErr: &r.ispUpdateLastErr},
+	} {
+		if db.db == nil {
 			continue
 		}
-		eg.Go(func() error {
-			updates, err := db.Download(ctx)
-			if err != nil {
-				return err
-			}
-
-			resultsMtx.Lock()
-			defer resultsMtx.Unlock()
-			maps.Copy(multiUpdates, updates)
-			return nil
-		})
-	}
-
-	if err := eg.Wait(); err != nil {
-		return nil, err
-	}
-
-	return multiUpdates, nil
-}
-
-func (r *GeoIPRepository) State() *state.GeosState {
-	result := &state.GeosState{}
-
-	if cityState := r.dbCity.State(); cityState != nil {
-		result.Add(cityState)
-	}
-
-	if r.dbISP != nil {
-		if ispState := r.dbISP.State(); ispState != nil {
-			result.Add(ispState)
+		err := db.db.TryUpdate(ctx)
+		multiErr = errors.Join(multiErr, err)
+		if err == nil {
+			db.lastErr.Store(nil)
+		} else {
+			errStr := err.Error()
+			db.lastErr.Store(&errStr)
 		}
 	}
-
-	return result
+	return multiErr
 }
 
 func (r *GeoIPRepository) Run(ctx context.Context) error {
@@ -295,7 +291,7 @@ func (r *GeoIPRepository) Run(ctx context.Context) error {
 
 			logger.Infof("Found interrupted update, retrying...")
 
-			_, err = db.Download(ctx)
+			err = db.TryUpdate(ctx)
 			if err == nil {
 				logger.Infof("Successfully updated %s", db.metadata().DatabaseType)
 				break
@@ -319,24 +315,28 @@ func (r *GeoIPRepository) Run(ctx context.Context) error {
 	for {
 		select {
 		case <-time.After(r.cityConf.AutoUpdatePeriod):
-			upd, err := r.Download(ctx)
+			upd, err := r.CheckUpdates(ctx)
 			if err != nil {
 				log.FromContext(ctx).ErrorfWithFields(log.Fields{
 					"err": err,
-				}, "failed to update")
-			}
-			if len(upd) == 0 {
-				log.FromContext(ctx).Info("No geoip updates found")
+				}, "failed to check updates")
 				continue
 			}
 
-			for subj, status := range upd {
-				if status.Error != "" {
-					log.FromContext(ctx).ErrorfWithFields(log.Fields{"err": status.Error}, "failed to auto-update due to download error for %s", subj)
-				} else {
-					log.FromContext(ctx).Infof("Successfully auto-updated %s", subj)
-				}
+			if !slices.ContainsFunc(upd, func(u entity.DBUpdate) bool {
+				return u.Update.AvailableVersion != ""
+			}) {
+				continue
 			}
+
+			if err := r.TryUpdate(ctx); err != nil {
+				log.FromContext(ctx).ErrorfWithFields(log.Fields{
+					"err": err,
+				}, "failed to update")
+				continue
+			}
+
+			log.FromContext(ctx).InfoWithFields(log.Fields{"check": upd}, "Successfully auto-updated")
 		case <-ctx.Done():
 			return nil
 		}

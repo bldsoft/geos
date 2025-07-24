@@ -75,6 +75,23 @@ func (r *LocalFileRepository) Exists(ctx context.Context, path string) (bool, er
 	return true, nil
 }
 
+func (r *LocalFileRepository) TryLock(ctx context.Context, path string) (ok bool, close func(), err error) {
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return false, nil, err
+	}
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_RDWR, 0644)
+	if err != nil {
+		if os.IsExist(err) {
+			return false, nil, ErrFileExists
+		}
+		return false, nil, err
+	}
+	return true, func() {
+		file.Close()
+		os.Remove(path)
+	}, nil
+}
+
 func (r *LocalFileRepository) Open(ctx context.Context, path string) (io.WriteCloser, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return nil, err

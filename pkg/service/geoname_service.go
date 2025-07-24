@@ -4,8 +4,6 @@ import (
 	"context"
 
 	"github.com/bldsoft/geos/pkg/entity"
-	"github.com/bldsoft/geos/pkg/storage/source"
-	"github.com/bldsoft/geos/pkg/storage/state"
 )
 
 type GeoNameRepository interface {
@@ -15,8 +13,8 @@ type GeoNameRepository interface {
 	Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error)
 	Dump(ctx context.Context, format DumpFormat) ([]byte, error)
 
-	source.Updater
-	source.Stater
+	StartUpdate(ctx context.Context) error
+	CheckUpdates(ctx context.Context) (entity.DBUpdate, error)
 }
 
 type GeoNameService struct {
@@ -27,12 +25,12 @@ func NewGeoNameService(rep GeoNameRepository) *GeoNameService {
 	return &GeoNameService{rep}
 }
 
-func (s *GeoNameService) Download(ctx context.Context) (entity.Updates, error) {
-	return s.GeoNameRepository.Download(ctx)
+func (s *GeoNameService) CheckUpdates(ctx context.Context) (entity.DBUpdate, error) {
+	return s.GeoNameRepository.CheckUpdates(ctx)
 }
 
-func (s *GeoNameService) CheckUpdates(ctx context.Context) (entity.Updates, error) {
-	return s.GeoNameRepository.CheckUpdates(ctx)
+func (s *GeoNameService) StartUpdate(ctx context.Context) error {
+	return s.GeoNameRepository.StartUpdate(ctx)
 }
 
 func (s *GeoNameService) Continents(ctx context.Context) []*entity.GeoNameContinent {
@@ -53,8 +51,4 @@ func (s *GeoNameService) Cities(ctx context.Context, filter entity.GeoNameFilter
 
 func (s *GeoNameService) Dump(ctx context.Context, format DumpFormat) ([]byte, error) {
 	return s.GeoNameRepository.Dump(ctx, format)
-}
-
-func (s *GeoNameService) State() *state.GeosState {
-	return s.GeoNameRepository.State()
 }
