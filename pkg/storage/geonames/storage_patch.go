@@ -195,10 +195,6 @@ func (s *StoragePatch) CheckUpdates(_ context.Context) (entity.Update, error) {
 	return entity.Update{}, errors.ErrUnsupported
 }
 
-func (s *StoragePatch) TryUpdate(_ context.Context) error {
+func (s *StoragePatch) Update(_ context.Context, _ bool) error {
 	return errors.ErrUnsupported
-}
-
-func (s *StoragePatch) LastUpdateInterrupted(_ context.Context) (bool, error) {
-	return false, errors.ErrUnsupported
 }

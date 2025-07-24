@@ -234,14 +234,14 @@ func (db *MultiMaxMindDB[T]) MetaData() (*maxminddb.Metadata, error) {
 	return &res, nil
 }
 
-func (db *MultiMaxMindDB[T]) TryUpdate(ctx context.Context) error {
+func (db *MultiMaxMindDB[T]) Update(ctx context.Context, force bool) error {
 	if len(db.dbs) == 0 {
 		return ErrNoDatabases
 	}
 
 	var multiErr error
 	for _, database := range db.dbs {
-		multiErr = errors.Join(multiErr, database.TryUpdate(ctx))
+		multiErr = errors.Join(multiErr, database.Update(ctx, force))
 	}
 	return multiErr
 }
@@ -262,17 +262,4 @@ func (db *MultiMaxMindDB[T]) CheckUpdates(ctx context.Context) (entity.Update, e
 		res = entity.JoinUpdates(res, update)
 	}
 	return res, multiErr
-}
-
-func (db *MultiMaxMindDB[T]) LastUpdateInterrupted(ctx context.Context) (bool, error) {
-	for _, database := range db.dbs {
-		interrupted, err := database.LastUpdateInterrupted(ctx)
-		if err != nil {
-			return false, err
-		}
-		if interrupted {
-			return true, nil
-		}
-	}
-	return false, nil
 }

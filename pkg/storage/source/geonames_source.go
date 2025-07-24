@@ -39,7 +39,7 @@ func NewGeoNamesSource(dirPath string) *GeoNamesSource {
 	return res
 }
 
-func (s *GeoNamesSource) TryUpdate(ctx context.Context) error {
+func (s *GeoNamesSource) Update(ctx context.Context, force bool) error {
 	var eg errgroup.Group
 
 	for _, file := range []*UpdatableFile[ModTimeVersion]{
@@ -48,7 +48,7 @@ func (s *GeoNamesSource) TryUpdate(ctx context.Context) error {
 		s.Cities500File,
 	} {
 		eg.Go(func() error {
-			return file.TryUpdate(ctx)
+			return file.Update(ctx, force)
 		})
 	}
 
@@ -81,21 +81,4 @@ func (s *GeoNamesSource) CheckUpdates(ctx context.Context) (entity.Update, error
 	}
 
 	return *res.Load(), nil
-}
-
-func (s *GeoNamesSource) LastUpdateInterrupted(ctx context.Context) (bool, error) {
-	for _, file := range []*UpdatableFile[ModTimeVersion]{
-		s.CountriesFile,
-		s.AdminDivisionsFile,
-		s.Cities500File,
-	} {
-		interrupted, err := file.LastUpdateInterrupted(ctx)
-		if err != nil {
-			return false, err
-		}
-		if interrupted {
-			return true, nil
-		}
-	}
-	return false, nil
 }

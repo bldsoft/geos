@@ -209,15 +209,19 @@ func (s *GeoNameStorage) CheckUpdates(ctx context.Context) (entity.Update, error
 	return s.source.CheckUpdates(ctx)
 }
 
-func (s *GeoNameStorage) TryUpdate(ctx context.Context) error {
-	if err := s.source.TryUpdate(ctx); err != nil {
+func (s *GeoNameStorage) Update(ctx context.Context, force bool) error {
+	update, err := s.CheckUpdates(ctx)
+	if err != nil {
+		return err
+	}
+	if update.AvailableVersion == "" {
+		return nil
+	}
+
+	if err := s.source.Update(ctx, force); err != nil {
 		return err
 	}
 
 	s.fill()
 	return nil
-}
-
-func (r *GeoNameStorage) LastUpdateInterrupted(ctx context.Context) (bool, error) {
-	return r.source.LastUpdateInterrupted(ctx)
 }

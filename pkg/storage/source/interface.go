@@ -7,11 +7,6 @@ import (
 )
 
 type Updater interface {
-	TryUpdate(ctx context.Context) error
+	Update(ctx context.Context, force bool) error
 	CheckUpdates(ctx context.Context) (entity.Update, error)
-}
-
-type RecoverableUpdater interface {
-	Updater
-	LastUpdateInterrupted(ctx context.Context) (bool, error)
 }

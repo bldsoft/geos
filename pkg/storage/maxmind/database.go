@@ -3,14 +3,12 @@ package maxmind
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"net"
 	"sync/atomic"
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/source"
-	"github.com/bldsoft/geos/pkg/storage/state"
 	"github.com/oschwald/maxminddb-golang"
 )
 
@@ -32,23 +30,6 @@ func Open(source *source.MMDBSource) (*MaxmindDatabase, error) {
 	return res, nil
 }
 
-func (db *MaxmindDatabase) State() *state.GeosState {
-	meta := db.reader.Load().Metadata
-	versionString := fmt.Sprintf("%d.%d", meta.BinaryFormatMajorVersion, meta.BinaryFormatMinorVersion)
-	result := new(state.GeosState)
-
-	switch meta.DatabaseType {
-	case "GeoIP2-City", "GeoLite2-City":
-		result.CityVersion = versionString
-	case "GeoIP2-ISP", "GeoLite2-ISP":
-		result.ISPVersion = versionString
-	default:
-		result.CityVersion = versionString
-	}
-
-	return result
-}
-
 func (db *MaxmindDatabase) Lookup(ip net.IP, result interface{}) error {
 	return db.reader.Load().Lookup(ip, result)
 }
@@ -65,8 +46,17 @@ func (db *MaxmindDatabase) Networks(options ...maxminddb.NetworksOption) (*maxmi
 	return db.reader.Load().Networks(), nil
 }
 
-func (db *MaxmindDatabase) TryUpdate(ctx context.Context) error {
-	if err := db.source.TryUpdate(ctx); err != nil {
+func (db *MaxmindDatabase) Update(ctx context.Context, force bool) error {
+	update, err := db.CheckUpdates(ctx)
+	if err != nil {
+		return err
+	}
+
+	if update.AvailableVersion == "" {
+		return nil
+	}
+
+	if err := db.source.Update(ctx, force); err != nil {
 		return err
 	}
 
@@ -97,8 +87,4 @@ func (db *MaxmindDatabase) update(ctx context.Context) error {
 
 func (db *MaxmindDatabase) CheckUpdates(ctx context.Context) (entity.Update, error) {
 	return db.source.CheckUpdates(ctx)
-}
-
-func (db *MaxmindDatabase) LastUpdateInterrupted(ctx context.Context) (bool, error) {
-	return db.source.LastUpdateInterrupted(ctx)
 }

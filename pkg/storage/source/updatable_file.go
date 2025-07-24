@@ -73,7 +73,7 @@ func (u *UpdatableFile[V]) Reader(ctx context.Context) (io.ReadCloser, error) {
 		return nil, fmt.Errorf("failed to open local file: %w", err)
 	}
 
-	if err := u.update(ctx); err != nil {
+	if err := u.update(ctx, true); err != nil {
 		return nil, fmt.Errorf("failed to update file: %w", err)
 	}
 
@@ -88,15 +88,15 @@ func (u *UpdatableFile[V]) RemoteVersion(ctx context.Context) (V, error) {
 	return u.VersionFunc(ctx, u.RemoteURL, u.RemoteFileRepository)
 }
 
-func (u *UpdatableFile[V]) TryUpdate(ctx context.Context) error {
+func (u *UpdatableFile[V]) Update(ctx context.Context, force bool) error {
 	if need, err := u.needUpdate(ctx); !need || err != nil {
 		return err
 	}
-	return u.update(ctx)
+	return u.update(ctx, force)
 }
 
-func (u *UpdatableFile[V]) update(ctx context.Context) error {
-	if err := u.downloadTempFile(ctx); err != nil {
+func (u *UpdatableFile[V]) update(ctx context.Context, force bool) error {
+	if err := u.downloadTempFile(ctx, force); err != nil {
 		return err
 	}
 	defer u.LocalFileRepository.Remove(ctx, u.tmpFilePath())
@@ -116,7 +116,14 @@ func (u *UpdatableFile[V]) updateInProgress(ctx context.Context) bool {
 	return exists
 }
 
-func (u *UpdatableFile[V]) downloadTempFile(ctx context.Context) error {
+func (u *UpdatableFile[V]) downloadTempFile(ctx context.Context, force bool) error {
+	if force {
+		err := u.LocalFileRepository.Remove(ctx, u.tmpFilePath())
+		if err != nil {
+			return fmt.Errorf("failed to remove temporary file: %w", err)
+		}
+	}
+
 	tmpFile, err := u.LocalFileRepository.Open(ctx, u.tmpFilePath())
 	if err != nil {
 		if errors.Is(err, ErrFileExists) {
@@ -175,11 +182,5 @@ func (u *UpdatableFile[V]) CheckUpdates(ctx context.Context) (upd entity.Update,
 	return entity.Update{
 		CurrentVersion:   localVersion.String(),
 		AvailableVersion: remoteVersion.String(),
-		InProgress:       u.updateInProgress(ctx),
 	}, nil
-}
-
-func (u *UpdatableFile[V]) LastUpdateInterrupted(ctx context.Context) (bool, error) {
-	exists, err := u.LocalFileRepository.Exists(ctx, u.tmpFilePath())
-	return exists, err
 }

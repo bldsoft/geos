@@ -1,19 +1,19 @@
 package entity
 
-import "cmp"
-
 type DBUpdate struct {
 	DatabaseType    string `json:"databaseType"`
 	Update          `json:",inline"`
 	LastUpdateError string `json:"lastUpdateError,omitempty"`
+	InProgress      bool   `json:"inProgress,omitempty"`
 }
 
-func NewDBUpdate(dbType string, update Update, lastUpdateError *string) DBUpdate {
+func NewDBUpdate(dbType string, update Update, inProgress bool, lastUpdateError *string) DBUpdate {
 	res := DBUpdate{
 		DatabaseType: dbType,
 		Update:       update,
+		InProgress:   inProgress,
 	}
-	if !update.InProgress && update.AvailableVersion != "" && lastUpdateError != nil {
+	if !inProgress && update.AvailableVersion != "" && lastUpdateError != nil {
 		res.LastUpdateError = *lastUpdateError
 	}
 	return res
@@ -22,7 +22,6 @@ func NewDBUpdate(dbType string, update Update, lastUpdateError *string) DBUpdate
 type Update struct {
 	CurrentVersion   string `json:"currentVersion"`
 	AvailableVersion string `json:"availableVersion,omitempty"`
-	InProgress       bool   `json:"inProgress,omitempty"`
 }
 
 func JoinUpdates(upd Update, updates ...Update) Update {
@@ -34,7 +33,6 @@ func JoinUpdates(upd Update, updates ...Update) Update {
 		case update.AvailableVersion != "":
 			upd.AvailableVersion += "/" + update.AvailableVersion
 		}
-		upd.InProgress = cmp.Or(upd.InProgress, update.InProgress)
 	}
 	return upd
 }

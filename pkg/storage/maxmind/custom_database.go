@@ -33,8 +33,16 @@ func (db *CustomDatabase) MetaData() (*maxminddb.Metadata, error) {
 	return db.MultiMaxMindDB.MetaData()
 }
 
-func (db *CustomDatabase) TryUpdate(ctx context.Context) error {
-	if err := db.source.TryUpdate(ctx); err != nil {
+func (db *CustomDatabase) Update(ctx context.Context, force bool) error {
+	update, err := db.CheckUpdates(ctx)
+	if err != nil {
+		return err
+	}
+	if update.AvailableVersion == "" {
+		return nil
+	}
+
+	if err := db.source.Update(ctx, force); err != nil {
 		return err
 	}
 
@@ -49,8 +57,4 @@ func (db *CustomDatabase) TryUpdate(ctx context.Context) error {
 
 func (db *CustomDatabase) CheckUpdates(ctx context.Context) (entity.Update, error) {
 	return db.source.CheckUpdates(ctx)
-}
-
-func (db *CustomDatabase) LastUpdateInterrupted(ctx context.Context) (bool, error) {
-	return db.source.LastUpdateInterrupted(ctx)
 }

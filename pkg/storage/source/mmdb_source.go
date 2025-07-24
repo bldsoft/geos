@@ -49,12 +49,8 @@ func (s *MMDBSource) Reader(ctx context.Context) (io.ReadCloser, error) {
 	return s.dbFile.Reader(ctx)
 }
 
-func (s *MMDBSource) LastUpdateInterrupted(ctx context.Context) (bool, error) {
-	return s.dbFile.LastUpdateInterrupted(ctx)
-}
-
-func (s *MMDBSource) TryUpdate(ctx context.Context) error {
-	return s.dbFile.TryUpdate(ctx)
+func (s *MMDBSource) Update(ctx context.Context, force bool) error {
+	return s.dbFile.Update(ctx, force)
 }
 
 func (s *MMDBSource) CheckUpdates(ctx context.Context) (entity.Update, error) {

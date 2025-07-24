@@ -21,7 +21,7 @@ type Database interface {
 	RawData() (io.Reader, error) // mmdb
 	MetaData() (*maxminddb.Metadata, error)
 
-	source.RecoverableUpdater
+	source.Updater
 }
 
 type CSVDumper interface {

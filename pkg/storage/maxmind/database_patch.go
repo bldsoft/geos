@@ -160,14 +160,10 @@ func (db *DatabasePatch) MetaData() (*maxminddb.Metadata, error) {
 
 //--- these are controlled by the custom database
 
-func (db *DatabasePatch) TryUpdate(_ context.Context) error {
+func (db *DatabasePatch) Update(_ context.Context, _ bool) error {
 	return errors.ErrUnsupported
 }
 
 func (db *DatabasePatch) CheckUpdates(_ context.Context) (entity.Update, error) {
 	return entity.Update{}, errors.ErrUnsupported
-}
-
-func (db *DatabasePatch) LastUpdateInterrupted(_ context.Context) (bool, error) {
-	return false, errors.ErrUnsupported
 }

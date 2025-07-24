@@ -81,23 +81,10 @@ func (s *MultiStorage[T]) CheckUpdates(ctx context.Context) (entity.Update, erro
 	return res, multiErr
 }
 
-func (s *MultiStorage[T]) TryUpdate(ctx context.Context) error {
+func (s *MultiStorage[T]) Update(ctx context.Context, force bool) error {
 	var multiErr error
 	for _, storage := range s.storages {
-		multiErr = errors.Join(multiErr, storage.TryUpdate(ctx))
+		multiErr = errors.Join(multiErr, storage.Update(ctx, force))
 	}
 	return multiErr
-}
-
-func (s *MultiStorage[T]) LastUpdateInterrupted(ctx context.Context) (bool, error) {
-	for _, storage := range s.storages {
-		interrupted, err := storage.LastUpdateInterrupted(ctx)
-		if err != nil {
-			return false, err
-		}
-		if interrupted {
-			return true, nil
-		}
-	}
-	return false, nil
 }

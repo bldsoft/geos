@@ -72,16 +72,14 @@ func (db *maxmindDBWithCachedCSVDump) CSV(ctx context.Context, gzipCompress bool
 	return nil, ErrGeoIPCSVNotReady
 }
 
-func (db *maxmindDBWithCachedCSVDump) TryUpdate(ctx context.Context) (err error) {
-	err = db.CSVDumper.TryUpdate(ctx)
-	if err != nil {
+func (db *maxmindDBWithCachedCSVDump) Update(ctx context.Context, force bool) error {
+	if err := db.CSVDumper.Update(ctx, force); err != nil {
 		return err
 	}
 
 	if err := db.updateDumpIfNeeded(ctx); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -210,22 +208,6 @@ func (db *maxmindDBWithCachedCSVDump) metadata() *dumpMetaData {
 func (db *maxmindDBWithCachedCSVDump) dumpMetaDataPath() string {
 	ext := filepath.Ext(db.csvDumpPath)
 	return strings.TrimSuffix(db.csvDumpPath, ext) + ".meta"
-}
-
-func (db *maxmindDBWithCachedCSVDump) LastUpdateInterrupted(ctx context.Context) (bool, error) {
-	interrupted, err := db.CSVDumper.LastUpdateInterrupted(ctx)
-	if err != nil {
-		return false, err
-	}
-	interrupted, err = db.lastUpdateInterrupted(ctx)
-	if err != nil {
-		return false, err
-	}
-	return interrupted, nil
-}
-
-func (db *maxmindDBWithCachedCSVDump) lastUpdateInterrupted(ctx context.Context) (bool, error) {
-	return db.fileRepository.Exists(ctx, db.tempDumpPath())
 }
 
 func (db *maxmindDBWithCachedCSVDump) CheckUpdates(ctx context.Context) (entity.Update, error) {

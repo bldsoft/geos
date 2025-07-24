@@ -34,10 +34,6 @@ func (s *PatchesSource) CheckUpdates(ctx context.Context) (entity.Update, error)
 	return s.patchesFile.CheckUpdates(ctx)
 }
 
-func (s *PatchesSource) TryUpdate(ctx context.Context) error {
-	return s.patchesFile.TryUpdate(ctx)
-}
-
-func (s *PatchesSource) LastUpdateInterrupted(ctx context.Context) (bool, error) {
-	return s.patchesFile.LastUpdateInterrupted(ctx)
+func (s *PatchesSource) Update(ctx context.Context, force bool) error {
+	return s.patchesFile.Update(ctx, force)
 }

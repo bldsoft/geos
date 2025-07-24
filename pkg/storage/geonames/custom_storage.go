@@ -24,8 +24,16 @@ func (s *CustomStorage) CheckUpdates(ctx context.Context) (entity.Update, error)
 	return s.source.CheckUpdates(ctx)
 }
 
-func (s *CustomStorage) TryUpdate(ctx context.Context) error {
-	if err := s.source.TryUpdate(ctx); err != nil {
+func (s *CustomStorage) Update(ctx context.Context, force bool) error {
+	update, err := s.CheckUpdates(ctx)
+	if err != nil {
+		return err
+	}
+	if update.AvailableVersion == "" {
+		return nil
+	}
+
+	if err := s.source.Update(ctx, force); err != nil {
 		return err
 	}
 
