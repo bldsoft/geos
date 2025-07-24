@@ -52,7 +52,7 @@ func (db *MaxmindDatabase) Update(ctx context.Context, force bool) error {
 		return err
 	}
 
-	if update.AvailableVersion == "" {
+	if update.RemoteVersion == "" {
 		return nil
 	}
 

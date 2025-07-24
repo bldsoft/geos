@@ -38,7 +38,7 @@ func (db *CustomDatabase) Update(ctx context.Context, force bool) error {
 	if err != nil {
 		return err
 	}
-	if update.AvailableVersion == "" {
+	if update.RemoteVersion == "" {
 		return nil
 	}
 

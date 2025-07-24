@@ -77,7 +77,7 @@ func (s *GeoNamesSource) CheckUpdates(ctx context.Context) (entity.Update, error
 			if err != nil {
 				return err
 			}
-			if res.Load() == nil || update.AvailableVersion > res.Load().AvailableVersion {
+			if res.Load() == nil || update.RemoteVersion > res.Load().RemoteVersion {
 				res.Store(&update)
 			}
 			return nil

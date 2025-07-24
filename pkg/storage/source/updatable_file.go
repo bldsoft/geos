@@ -188,6 +188,6 @@ func (u *UpdatableFile[V]) CheckUpdates(ctx context.Context) (upd entity.Update,
 		return upd, err
 	}
 
-	upd.AvailableVersion = remoteVersion.String()
+	upd.RemoteVersion = remoteVersion.String()
 	return upd, nil
 }
