@@ -62,18 +62,3 @@ func (c *ManagementController) UpdateGeonamesHandler(w http.ResponseWriter, r *h
 	}
 	c.ResponseOK(w)
 }
-
-func (c *ManagementController) GetGeosUpdateStateHandler(w http.ResponseWriter, r *http.Request) {
-	updates, err := c.geoIpService.CheckUpdates(r.Context())
-	if err != nil {
-		c.ResponseError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	geonamesUpdates, err := c.geoNameService.CheckUpdates(r.Context())
-	if err != nil {
-		c.ResponseError(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	updates = append(updates, geonamesUpdates)
-	c.ResponseJson(w, r, updates)
-}

@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"path/filepath"
 	"time"
 
 	"github.com/bldsoft/geos/pkg/storage/source"
@@ -69,11 +68,6 @@ func NewBaseUpdateRepository(
 }
 
 func (r *baseUpdateRepository) StartUpdate(ctx context.Context) error {
-	ok, close, err := r.TryLock(ctx, filepath.Join(r.lockFileName))
-	if !ok || err != nil {
-		return err
-	}
-	defer close()
 	return r.update(ctx, updateOptions{force: false, async: true})
 }
 
@@ -97,9 +91,10 @@ func (r *baseUpdateRepository) update(ctx context.Context, opts updateOptions) e
 	var eg errgroup.Group
 	eg.Go(func() error {
 		defer close()
+		ctx = context.WithoutCancel(ctx)
 		return r.updateFunc(ctx, opts.force)
 	})
-	return eg.Wait()
+	return nil
 }
 
 func (r *baseUpdateRepository) isInterrupted(ctx context.Context) bool {

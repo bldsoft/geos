@@ -2,7 +2,8 @@ package source
 
 import (
 	"context"
-	"fmt"
+	"net/url"
+	"path/filepath"
 	"sync/atomic"
 
 	"github.com/bldsoft/geos/pkg/entity"
@@ -23,17 +24,24 @@ type GeoNamesSource struct {
 func NewGeoNamesSource(dirPath string) *GeoNamesSource {
 	res := &GeoNamesSource{}
 
+	join := func(base, path string) string {
+		url, err := url.JoinPath(base, path)
+		if err != nil {
+			panic(err)
+		}
+		return url
+	}
 	res.CountriesFile = NewTSUpdatableFile(
-		fmt.Sprintf("%s/%s", dirPath, geonames.Countries.String()),
-		fmt.Sprintf("%s/%s", geonamesBaseURL, geonames.Countries.String()),
+		filepath.Join(dirPath, geonames.Countries.String()),
+		join(geonamesBaseURL, geonames.Countries.String()),
 	)
 	res.AdminDivisionsFile = NewTSUpdatableFile(
-		fmt.Sprintf("%s/%s", dirPath, geonames.AdminDivisions.String()),
-		fmt.Sprintf("%s/%s", geonamesBaseURL, geonames.AdminDivisions.String()),
+		filepath.Join(dirPath, geonames.AdminDivisions.String()),
+		join(geonamesBaseURL, geonames.AdminDivisions.String()),
 	)
 	res.Cities500File = NewTSUpdatableFile(
-		fmt.Sprintf("%s/%s", dirPath, string(geonames.Cities500)),
-		fmt.Sprintf("%s/%s", geonamesBaseURL, string(geonames.Cities500)),
+		filepath.Join(dirPath, string(geonames.Cities500)),
+		join(geonamesBaseURL, string(geonames.Cities500)),
 	)
 
 	return res
@@ -69,7 +77,7 @@ func (s *GeoNamesSource) CheckUpdates(ctx context.Context) (entity.Update, error
 			if err != nil {
 				return err
 			}
-			if res.Load() == nil || update.AvailableVersion != "" {
+			if res.Load() == nil || update.AvailableVersion > res.Load().AvailableVersion {
 				res.Store(&update)
 			}
 			return nil

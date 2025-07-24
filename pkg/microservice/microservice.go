@@ -120,6 +120,8 @@ func (m *Microservice) initServices() {
 	m.setDiscoveryMeta()
 
 	m.asyncRunners = append(m.asyncRunners, m.discovery)
+	m.asyncRunners = append(m.asyncRunners, server.NewContextAsyncRunner(rep.Run))
+	m.asyncRunners = append(m.asyncRunners, server.NewContextAsyncRunner(geoNameRep.Run))
 
 	if m.config.NeedGrpc() {
 		grpcService := NewGrpcMicroservice(m.config.GRPCServiceBindAddress.HostPort(), m.geoIpService, m.geoNameService)
@@ -152,7 +154,6 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 			r.Get("/update", managementController.CheckGeoIPUpdatesHandler)
 			r.Put("/update", managementController.UpdateGeoIPHandler)
 		})
-		r.With(m.ApiKeyMiddleware()).Get("/update", managementController.GetGeosUpdateStateHandler)
 
 		r.Route("/dump/{db}", func(r chi.Router) {
 			r.Use(m.ApiKeyMiddleware())

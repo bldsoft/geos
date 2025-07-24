@@ -14,6 +14,7 @@ import (
 
 var ErrFileExists = errors.New("file exists")
 var ErrFileNotExists = errors.New("file not exists")
+var ErrRemoteURLNotSet = errors.New("remote URL is not set")
 
 type Version[T any] interface {
 	IsHigher(other T) bool
@@ -85,6 +86,10 @@ func (u *UpdatableFile[V]) Version(ctx context.Context) (V, error) {
 }
 
 func (u *UpdatableFile[V]) RemoteVersion(ctx context.Context) (V, error) {
+	if u.RemoteURL == "" {
+		var zero V
+		return zero, ErrRemoteURLNotSet
+	}
 	return u.VersionFunc(ctx, u.RemoteURL, u.RemoteFileRepository)
 }
 
@@ -118,10 +123,7 @@ func (u *UpdatableFile[V]) updateInProgress(ctx context.Context) bool {
 
 func (u *UpdatableFile[V]) downloadTempFile(ctx context.Context, force bool) error {
 	if force {
-		err := u.LocalFileRepository.Remove(ctx, u.tmpFilePath())
-		if err != nil {
-			return fmt.Errorf("failed to remove temporary file: %w", err)
-		}
+		_ = u.LocalFileRepository.Remove(ctx, u.tmpFilePath())
 	}
 
 	tmpFile, err := u.LocalFileRepository.Open(ctx, u.tmpFilePath())
@@ -150,6 +152,9 @@ func (u *UpdatableFile[V]) downloadTempFile(ctx context.Context, force bool) err
 func (u *UpdatableFile[V]) needUpdate(ctx context.Context) (bool, error) {
 	remoteVersion, err := u.RemoteVersion(ctx)
 	if err != nil {
+		if errors.Is(err, ErrRemoteURLNotSet) {
+			return false, nil
+		}
 		return false, err
 	}
 
@@ -169,18 +174,20 @@ func (u *UpdatableFile[V]) tmpFilePath() string {
 }
 
 func (u *UpdatableFile[V]) CheckUpdates(ctx context.Context) (upd entity.Update, err error) {
-	remoteVersion, err := u.RemoteVersion(ctx)
-	if err != nil {
-		return upd, err
-	}
-
 	localVersion, err := u.Version(ctx)
 	if err != nil {
 		return upd, err
 	}
+	upd.CurrentVersion = localVersion.String()
 
-	return entity.Update{
-		CurrentVersion:   localVersion.String(),
-		AvailableVersion: remoteVersion.String(),
-	}, nil
+	remoteVersion, err := u.RemoteVersion(ctx)
+	if err != nil {
+		if errors.Is(err, ErrRemoteURLNotSet) {
+			return upd, nil
+		}
+		return upd, err
+	}
+
+	upd.AvailableVersion = remoteVersion.String()
+	return upd, nil
 }

@@ -82,7 +82,7 @@ func (r *LocalFileRepository) TryLock(ctx context.Context, path string) (ok bool
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_RDWR, 0644)
 	if err != nil {
 		if os.IsExist(err) {
-			return false, nil, ErrFileExists
+			return false, nil, nil
 		}
 		return false, nil, err
 	}

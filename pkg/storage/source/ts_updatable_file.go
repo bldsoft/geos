@@ -31,5 +31,8 @@ func (v ModTimeVersion) Time() time.Time {
 }
 
 func (v ModTimeVersion) String() string {
-	return fmt.Sprintf("%d", time.Time(v).Unix())
+	if v.Time().IsZero() {
+		return "0"
+	}
+	return fmt.Sprintf("%d", v.Time().Unix())
 }

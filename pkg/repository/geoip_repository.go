@@ -56,12 +56,16 @@ func openPatchedDB[T maxmind.CSVEntity](
 		return nil
 	}
 
-	patchesSource := source.NewPatchesSource(conf.PatchesRemoteURL, filepath.Dir(conf.LocalPath), customPrefix)
-	customDB := maxmind.NewCustomDatabaseFromTarGz(patchesSource)
-
-	multiDB := maxmind.NewMultiMaxMindDB[maxmind.Database](originalDB).Add(customDB).WithLogger(
+	multiDB := maxmind.NewMultiMaxMindDB[maxmind.Database](originalDB).WithLogger(
 		*log.Logger.WithFields(log.Fields{"db": customPrefix}),
 	)
+
+	if conf.PatchesRemoteURL != "" {
+		patchesSource := source.NewPatchesSource(conf.PatchesRemoteURL, filepath.Dir(conf.LocalPath), customPrefix)
+		customDB := maxmind.NewCustomDatabaseFromTarGz(patchesSource)
+		multiDB = multiDB.Add(customDB)
+	}
+
 	return withCachedCSVDump[T](multiDB, csvDumpDir)
 }
 

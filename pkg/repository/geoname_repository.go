@@ -34,12 +34,15 @@ type GeoNameRepository struct {
 
 func NewGeoNamesRepository(config StorageConfig) *GeoNameRepository {
 	origSource := source.NewGeoNamesSource(config.LocalDir)
-	patchSource := source.NewPatchesSource(config.PatchesRemoteURL, config.LocalDir, GeonamesDBType)
-
 	original := geonames.NewStorage(origSource)
-	custom := geonames.NewCustomStorageFromTarGz(patchSource)
+	storage := geonames.NewMultiStorage[geonames.Storage](original)
 
-	var storage geonames.Storage = geonames.NewMultiStorage[geonames.Storage](original).Add(custom)
+	if config.PatchesRemoteURL != "" {
+		patchSource := source.NewPatchesSource(config.PatchesRemoteURL, config.LocalDir, GeonamesDBType)
+		custom := geonames.NewCustomStorageFromTarGz(patchSource)
+		storage = storage.Add(custom)
+	}
+
 	res := &GeoNameRepository{
 		cfg:            config,
 		storage:        storage,
