@@ -7,7 +7,6 @@ import (
 	"github.com/bldsoft/geos/pkg/client"
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/geonames"
-	"github.com/bldsoft/geos/pkg/storage/state"
 	"github.com/bldsoft/gost/discovery"
 )
 
@@ -90,23 +89,32 @@ func (c *discoveredClient) GeoNameCities(ctx context.Context, filter entity.GeoN
 		})
 }
 
-func (c *discoveredClient) CheckUpdates(ctx context.Context) (entity.Updates, error) {
+func (c *discoveredClient) CheckGeoIPUpdates(ctx context.Context) ([]entity.DBUpdate, error) {
 	return doWithClientLoader(c.clientLoader, true,
-		func(client client.Client) (res entity.Updates, err error) {
-			return client.CheckUpdates(ctx)
+		func(client client.Client) (res []entity.DBUpdate, err error) {
+			return client.CheckGeoIPUpdates(ctx)
 		})
 }
 
-func (c *discoveredClient) Update(ctx context.Context) (entity.Updates, error) {
+func (c *discoveredClient) CheckGeonamesUpdates(ctx context.Context) ([]entity.DBUpdate, error) {
 	return doWithClientLoader(c.clientLoader, true,
-		func(client client.Client) (res entity.Updates, err error) {
-			return client.Update(ctx)
+		func(client client.Client) (res []entity.DBUpdate, err error) {
+			return client.CheckGeonamesUpdates(ctx)
 		})
 }
 
-func (c *discoveredClient) State(ctx context.Context) (*state.GeosState, error) {
-	return doWithClientLoader(c.clientLoader, true,
-		func(client client.Client) (res *state.GeosState, err error) {
-			return client.State(ctx)
+func (c *discoveredClient) UpdateGeoIP(ctx context.Context) error {
+	_, err := doWithClientLoader(c.clientLoader, true,
+		func(client client.Client) (any, error) {
+			return nil, client.UpdateGeoIP(ctx)
 		})
+	return err
+}
+
+func (c *discoveredClient) UpdateGeonames(ctx context.Context) error {
+	_, err := doWithClientLoader(c.clientLoader, true,
+		func(client client.Client) (any, error) {
+			return nil, client.UpdateGeonames(ctx)
+		})
+	return err
 }

@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"github.com/bldsoft/geos/pkg/entity"
-	"github.com/bldsoft/geos/pkg/storage/state"
 	"github.com/hashicorp/go-multierror"
 )
 
@@ -13,9 +12,10 @@ type MultiClient struct {
 	Clients []Client
 }
 
-func getFromAny[T any](ctx context.Context, clients []Client, f func(ctx context.Context, client Client) (*T, error)) (*T, error) {
+func getFromAny[T any](ctx context.Context, clients []Client, f func(ctx context.Context, client Client) (T, error)) (T, error) {
 	if len(clients) == 0 {
-		return nil, errors.New("no clients")
+		var zero T
+		return zero, errors.New("no clients")
 	}
 	var multiErr error
 	for _, client := range clients {
@@ -25,7 +25,8 @@ func getFromAny[T any](ctx context.Context, clients []Client, f func(ctx context
 		}
 		multiErr = multierror.Append(multiErr, err)
 	}
-	return nil, multiErr
+	var zero T
+	return zero, multiErr
 }
 
 func (c *MultiClient) Country(ctx context.Context, address string) (*entity.Country, error) {
@@ -46,7 +47,7 @@ func (c *MultiClient) CityLite(ctx context.Context, address, lang string) (*enti
 	})
 }
 
-func getManyFromAny[T any](ctx context.Context, clients []Client, f func(ctx context.Context, client Client) ([]*T, error)) ([]*T, error) {
+func getManyFromAny[T any](ctx context.Context, clients []Client, f func(ctx context.Context, client Client) ([]T, error)) ([]T, error) {
 	var multiErr error
 	for _, client := range clients {
 		obj, err := f(ctx, client)
@@ -81,14 +82,28 @@ func (c *MultiClient) GeoNameCities(ctx context.Context, filter entity.GeoNameFi
 	})
 }
 
-func (c *MultiClient) CheckUpdates(ctx context.Context) (entity.Updates, error) {
-	return nil, errors.ErrUnsupported
+func (c *MultiClient) CheckGeoIPUpdates(ctx context.Context) ([]entity.DBUpdate, error) {
+	return getManyFromAny(ctx, c.Clients, func(ctx context.Context, client Client) ([]entity.DBUpdate, error) {
+		return client.CheckGeoIPUpdates(ctx)
+	})
 }
 
-func (c *MultiClient) Update(ctx context.Context) (entity.Updates, error) {
-	return nil, errors.ErrUnsupported
+func (c *MultiClient) CheckGeonamesUpdates(ctx context.Context) ([]entity.DBUpdate, error) {
+	return getManyFromAny(ctx, c.Clients, func(ctx context.Context, client Client) ([]entity.DBUpdate, error) {
+		return client.CheckGeonamesUpdates(ctx)
+	})
 }
 
-func (c *MultiClient) State(ctx context.Context) (*state.GeosState, error) {
-	return nil, errors.ErrUnsupported
+func (c *MultiClient) UpdateGeoIP(ctx context.Context) error {
+	_, err := getFromAny(ctx, c.Clients, func(ctx context.Context, client Client) (any, error) {
+		return nil, client.UpdateGeoIP(ctx)
+	})
+	return err
+}
+
+func (c *MultiClient) UpdateGeonames(ctx context.Context) error {
+	_, err := getFromAny(ctx, c.Clients, func(ctx context.Context, client Client) (any, error) {
+		return nil, client.UpdateGeonames(ctx)
+	})
+	return err
 }

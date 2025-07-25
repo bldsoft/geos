@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/bldsoft/geos/pkg/entity"
-	"github.com/bldsoft/geos/pkg/storage/state"
 )
 
 type GeoIPClient interface {
@@ -21,9 +20,10 @@ type GeoNameClient interface {
 }
 
 type ManagementClient interface {
-	CheckUpdates(ctx context.Context) (entity.Updates, error)
-	Update(ctx context.Context) (entity.Updates, error)
-	State(ctx context.Context) (*state.GeosState, error)
+	CheckGeoIPUpdates(ctx context.Context) ([]entity.DBUpdate, error)
+	CheckGeonamesUpdates(ctx context.Context) ([]entity.DBUpdate, error)
+	UpdateGeoIP(ctx context.Context) error
+	UpdateGeonames(ctx context.Context) error
 }
 
 type Client interface {

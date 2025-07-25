@@ -9,7 +9,6 @@ import (
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/microservice/middleware"
 	"github.com/bldsoft/geos/pkg/storage/geonames"
-	"github.com/bldsoft/geos/pkg/storage/state"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
@@ -125,14 +124,17 @@ func (c *Client) Close() {
 	c.conn.Close()
 }
 
-func (c *Client) CheckUpdates(ctx context.Context) (entity.Updates, error) {
+func (c *Client) CheckGeoIPUpdates(ctx context.Context) ([]entity.DBUpdate, error) {
+	return nil, errors.ErrUnsupported
+}
+func (c *Client) CheckGeonamesUpdates(ctx context.Context) ([]entity.DBUpdate, error) {
 	return nil, errors.ErrUnsupported
 }
 
-func (c *Client) Update(ctx context.Context) (entity.Updates, error) {
-	return nil, errors.ErrUnsupported
+func (c *Client) UpdateGeoIP(ctx context.Context) error {
+	return errors.ErrUnsupported
 }
 
-func (c *Client) State(ctx context.Context) (*state.GeosState, error) {
-	return &state.GeosState{}, errors.ErrUnsupported
+func (c *Client) UpdateGeonames(ctx context.Context) error {
+	return errors.ErrUnsupported
 }
