@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/bldsoft/geos/pkg/storage/source"
+	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
 	"github.com/bldsoft/gost/utils/errgroup"
 	"go.uber.org/atomic"
@@ -77,8 +78,11 @@ func (r *baseUpdateRepository) update(ctx context.Context, opts updateOptions) e
 	}
 	if !opts.force {
 		ok, unlock, err := r.TryLock(ctx, r.lockFileName)
-		if !ok || err != nil {
+		if err != nil {
 			return err
+		}
+		if !ok {
+			return utils.ErrUpdateInProgress
 		}
 		close = unlock
 	}

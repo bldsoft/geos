@@ -73,33 +73,37 @@ type DBConfig struct {
 	LocalPath        string
 	RemoteURL        string
 	PatchesRemoteURL string
+}
+
+type GeoIPRepositoryConfig struct {
+	City             DBConfig
+	ISP              DBConfig
+	CSVDirPath       string
 	AutoUpdatePeriod time.Duration
 }
 
 type GeoIPRepository struct {
-	dbCity, dbISP     *maxmindDBWithCachedCSVDump
-	cityConf, ispConf DBConfig
-	csvDirPath        string
-	checkUpdatesSF    singleflight.Group
+	cfg            GeoIPRepositoryConfig
+	dbCity, dbISP  *maxmindDBWithCachedCSVDump
+	csvDirPath     string
+	checkUpdatesSF singleflight.Group
 
 	cityUpdater, ispUpdater *updaterWithLastErr
 
 	*baseUpdateRepository
 }
 
-func NewGeoIPRepository(cityConf, ispConf DBConfig, csvDirPath string) *GeoIPRepository {
+func NewGeoIPRepository(cfg GeoIPRepositoryConfig) *GeoIPRepository {
 	res := &GeoIPRepository{
-		csvDirPath: csvDirPath,
-		cityConf:   cityConf,
-		ispConf:    ispConf,
-		dbCity:     openPatchedDB[entity.City](cityConf, string(MaxmindDBTypeCity), csvDirPath, true),
-		dbISP:      openPatchedDB[entity.ISP](ispConf, string(MaxmindDBTypeISP), csvDirPath, false),
+		cfg:    cfg,
+		dbCity: openPatchedDB[entity.City](cfg.City, string(MaxmindDBTypeCity), cfg.CSVDirPath, true),
+		dbISP:  openPatchedDB[entity.ISP](cfg.ISP, string(MaxmindDBTypeISP), cfg.CSVDirPath, false),
 	}
 	res.cityUpdater = newUpdaterWithLastErr(res.dbCity.Update)
 	res.ispUpdater = newUpdaterWithLastErr(res.dbISP.Update)
 	res.baseUpdateRepository = NewBaseUpdateRepository(
 		"geoip.lock",
-		cityConf.AutoUpdatePeriod,
+		cfg.AutoUpdatePeriod,
 		func(ctx context.Context, force bool) error {
 			err := res.cityUpdater.Update(ctx, force)
 			if err != nil {

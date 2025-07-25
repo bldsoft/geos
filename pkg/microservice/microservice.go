@@ -90,21 +90,20 @@ func (m *Microservice) initServices() {
 		log.Debug("Log export to ClickHouse is off")
 	}
 
-	cityDBConfig := repository.DBConfig{
-		LocalPath:        m.config.GeoDbPath,
-		RemoteURL:        m.config.GeoDbSource,
-		PatchesRemoteURL: m.config.GeoDbPatchesSource,
+	rep := repository.NewGeoIPRepository(repository.GeoIPRepositoryConfig{
+		City: repository.DBConfig{
+			LocalPath:        m.config.GeoDbPath,
+			RemoteURL:        m.config.GeoDbSource,
+			PatchesRemoteURL: m.config.GeoDbPatchesSource,
+		},
+		ISP: repository.DBConfig{
+			LocalPath:        m.config.GeoDbISPPath,
+			RemoteURL:        m.config.GeoDbISPSource,
+			PatchesRemoteURL: m.config.GeoDbISPPatchesSource,
+		},
+		CSVDirPath:       m.config.GeoIPCsvDumpDirPath,
 		AutoUpdatePeriod: time.Duration(m.config.AutoUpdatePeriod) * time.Hour,
-	}
-
-	ispDBConfig := repository.DBConfig{
-		LocalPath:        m.config.GeoDbISPPath,
-		RemoteURL:        m.config.GeoDbISPSource,
-		PatchesRemoteURL: m.config.GeoDbISPPatchesSource,
-		AutoUpdatePeriod: time.Duration(m.config.AutoUpdatePeriod) * time.Hour,
-	}
-
-	rep := repository.NewGeoIPRepository(cityDBConfig, ispDBConfig, m.config.GeoIPCsvDumpDirPath)
+	})
 	m.geoIpService = service.NewGeoIpService(rep)
 
 	geonameStorageConfig := repository.StorageConfig{
