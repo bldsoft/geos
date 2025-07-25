@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/csv"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -38,7 +39,10 @@ func NewGeoNamesRepository(config StorageConfig) *GeoNameRepository {
 	storage := geonames.NewMultiStorage[geonames.Storage](original)
 
 	if config.PatchesRemoteURL != "" {
-		patchSource := source.NewPatchesSource(config.PatchesRemoteURL, config.LocalDir, GeonamesDBType)
+		patchSource := source.NewTSUpdatableFile(
+			filepath.Join(config.LocalDir, GeonamesDBType+"_patches.tar.gz"),
+			config.PatchesRemoteURL,
+		)
 		custom := geonames.NewCustomStorageFromTarGz(patchSource)
 		storage = storage.Add(custom)
 	}

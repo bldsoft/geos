@@ -11,17 +11,25 @@ import (
 
 type CustomDatabase struct {
 	*MultiMaxMindDB[*DatabasePatch]
-	source *source.PatchesSource
+	source     *source.TSUpdatableFile
+	lastUpdate source.ModTimeVersion
 }
 
-func NewCustomDatabaseFromTarGz(source *source.PatchesSource) *CustomDatabase {
+func NewCustomDatabaseFromTarGz(source *source.TSUpdatableFile) *CustomDatabase {
+	logger := log.Logger.WithFields(log.Fields{"source": source.LocalPath, "db": "custom maxmind"})
+
+	version, err := source.Version(context.Background())
+	if err != nil {
+		logger.Errorf("failed to get local version: %v", err)
+	}
 	customDBs, err := NewDatabasePatchesFromTarGz(source)
 	if err != nil {
-		log.Logger.Errorf("failed to load custom databases %s: %v", source.Name(), err)
+		logger.Errorf("failed to get patches: %v", err)
 	}
 	res := &CustomDatabase{
 		MultiMaxMindDB: NewMultiMaxMindDB(customDBs...),
 		source:         source,
+		lastUpdate:     version,
 	}
 	return res
 }
@@ -38,11 +46,16 @@ func (db *CustomDatabase) Update(ctx context.Context, force bool) error {
 	if err != nil {
 		return err
 	}
-	if update.RemoteVersion == "" {
+	if update.RemoteVersion != "" {
 		return nil
 	}
 
 	if err := db.source.Update(ctx, force); err != nil {
+		return err
+	}
+
+	version, err := db.source.Version(ctx)
+	if err != nil {
 		return err
 	}
 
@@ -52,9 +65,30 @@ func (db *CustomDatabase) Update(ctx context.Context, force bool) error {
 	}
 
 	db.MultiMaxMindDB = NewMultiMaxMindDB(customDBs...)
+	db.lastUpdate = version
 	return nil
 }
 
 func (db *CustomDatabase) CheckUpdates(ctx context.Context) (entity.Update, error) {
-	return db.source.CheckUpdates(ctx)
+	update, err := db.source.CheckUpdates(ctx)
+	if err != nil {
+		return entity.Update{}, err
+	}
+	if update.RemoteVersion != "" {
+		return update, nil
+	}
+
+	version, err := db.source.Version(ctx)
+	if err != nil {
+		return entity.Update{}, err
+	}
+
+	if !version.IsHigher(db.lastUpdate) {
+		return update, nil
+	}
+
+	return entity.Update{
+		CurrentVersion: db.lastUpdate.String(),
+		RemoteVersion:  version.String(),
+	}, nil
 }

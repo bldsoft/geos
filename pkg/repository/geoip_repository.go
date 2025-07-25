@@ -61,7 +61,10 @@ func openPatchedDB[T maxmind.CSVEntity](
 	)
 
 	if conf.PatchesRemoteURL != "" {
-		patchesSource := source.NewPatchesSource(conf.PatchesRemoteURL, filepath.Dir(conf.LocalPath), customPrefix)
+		patchesSource := source.NewTSUpdatableFile(
+			filepath.Join(conf.LocalPath, customPrefix+"_patches.tar.gz"),
+			conf.PatchesRemoteURL,
+		)
 		customDB := maxmind.NewCustomDatabaseFromTarGz(patchesSource)
 		multiDB = multiDB.Add(customDB)
 	}

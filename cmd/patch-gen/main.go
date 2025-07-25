@@ -159,14 +159,13 @@ func main() {
 }
 
 func geonamesStorage(ctx context.Context, customFilePath string) geonames.Storage {
-	source := source.NewGeoNamesSource("/tmp/")
-	originalStorage := geonames.NewStorage(source, true)
+	origStorage := source.NewGeoNamesSource("/tmp/")
+	originalStorage := geonames.NewStorage(origStorage, true)
 	geonameStorage := geonames.NewMultiStorage[geonames.Storage](originalStorage)
 
-	if customStorage, err := geonames.NewStoragePatchFromFile(customFilePath); err == nil {
-		return geonameStorage.Add(customStorage)
-	}
-	return geonameStorage
+	customSource := source.NewTSUpdatableFile(customFilePath, "")
+	customStorage := geonames.NewCustomStorageFromTarGz(customSource)
+	return geonameStorage.Add(customStorage)
 }
 
 func isGeoNameIDAlradyInUse(ctx context.Context, storage geonames.Storage, id uint64) error {

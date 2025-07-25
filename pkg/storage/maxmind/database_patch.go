@@ -31,10 +31,9 @@ type DatabasePatch struct {
 	tree  *mmdbwriter.Tree
 	dbRaw []byte
 	db    *maxminddb.Reader
-	state int64
 }
 
-func NewDatabasePatchesFromTarGz(source *source.PatchesSource) ([]*DatabasePatch, error) {
+func NewDatabasePatchesFromTarGz(source *source.TSUpdatableFile) ([]*DatabasePatch, error) {
 	ctx := context.Background()
 	r, err := source.Reader(ctx)
 	if err != nil {
@@ -78,7 +77,7 @@ func NewDatabasePatchesFromTarGz(source *source.PatchesSource) ([]*DatabasePatch
 			IPVersion:                db.db.Metadata.IPVersion,
 			NodeCount:                db.db.Metadata.NodeCount,
 			RecordSize:               db.db.Metadata.RecordSize,
-		}).WithState(ver.Time().Unix()))
+		}))
 	}
 
 	return customDBs, nil
@@ -123,11 +122,6 @@ func NewDatabasePatch(reader MMDBRecordReader) (*DatabasePatch, error) {
 
 func (db *DatabasePatch) WithMetadata(meta maxminddb.Metadata) *DatabasePatch {
 	db.db.Metadata = meta
-	return db
-}
-
-func (db *DatabasePatch) WithState(state int64) *DatabasePatch {
-	db.state = state
 	return db
 }
 

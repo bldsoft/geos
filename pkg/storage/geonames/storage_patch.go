@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"os"
+	"fmt"
 	"path/filepath"
 
 	"github.com/bldsoft/geos/pkg/entity"
@@ -88,25 +88,21 @@ type StoragePatch struct {
 	countries    []*entity.GeoNameCountry
 	subdivisions []*entity.GeoNameAdminSubdivision
 	cities       []*entity.GeoName
-
-	state int64
 }
 
-func NewStoragePatchesFromTarGz(source *source.PatchesSource) []*StoragePatch {
+func NewStoragePatchesFromTarGz(source *source.TSUpdatableFile) ([]*StoragePatch, error) {
 	ctx := context.Background()
 
 	var customStorages []*StoragePatch
 	r, err := source.Reader(ctx)
 	if err != nil {
-		log.ErrorWithFields(log.Fields{"err": err}, "failed to open custom geonames storage archive")
-		return nil
+		return nil, fmt.Errorf("failed to open custom geonames storage archive: %w", err)
 	}
 	defer r.Close()
 
 	content, err := utils.UnpackTarGz(r)
 	if err != nil {
-		log.ErrorWithFields(log.Fields{"err": err}, "failed to unpack custom geonames storage archive")
-		return nil
+		return nil, fmt.Errorf("failed to unpack custom geonames storage archive: %w", err)
 	}
 
 	for filename, data := range content {
@@ -124,29 +120,7 @@ func NewStoragePatchesFromTarGz(source *source.PatchesSource) []*StoragePatch {
 		customStorages = append(customStorages, NewStoragePatch(records))
 	}
 
-	return customStorages
-}
-
-func NewStoragePatchFromFile(path string) (*StoragePatch, error) {
-	if filepath.Ext(path) != ".json" {
-		return nil, utils.ErrUnknownFormat
-	}
-
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
-	stat, err := os.Stat(path)
-	if err != nil {
-		return nil, err
-	}
-
-	var records []CustomGeonamesRecord
-	if err := json.Unmarshal(data, &records); err != nil {
-		return nil, err
-	}
-	return NewStoragePatch(records).WithState(stat.ModTime().Unix()), nil
+	return customStorages, nil
 }
 
 func NewStoragePatch(records []CustomGeonamesRecord) *StoragePatch {
@@ -158,11 +132,6 @@ func NewStoragePatch(records []CustomGeonamesRecord) *StoragePatch {
 		res.cities = append(res.cities, rec.CityEntity())
 	}
 	return res
-}
-
-func (s *StoragePatch) WithState(state int64) *StoragePatch {
-	s.state = state
-	return s
 }
 
 func (s *StoragePatch) Continents(_ context.Context) []*entity.GeoNameContinent {
@@ -191,7 +160,7 @@ func (s *StoragePatch) Cities(_ context.Context, filter entity.GeoNameFilter) ([
 	return customFilter(s.cities, filter), nil
 }
 
-func (s *StoragePatch) CheckUpdates(_ context.Context) (entity.Update, error) {
+func (s *StoragePatch) CheckUpdates(ctx context.Context) (entity.Update, error) {
 	return entity.Update{}, errors.ErrUnsupported
 }
 
