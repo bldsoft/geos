@@ -102,14 +102,14 @@ func (m *Microservice) initServices() {
 			PatchesRemoteURL: m.config.GeoDbISPPatchesSource,
 		},
 		CSVDirPath:       m.config.GeoIPCsvDumpDirPath,
-		AutoUpdatePeriod: time.Duration(m.config.AutoUpdatePeriod) * time.Hour,
+		AutoUpdatePeriod: time.Duration(m.config.AutoUpdatePeriodSec) * time.Second,
 	})
 	m.geoIpService = service.NewGeoIpService(rep)
 
 	geonameStorageConfig := repository.StorageConfig{
 		LocalDir:         m.config.GeoNameDumpDirPath,
 		PatchesRemoteURL: m.config.GeoNamePatchesSource,
-		AutoUpdatePeriod: time.Duration(m.config.AutoUpdatePeriod) * time.Hour,
+		AutoUpdatePeriod: time.Duration(m.config.AutoUpdatePeriodSec) * time.Second,
 	}
 
 	geoNameRep := repository.NewGeoNamesRepository(geonameStorageConfig)
