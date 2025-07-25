@@ -92,7 +92,7 @@ func (r *LocalFileRepository) TryLock(ctx context.Context, path string) (ok bool
 	}, nil
 }
 
-func (r *LocalFileRepository) Open(ctx context.Context, path string) (io.WriteCloser, error) {
+func (r *LocalFileRepository) CreateIfNotExists(ctx context.Context, path string) (io.WriteCloser, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return nil, err
 	}

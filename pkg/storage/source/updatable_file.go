@@ -29,7 +29,7 @@ type ReadFileRepository interface {
 }
 
 type WriteFileRepository interface {
-	Open(ctx context.Context, path string) (io.WriteCloser, error)
+	CreateIfNotExists(ctx context.Context, path string) (io.WriteCloser, error)
 	Write(ctx context.Context, path string, reader io.Reader) error
 	Rename(ctx context.Context, oldPath, newPath string) error
 	Remove(ctx context.Context, path string) error
@@ -126,7 +126,7 @@ func (u *UpdatableFile[V]) downloadTempFile(ctx context.Context, force bool) err
 		_ = u.LocalFileRepository.Remove(ctx, u.tmpFilePath())
 	}
 
-	tmpFile, err := u.LocalFileRepository.Open(ctx, u.tmpFilePath())
+	tmpFile, err := u.LocalFileRepository.CreateIfNotExists(ctx, u.tmpFilePath())
 	if err != nil {
 		if errors.Is(err, ErrFileExists) {
 			return utils.ErrUpdateInProgress

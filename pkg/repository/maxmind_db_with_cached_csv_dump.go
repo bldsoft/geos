@@ -129,7 +129,7 @@ func (db *maxmindDBWithCachedCSVDump) updateDump(ctx context.Context) error {
 	temp := db.tempDumpPath()
 
 	var buf bytes.Buffer
-	tmpFile, err := db.fileRepository.Open(ctx, temp)
+	tmpFile, err := db.fileRepository.CreateIfNotExists(ctx, temp)
 	if err != nil {
 		if errors.Is(err, source.ErrFileExists) {
 			// already updating
