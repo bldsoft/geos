@@ -6,7 +6,9 @@ import (
 	"time"
 )
 
-func NewTSUpdatableFile(path, url string) *UpdatableFile[ModTimeVersion] {
+type TSUpdatableFile = UpdatableFile[ModTimeVersion]
+
+func NewTSUpdatableFile(path, url string) *TSUpdatableFile {
 	return NewUpdatableFile(
 		path,
 		url,

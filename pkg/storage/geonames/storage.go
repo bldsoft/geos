@@ -190,7 +190,7 @@ func (r *GeoNameStorage) Cities(ctx context.Context, filter entity.GeoNameFilter
 
 func (r *GeoNameStorage) State() *state.GeosState {
 	var timestampsSum int64
-	for _, file := range []*source.UpdatableFile[source.ModTimeVersion]{
+	for _, file := range []*source.TSUpdatableFile{
 		r.source.CountriesFile,
 		r.source.AdminDivisionsFile,
 		r.source.Cities500File,

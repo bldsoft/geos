@@ -31,7 +31,7 @@ type geonameEntityStorage[T entity.GeoNameEntity] struct {
 	fillCollectionCallback func(parser geonames.Parser) ([]T, error)
 }
 
-func newGeonameEntityStorage[T entity.GeoNameEntity](file *source.UpdatableFile[source.ModTimeVersion], fillCollectionCallback func(parser geonames.Parser) ([]T, error)) *geonameEntityStorage[T] {
+func newGeonameEntityStorage[T entity.GeoNameEntity](file *source.TSUpdatableFile, fillCollectionCallback func(parser geonames.Parser) ([]T, error)) *geonameEntityStorage[T] {
 	s := &geonameEntityStorage[T]{
 		index:                  &index[T]{},
 		fillCollectionCallback: fillCollectionCallback,
@@ -40,7 +40,7 @@ func newGeonameEntityStorage[T entity.GeoNameEntity](file *source.UpdatableFile[
 	return s
 }
 
-func (s *geonameEntityStorage[T]) init(file *source.UpdatableFile[source.ModTimeVersion]) {
+func (s *geonameEntityStorage[T]) init(file *source.TSUpdatableFile) {
 	parser := geonames.Parser(func(filename string) (io.ReadCloser, error) {
 		return file.Reader(context.Background())
 	})
