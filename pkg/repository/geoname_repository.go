@@ -11,7 +11,6 @@ import (
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/geonames"
 	"github.com/bldsoft/geos/pkg/storage/source"
-	"go.uber.org/atomic"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -29,8 +28,7 @@ type GeoNameRepository struct {
 	storageUpdater *updaterWithLastErr
 
 	*baseUpdateRepository
-	checkUpdatesSF  singleflight.Group
-	lastUpdateError atomic.Pointer[string]
+	checkUpdatesSF singleflight.Group
 }
 
 func NewGeoNamesRepository(config StorageConfig) *GeoNameRepository {
@@ -75,17 +73,12 @@ func (r *GeoNameRepository) CheckUpdates(ctx context.Context) (entity.DBUpdate, 
 			return entity.DBUpdate{}, err
 		}
 		return entity.NewDBUpdate(
-			GeonamesDBType,
 			updates,
-			r.storageUpdater.InProgress(),
-			r.storageUpdater.LastErr(),
+			r.IsInProgress(),
+			r.LastErr(),
 		), nil
 	})
-
-	if err != nil {
-		return entity.DBUpdate{}, err
-	}
-	return result.(entity.DBUpdate), nil
+	return result.(entity.DBUpdate), err
 }
 
 func (r *GeoNameRepository) Continents(ctx context.Context) []*entity.GeoNameContinent {

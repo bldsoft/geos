@@ -158,6 +158,6 @@ func (db *DatabasePatch) Update(_ context.Context, _ bool) error {
 	return errors.ErrUnsupported
 }
 
-func (db *DatabasePatch) CheckUpdates(_ context.Context) (entity.Update, error) {
-	return entity.Update{}, errors.ErrUnsupported
+func (db *DatabasePatch) CheckUpdates(_ context.Context) (entity.Update[entity.PatchVersion], error) {
+	return entity.Update[entity.PatchVersion]{}, errors.ErrUnsupported
 }

@@ -6,39 +6,13 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"time"
 
-	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/utils"
 )
 
 var ErrFileExists = errors.New("file exists")
 var ErrFileNotExists = errors.New("file not exists")
 var ErrRemoteURLNotSet = errors.New("remote URL is not set")
-
-type Version[T any] interface {
-	IsHigher(other T) bool
-	fmt.Stringer
-}
-
-type ReadFileRepository interface {
-	Reader(ctx context.Context, path string) (io.ReadCloser, error)
-	TailReader(ctx context.Context, path string, offset int64) (io.ReadCloser, error)
-	LastModified(ctx context.Context, path string) (time.Time, error)
-	Exists(ctx context.Context, path string) (bool, error)
-}
-
-type WriteFileRepository interface {
-	CreateIfNotExists(ctx context.Context, path string) (io.WriteCloser, error)
-	Write(ctx context.Context, path string, reader io.Reader) error
-	Rename(ctx context.Context, oldPath, newPath string) error
-	Remove(ctx context.Context, path string) error
-}
-
-type FileRepository interface {
-	ReadFileRepository
-	WriteFileRepository
-}
 
 type UpdatableFile[V Version[V]] struct {
 	LocalPath string
@@ -173,12 +147,12 @@ func (u *UpdatableFile[V]) tmpFilePath() string {
 	return u.LocalPath + ".tmp"
 }
 
-func (u *UpdatableFile[V]) CheckUpdates(ctx context.Context) (upd entity.Update, err error) {
+func (u *UpdatableFile[V]) CheckUpdates(ctx context.Context) (upd Update[V], err error) {
 	localVersion, err := u.Version(ctx)
 	if err != nil {
 		return upd, err
 	}
-	upd.CurrentVersion = localVersion.String()
+	upd.CurrentVersion = localVersion
 
 	remoteVersion, err := u.RemoteVersion(ctx)
 	if err != nil {
@@ -188,6 +162,6 @@ func (u *UpdatableFile[V]) CheckUpdates(ctx context.Context) (upd entity.Update,
 		return upd, err
 	}
 
-	upd.RemoteVersion = remoteVersion.String()
+	upd.RemoteVersion = remoteVersion
 	return upd, nil
 }

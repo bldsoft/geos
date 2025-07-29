@@ -2,11 +2,41 @@ package source
 
 import (
 	"context"
-
-	"github.com/bldsoft/geos/pkg/entity"
+	"fmt"
+	"io"
+	"time"
 )
 
-type Updater interface {
+type Update[T Version[T]] struct {
+	CurrentVersion T
+	RemoteVersion  T
+}
+
+type Version[T any] interface {
+	IsHigher(other T) bool
+	fmt.Stringer
+}
+
+type Updater[V Version[V]] interface {
 	Update(ctx context.Context, force bool) error
-	CheckUpdates(ctx context.Context) (entity.Update, error)
+	CheckUpdates(ctx context.Context) (Update[V], error)
+}
+
+type ReadFileRepository interface {
+	Reader(ctx context.Context, path string) (io.ReadCloser, error)
+	TailReader(ctx context.Context, path string, offset int64) (io.ReadCloser, error)
+	LastModified(ctx context.Context, path string) (time.Time, error)
+	Exists(ctx context.Context, path string) (bool, error)
+}
+
+type WriteFileRepository interface {
+	CreateIfNotExists(ctx context.Context, path string) (io.WriteCloser, error)
+	Write(ctx context.Context, path string, reader io.Reader) error
+	Rename(ctx context.Context, oldPath, newPath string) error
+	Remove(ctx context.Context, path string) error
+}
+
+type FileRepository interface {
+	ReadFileRepository
+	WriteFileRepository
 }

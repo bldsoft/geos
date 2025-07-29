@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"sync/atomic"
 
-	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/mkrou/geonames"
 	"golang.org/x/sync/errgroup"
 )
@@ -63,9 +62,9 @@ func (s *GeoNamesSource) Update(ctx context.Context, force bool) error {
 	return eg.Wait()
 }
 
-func (s *GeoNamesSource) CheckUpdates(ctx context.Context) (entity.Update, error) {
+func (s *GeoNamesSource) CheckUpdates(ctx context.Context) (Update[ModTimeVersion], error) {
 	var eg errgroup.Group
-	var res atomic.Pointer[entity.Update]
+	var res atomic.Pointer[Update[ModTimeVersion]]
 
 	for _, file := range []*UpdatableFile[ModTimeVersion]{
 		s.CountriesFile,
@@ -77,7 +76,7 @@ func (s *GeoNamesSource) CheckUpdates(ctx context.Context) (entity.Update, error
 			if err != nil {
 				return err
 			}
-			if res.Load() == nil || update.RemoteVersion > res.Load().RemoteVersion {
+			if res.Load() == nil || update.RemoteVersion.IsHigher(res.Load().RemoteVersion) {
 				res.Store(&update)
 			}
 			return nil
@@ -85,7 +84,7 @@ func (s *GeoNamesSource) CheckUpdates(ctx context.Context) (entity.Update, error
 	}
 
 	if err := eg.Wait(); err != nil {
-		return entity.Update{}, err
+		return Update[ModTimeVersion]{}, err
 	}
 
 	return *res.Load(), nil

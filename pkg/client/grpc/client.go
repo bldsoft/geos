@@ -124,14 +124,23 @@ func (c *Client) Close() {
 	c.conn.Close()
 }
 
-func (c *Client) CheckGeoIPUpdates(ctx context.Context) ([]entity.DBUpdate, error) {
-	return nil, errors.ErrUnsupported
-}
-func (c *Client) CheckGeonamesUpdates(ctx context.Context) ([]entity.DBUpdate, error) {
-	return nil, errors.ErrUnsupported
+func (c *Client) CheckGeoIPCityUpdates(ctx context.Context) (entity.DBUpdate, error) {
+	return entity.DBUpdate{}, errors.ErrUnsupported
 }
 
-func (c *Client) UpdateGeoIP(ctx context.Context) error {
+func (c *Client) CheckGeoIPISPUpdates(ctx context.Context) (entity.DBUpdate, error) {
+	return entity.DBUpdate{}, errors.ErrUnsupported
+}
+
+func (c *Client) CheckGeonamesUpdates(ctx context.Context) (entity.DBUpdate, error) {
+	return entity.DBUpdate{}, errors.ErrUnsupported
+}
+
+func (c *Client) UpdateGeoIPCity(ctx context.Context) error {
+	return errors.ErrUnsupported
+}
+
+func (c *Client) UpdateGeoIPISP(ctx context.Context) error {
 	return errors.ErrUnsupported
 }
 

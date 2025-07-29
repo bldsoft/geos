@@ -10,6 +10,7 @@ import (
 	"maps"
 
 	"github.com/bldsoft/geos/pkg/entity"
+	"github.com/bldsoft/geos/pkg/storage/source"
 	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
 	"github.com/bldsoft/gost/utils/errgroup"
@@ -21,7 +22,7 @@ import (
 
 var ErrNoDatabases = errors.New("no databases")
 
-type MultiMaxMindDB[T Database] struct {
+type MultiMaxMindDB[T Database[V], V entity.Version[V]] struct {
 	dbs    []T
 	logger log.ServiceLogger
 }
@@ -246,9 +247,9 @@ func (db *MultiMaxMindDB[T]) Update(ctx context.Context, force bool) error {
 	return multiErr
 }
 
-func (db *MultiMaxMindDB[T]) CheckUpdates(ctx context.Context) (entity.Update, error) {
+func (db *MultiMaxMindDB[T]) CheckUpdates(ctx context.Context) (entity.Update[entity.MMDBVersion], error) {
 	if len(db.dbs) == 0 {
-		return entity.Update{}, ErrNoDatabases
+		return source.Update[entity.MMDBVersion]{}, ErrNoDatabases
 	}
 
 	res := entity.Update{}

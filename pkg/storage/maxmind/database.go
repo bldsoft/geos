@@ -52,7 +52,7 @@ func (db *MaxmindDatabase) Update(ctx context.Context, force bool) error {
 		return err
 	}
 
-	if update.RemoteVersion == "" {
+	if !update.RemoteVersion.IsHigher(update.CurrentVersion) {
 		return nil
 	}
 
@@ -85,6 +85,6 @@ func (db *MaxmindDatabase) update(ctx context.Context) error {
 	return nil
 }
 
-func (db *MaxmindDatabase) CheckUpdates(ctx context.Context) (entity.Update, error) {
+func (db *MaxmindDatabase) CheckUpdates(ctx context.Context) (entity.Update[entity.MMDBVersion], error) {
 	return db.source.CheckUpdates(ctx)
 }

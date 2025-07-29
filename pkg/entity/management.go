@@ -2,19 +2,42 @@ package entity
 
 import (
 	"encoding/json"
+
+	"github.com/bldsoft/geos/pkg/storage/source"
 )
 
-type DBUpdate struct {
-	DatabaseType     string `json:"databaseType"`
-	CurrentVersion   string `json:"currentVersion"`
-	AvailableVersion string `json:"availableVersion,omitempty"`
+type Version interface {
+	Compare(Version) int
+}
+
+type MMDBVersion = source.MMDBVersion
+type ModTimeVersion = source.ModTimeVersion
+type GeoNamesVersion = source.ModTimeVersion
+type PatchVersion = source.ModTimeVersion
+
+type PatchedMMDBVersion struct {
+	MMDBVersion
+	PatchVersion PatchVersion
+}
+
+type PatchedGeoNamesVersion struct {
+	GeoNamesVersion
+	PatchVersion PatchVersion
+}
+
+func (v PatchedGeoNamesVersion) IsHigher(other PatchedGeoNamesVersion) bool {
+	return v.GeoNamesVersion.IsHigher(other.GeoNamesVersion) || v.PatchVersion.IsHigher(other.PatchVersion)
+}
+
+type DBUpdate[V Version[V]] struct {
+	CurrentVersion   V      `json:"currentVersion"`
+	AvailableVersion V      `json:"availableVersion,omitempty"`
 	UpdateError      string `json:"updateError,omitempty"`
 	InProgress       bool   `json:"inProgress,omitempty"`
 }
 
-func NewDBUpdate(dbType string, update Update, inProgress bool, lastUpdateError *string) DBUpdate {
-	res := DBUpdate{
-		DatabaseType:     dbType,
+func NewDBUpdate[V Version[V]](update Update[V], inProgress bool, lastUpdateError *string) DBUpdate[V] {
+	res := DBUpdate[V]{
 		CurrentVersion:   update.CurrentVersion,
 		AvailableVersion: update.RemoteVersion,
 		InProgress:       inProgress,
@@ -27,33 +50,11 @@ func NewDBUpdate(dbType string, update Update, inProgress bool, lastUpdateError 
 	return res
 }
 
-func (u DBUpdate) MarshalJSON() ([]byte, error) {
-	if u.AvailableVersion == u.CurrentVersion {
-		u.AvailableVersion = ""
+func (u DBUpdate[V]) MarshalJSON() ([]byte, error) {
+	if !u.AvailableVersion.IsHigher(u.CurrentVersion) {
+		var zero V
+		u.AvailableVersion = zero
 	}
-	type tmp DBUpdate
+	type tmp DBUpdate[V]
 	return json.Marshal(tmp(u))
-}
-
-type Update struct {
-	CurrentVersion string
-	RemoteVersion  string
-}
-
-func JoinUpdates(upd Update, updates ...Update) Update {
-	for _, update := range updates {
-		upd.CurrentVersion = joinString(upd.CurrentVersion, update.CurrentVersion, "/")
-		upd.RemoteVersion = joinString(upd.RemoteVersion, update.RemoteVersion, "/")
-	}
-	return upd
-}
-
-func joinString(s1, s2 string, sep string) string {
-	if s1 == "" {
-		return s2
-	}
-	if s2 == "" {
-		return s1
-	}
-	return s1 + sep + s2
 }

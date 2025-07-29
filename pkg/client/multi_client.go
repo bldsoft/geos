@@ -82,21 +82,34 @@ func (c *MultiClient) GeoNameCities(ctx context.Context, filter entity.GeoNameFi
 	})
 }
 
-func (c *MultiClient) CheckGeoIPUpdates(ctx context.Context) ([]entity.DBUpdate, error) {
-	return getManyFromAny(ctx, c.Clients, func(ctx context.Context, client Client) ([]entity.DBUpdate, error) {
-		return client.CheckGeoIPUpdates(ctx)
+func (c *MultiClient) CheckGeoIPCityUpdates(ctx context.Context) (entity.DBUpdate, error) {
+	return getFromAny(ctx, c.Clients, func(ctx context.Context, client Client) (entity.DBUpdate, error) {
+		return client.CheckGeoIPCityUpdates(ctx)
 	})
 }
 
-func (c *MultiClient) CheckGeonamesUpdates(ctx context.Context) ([]entity.DBUpdate, error) {
-	return getManyFromAny(ctx, c.Clients, func(ctx context.Context, client Client) ([]entity.DBUpdate, error) {
+func (c *MultiClient) CheckGeoIPISPUpdates(ctx context.Context) (entity.DBUpdate, error) {
+	return getFromAny(ctx, c.Clients, func(ctx context.Context, client Client) (entity.DBUpdate, error) {
+		return client.CheckGeoIPISPUpdates(ctx)
+	})
+}
+
+func (c *MultiClient) CheckGeonamesUpdates(ctx context.Context) (entity.DBUpdate, error) {
+	return getFromAny(ctx, c.Clients, func(ctx context.Context, client Client) (entity.DBUpdate, error) {
 		return client.CheckGeonamesUpdates(ctx)
 	})
 }
 
-func (c *MultiClient) UpdateGeoIP(ctx context.Context) error {
+func (c *MultiClient) UpdateGeoIPCity(ctx context.Context) error {
 	_, err := getFromAny(ctx, c.Clients, func(ctx context.Context, client Client) (any, error) {
-		return nil, client.UpdateGeoIP(ctx)
+		return nil, client.UpdateGeoIPCity(ctx)
+	})
+	return err
+}
+
+func (c *MultiClient) UpdateGeoIPISP(ctx context.Context) error {
+	_, err := getFromAny(ctx, c.Clients, func(ctx context.Context, client Client) (any, error) {
+		return nil, client.UpdateGeoIPISP(ctx)
 	})
 	return err
 }

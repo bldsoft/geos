@@ -150,8 +150,6 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 		r.Group(func(r chi.Router) {
 			r.Use(m.ApiKeyMiddleware())
 			r.Get("/dump", geoIpController.GetDumpHandler) // deprecated, used by streampool
-			r.Get("/update", managementController.CheckGeoIPUpdatesHandler)
-			r.Put("/update", managementController.UpdateGeoIPHandler)
 		})
 
 		r.Route("/dump/{db}", func(r chi.Router) {
@@ -159,6 +157,8 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 			r.Get("/csv", geoIpController.GetCSVDatabaseHandler)
 			r.Get("/mmdb", geoIpController.GetMMDBDatabaseHandler)
 			r.Get("/metadata", geoIpController.GetDatabaseMetaHandler)
+			r.Get("/update", managementController.CheckGeoIPUpdatesHandler)
+			r.Put("/update", managementController.UpdateGeoIPHandler)
 		})
 
 		geoNameController := rest.NewGeoNameController(m.geoNameService)

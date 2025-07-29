@@ -53,7 +53,7 @@ type baseUpdateRepository struct {
 	source.LocalFileRepository
 	lockFileName     string
 	autoUpdatePeriod time.Duration
-	updateFunc       func(ctx context.Context, force bool) error
+	updater          *updaterWithLastErr
 }
 
 func NewBaseUpdateRepository(
@@ -64,7 +64,7 @@ func NewBaseUpdateRepository(
 	return &baseUpdateRepository{
 		lockFileName:     lockFileName,
 		autoUpdatePeriod: autoUpdatePeriod,
-		updateFunc:       update,
+		updater:          newUpdaterWithLastErr(update),
 	}
 }
 
@@ -89,16 +89,24 @@ func (r *baseUpdateRepository) update(ctx context.Context, opts updateOptions) e
 
 	if !opts.async {
 		defer close()
-		return r.updateFunc(ctx, opts.force)
+		return r.updater.Update(ctx, opts.force)
 	}
 
 	var eg errgroup.Group
 	eg.Go(func() error {
 		defer close()
 		ctx = context.WithoutCancel(ctx)
-		return r.updateFunc(ctx, opts.force)
+		return r.updater.Update(ctx, opts.force)
 	})
 	return nil
+}
+
+func (r *baseUpdateRepository) IsInProgress() bool {
+	return r.updater.InProgress()
+}
+
+func (r *baseUpdateRepository) LastErr() *string {
+	return r.updater.LastErr()
 }
 
 func (r *baseUpdateRepository) isInterrupted(ctx context.Context) bool {

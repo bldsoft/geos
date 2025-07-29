@@ -15,6 +15,7 @@ import (
 	"github.com/bldsoft/geos/pkg/storage/source"
 	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
+	"github.com/bldsoft/gost/utils/errgroup"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -86,14 +87,12 @@ type GeoIPRepositoryConfig struct {
 }
 
 type GeoIPRepository struct {
-	cfg            GeoIPRepositoryConfig
-	dbCity, dbISP  *maxmindDBWithCachedCSVDump
-	csvDirPath     string
+	cfg           GeoIPRepositoryConfig
+	dbCity, dbISP *maxmindDBWithCachedCSVDump
+
 	checkUpdatesSF singleflight.Group
 
-	cityUpdater, ispUpdater *updaterWithLastErr
-
-	*baseUpdateRepository
+	cityUpdater, ispUpdater *baseUpdateRepository
 }
 
 func NewGeoIPRepository(cfg GeoIPRepositoryConfig) *GeoIPRepository {
@@ -102,23 +101,20 @@ func NewGeoIPRepository(cfg GeoIPRepositoryConfig) *GeoIPRepository {
 		dbCity: openPatchedDB[entity.City](cfg.City, string(MaxmindDBTypeCity), cfg.CSVDirPath, true),
 		dbISP:  openPatchedDB[entity.ISP](cfg.ISP, string(MaxmindDBTypeISP), cfg.CSVDirPath, false),
 	}
-	res.cityUpdater = newUpdaterWithLastErr(res.dbCity.Update)
-	res.ispUpdater = newUpdaterWithLastErr(res.dbISP.Update)
-	res.baseUpdateRepository = NewBaseUpdateRepository(
-		"geoip.lock",
+	res.cityUpdater = NewBaseUpdateRepository(
+		"geoip_city.lock",
+		cfg.AutoUpdatePeriod,
+		res.dbCity.Update,
+	)
+
+	res.ispUpdater = NewBaseUpdateRepository(
+		"geoip_isp.lock",
 		cfg.AutoUpdatePeriod,
 		func(ctx context.Context, force bool) error {
-			err := res.cityUpdater.Update(ctx, force)
-			if err != nil {
-				return err
+			if res.dbISP == nil {
+				return utils.ErrDisabled
 			}
-			if res.dbISP != nil {
-				err := res.ispUpdater.Update(ctx, force)
-				if err != nil {
-					return err
-				}
-			}
-			return nil
+			return res.dbISP.Update(ctx, force)
 		},
 	)
 	return res
@@ -202,7 +198,7 @@ func (r *GeoIPRepository) Database(ctx context.Context, dbType MaxmindDBType, fo
 	}, nil
 }
 
-func (r *GeoIPRepository) database(ctx context.Context, dbType MaxmindDBType) (maxmind.Database, error) {
+func (r *GeoIPRepository) database(_ context.Context, dbType MaxmindDBType) (maxmind.Database, error) {
 	var db maxmind.Database
 	switch dbType {
 	case MaxmindDBTypeCity:
@@ -222,46 +218,62 @@ func (r *GeoIPRepository) database(ctx context.Context, dbType MaxmindDBType) (m
 	return db, nil
 }
 
-func (r *GeoIPRepository) CheckUpdates(ctx context.Context) ([]entity.DBUpdate, error) {
-	result, err, _ := r.checkUpdatesSF.Do("check_updates", func() (interface{}, error) {
-		var multiErr error
-
-		cityUpdate, err := r.dbCity.CheckUpdates(ctx)
-		if err != nil {
-			multiErr = errors.Join(multiErr, err)
-		}
-
-		res := make([]entity.DBUpdate, 0, 2)
-		res = append(res, entity.NewDBUpdate(
-			string(MaxmindDBTypeCity),
-			cityUpdate,
-			r.cityUpdater.InProgress(),
-			r.cityUpdater.LastErr(),
-		))
-		if r.dbISP == nil {
-			return res, multiErr
-		}
-
-		ispUpdate, err := r.dbISP.CheckUpdates(ctx)
-		if err != nil {
-			multiErr = errors.Join(multiErr, err)
-		}
-
-		if multiErr != nil {
-			return nil, multiErr
-		}
-
-		res = append(res, entity.NewDBUpdate(
-			string(MaxmindDBTypeISP),
-			ispUpdate,
-			r.ispUpdater.InProgress(),
-			r.ispUpdater.LastErr(),
-		))
-		return res, nil
+func (r *GeoIPRepository) Run(ctx context.Context) error {
+	var errGroup errgroup.Group
+	errGroup.Go(func() error {
+		return r.cityUpdater.Run(ctx)
 	})
+	errGroup.Go(func() error {
+		return r.ispUpdater.Run(ctx)
+	})
+	return errGroup.Wait()
+}
 
-	if err != nil {
-		return nil, err
+func (r *GeoIPRepository) StartUpdate(ctx context.Context, dbType MaxmindDBType) error {
+	switch dbType {
+	case MaxmindDBTypeCity:
+		return r.cityUpdater.StartUpdate(ctx)
+	case MaxmindDBTypeISP:
+		return r.ispUpdater.StartUpdate(ctx)
+	default:
+		return errors.New("unknown database type")
 	}
-	return result.([]entity.DBUpdate), nil
+}
+
+func (r *GeoIPRepository) CheckUpdates(ctx context.Context, dbType MaxmindDBType) (entity.DBUpdate, error) {
+	result, err, _ := r.checkUpdatesSF.Do("check_updates_"+string(dbType), func() (interface{}, error) {
+		switch dbType {
+		case MaxmindDBTypeCity:
+			return r.checkCityUpdates(ctx)
+		case MaxmindDBTypeISP:
+			return r.checkISPUpdates(ctx)
+		default:
+			return entity.DBUpdate{}, errors.New("unknown database type")
+		}
+	})
+	return result.(entity.DBUpdate), err
+}
+
+func (r *GeoIPRepository) checkCityUpdates(ctx context.Context) (entity.DBUpdate, error) {
+	update, err := r.dbCity.CheckUpdates(ctx)
+	if err != nil {
+		return entity.DBUpdate{}, err
+	}
+	return entity.NewDBUpdate(
+		update,
+		r.cityUpdater.IsInProgress(),
+		r.cityUpdater.LastErr(),
+	), nil
+}
+
+func (r *GeoIPRepository) checkISPUpdates(ctx context.Context) (entity.DBUpdate, error) {
+	update, err := r.dbISP.CheckUpdates(ctx)
+	if err != nil {
+		return entity.DBUpdate{}, err
+	}
+	return entity.NewDBUpdate(
+		update,
+		r.ispUpdater.IsInProgress(),
+		r.ispUpdater.LastErr(),
+	), nil
 }

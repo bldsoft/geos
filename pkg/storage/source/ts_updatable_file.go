@@ -3,6 +3,7 @@ package source
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 )
 
@@ -23,6 +24,14 @@ func NewTSUpdatableFile(path, url string) *TSUpdatableFile {
 }
 
 type ModTimeVersion time.Time
+
+func ParseModTimeVersion(s string) (ModTimeVersion, error) {
+	unix, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return ModTimeVersion{}, err
+	}
+	return ModTimeVersion(time.Unix(unix, 0)), nil
+}
 
 func (v ModTimeVersion) IsHigher(other ModTimeVersion) bool {
 	return time.Time(v).After(time.Time(other))

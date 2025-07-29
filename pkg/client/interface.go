@@ -20,9 +20,11 @@ type GeoNameClient interface {
 }
 
 type ManagementClient interface {
-	CheckGeoIPUpdates(ctx context.Context) ([]entity.DBUpdate, error)
-	CheckGeonamesUpdates(ctx context.Context) ([]entity.DBUpdate, error)
-	UpdateGeoIP(ctx context.Context) error
+	CheckGeoIPCityUpdates(ctx context.Context) (entity.DBUpdate, error)
+	CheckGeoIPISPUpdates(ctx context.Context) (entity.DBUpdate, error)
+	CheckGeonamesUpdates(ctx context.Context) (entity.DBUpdate, error)
+	UpdateGeoIPCity(ctx context.Context) error
+	UpdateGeoIPISP(ctx context.Context) error
 	UpdateGeonames(ctx context.Context) error
 }
 

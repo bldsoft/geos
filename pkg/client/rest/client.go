@@ -59,26 +59,30 @@ func (c *Client) Origin() string {
 	return strings.TrimSuffix(c.client.BaseURL, microservice.BaseApiPath)
 }
 
-func get[T any](ctx context.Context, client *resty.Client, path string, query url.Values) (*T, error) {
+func get[T any](ctx context.Context, client *resty.Client, path string, query url.Values) (T, error) {
 	request := client.R().SetContext(ctx)
 	if query != nil {
 		request = request.SetQueryParamsFromValues(query)
 	}
+	return getRequest[T](request, path)
+}
+
+func getRequest[T any](req *resty.Request, path string) (T, error) {
 	var obj T
-	resp, err := request.Get(path)
+	resp, err := req.Get(path)
 	if err != nil {
-		return nil, err
+		return obj, err
 	}
 
 	if resp.StatusCode() >= 400 {
-		return nil, &RespError{StatusCode: resp.StatusCode(), Response: string(resp.Body())}
+		return obj, &RespError{StatusCode: resp.StatusCode(), Response: string(resp.Body())}
 	}
 
 	err = json.Unmarshal(resp.Body(), &obj)
 	if err != nil {
-		return nil, err
+		return obj, err
 	}
-	return &obj, nil
+	return obj, nil
 }
 
 func (c *Client) GeoNameContinents(ctx context.Context) []*entity.GeoNameContinent {
@@ -86,15 +90,15 @@ func (c *Client) GeoNameContinents(ctx context.Context) []*entity.GeoNameContine
 }
 
 func (c *Client) Country(ctx context.Context, address string) (*entity.Country, error) {
-	return get[entity.Country](ctx, c.client, "country/"+address, nil)
+	return get[*entity.Country](ctx, c.client, "country/"+address, nil)
 }
 
 func (c *Client) City(ctx context.Context, address string, includeISP bool) (*entity.City, error) {
-	return get[entity.City](ctx, c.client, fmt.Sprintf("city/%s?isp=%v", address, includeISP), nil)
+	return get[*entity.City](ctx, c.client, fmt.Sprintf("city/%s?isp=%v", address, includeISP), nil)
 }
 
 func (c *Client) CityLite(ctx context.Context, address, lang string) (*entity.CityLite, error) {
-	return get[entity.CityLite](ctx, c.client, "city-lite/"+address, nil)
+	return get[*entity.CityLite](ctx, c.client, "city-lite/"+address, nil)
 }
 
 func (c *Client) GeoIPDump(ctx context.Context) (*resty.Response, error) {
@@ -140,37 +144,33 @@ func (c *Client) GeoNameDump(ctx context.Context, filter entity.GeoNameFilter) (
 	return c.client.R().SetHeader(microservice.APIKey, c.APIKey()).Get("geoname/dump")
 }
 
-func (c *Client) CheckGeoIPUpdates(ctx context.Context) ([]entity.DBUpdate, error) {
-	return c.getUpdates(ctx, "update")
+func (c *Client) requestWithApiKey(ctx context.Context) *resty.Request {
+	return c.client.R().SetContext(ctx).SetHeader(microservice.APIKey, c.APIKey())
 }
 
-func (c *Client) CheckGeonamesUpdates(ctx context.Context) ([]entity.DBUpdate, error) {
-	return c.getUpdates(ctx, "geoname/update")
+func (c *Client) CheckGeoIPCityUpdates(ctx context.Context) (entity.DBUpdate, error) {
+	return getRequest[entity.DBUpdate](c.requestWithApiKey(ctx), "dump/city/update")
 }
 
-func (c *Client) getUpdates(ctx context.Context, path string) ([]entity.DBUpdate, error) {
-	resp, err := c.client.R().SetHeader(microservice.APIKey, c.APIKey()).Get(path)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode() >= 400 {
-		return nil, &RespError{StatusCode: resp.StatusCode(), Response: string(resp.Body())}
-	}
-
-	var res []entity.DBUpdate
-	err = json.Unmarshal(resp.Body(), &res)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
+func (c *Client) CheckGeoIPISPUpdates(ctx context.Context) (entity.DBUpdate, error) {
+	return getRequest[entity.DBUpdate](c.requestWithApiKey(ctx), "dump/isp/update")
 }
 
-func (c *Client) UpdateGeoIP(ctx context.Context) error {
-	_, err := c.client.R().SetHeader(microservice.APIKey, c.APIKey()).Put("update")
+func (c *Client) CheckGeonamesUpdates(ctx context.Context) (entity.DBUpdate, error) {
+	return getRequest[entity.DBUpdate](c.requestWithApiKey(ctx), "geoname/update")
+}
+
+func (c *Client) UpdateGeoIPCity(ctx context.Context) error {
+	_, err := c.requestWithApiKey(ctx).Put("update")
+	return err
+}
+
+func (c *Client) UpdateGeoIPISP(ctx context.Context) error {
+	_, err := c.requestWithApiKey(ctx).Put("dump/isp/update")
 	return err
 }
 
 func (c *Client) UpdateGeonames(ctx context.Context) error {
-	_, err := c.client.R().SetHeader(microservice.APIKey, c.APIKey()).Put("geoname/update")
+	_, err := c.requestWithApiKey(ctx).Put("geoname/update")
 	return err
 }

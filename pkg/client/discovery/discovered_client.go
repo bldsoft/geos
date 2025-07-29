@@ -89,24 +89,39 @@ func (c *discoveredClient) GeoNameCities(ctx context.Context, filter entity.GeoN
 		})
 }
 
-func (c *discoveredClient) CheckGeoIPUpdates(ctx context.Context) ([]entity.DBUpdate, error) {
+func (c *discoveredClient) CheckGeoIPCityUpdates(ctx context.Context) (entity.DBUpdate, error) {
 	return doWithClientLoader(c.clientLoader, true,
-		func(client client.Client) (res []entity.DBUpdate, err error) {
-			return client.CheckGeoIPUpdates(ctx)
+		func(client client.Client) (res entity.DBUpdate, err error) {
+			return client.CheckGeoIPCityUpdates(ctx)
 		})
 }
 
-func (c *discoveredClient) CheckGeonamesUpdates(ctx context.Context) ([]entity.DBUpdate, error) {
+func (c *discoveredClient) CheckGeoIPISPUpdates(ctx context.Context) (entity.DBUpdate, error) {
 	return doWithClientLoader(c.clientLoader, true,
-		func(client client.Client) (res []entity.DBUpdate, err error) {
+		func(client client.Client) (res entity.DBUpdate, err error) {
+			return client.CheckGeoIPISPUpdates(ctx)
+		})
+}
+
+func (c *discoveredClient) CheckGeonamesUpdates(ctx context.Context) (entity.DBUpdate, error) {
+	return doWithClientLoader(c.clientLoader, true,
+		func(client client.Client) (res entity.DBUpdate, err error) {
 			return client.CheckGeonamesUpdates(ctx)
 		})
 }
 
-func (c *discoveredClient) UpdateGeoIP(ctx context.Context) error {
+func (c *discoveredClient) UpdateGeoIPCity(ctx context.Context) error {
 	_, err := doWithClientLoader(c.clientLoader, true,
 		func(client client.Client) (any, error) {
-			return nil, client.UpdateGeoIP(ctx)
+			return nil, client.UpdateGeoIPCity(ctx)
+		})
+	return err
+}
+
+func (c *discoveredClient) UpdateGeoIPISP(ctx context.Context) error {
+	_, err := doWithClientLoader(c.clientLoader, true,
+		func(client client.Client) (any, error) {
+			return nil, client.UpdateGeoIPISP(ctx)
 		})
 	return err
 }

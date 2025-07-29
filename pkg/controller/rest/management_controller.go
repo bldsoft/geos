@@ -5,8 +5,10 @@ import (
 	"net/http"
 
 	"github.com/bldsoft/geos/pkg/controller"
+	"github.com/bldsoft/geos/pkg/service"
 	"github.com/bldsoft/geos/pkg/utils"
 	gost "github.com/bldsoft/gost/controller"
+	"github.com/go-chi/chi/v5"
 )
 
 type ManagementController struct {
@@ -20,16 +22,18 @@ func NewManagementController(geoIpService controller.GeoIpService, geoNameServic
 }
 
 func (c *ManagementController) CheckGeoIPUpdatesHandler(w http.ResponseWriter, r *http.Request) {
-	exist, err := c.geoIpService.CheckUpdates(r.Context())
+	db := chi.URLParam(r, "db")
+	update, err := c.geoIpService.CheckUpdates(r.Context(), service.DBType(db))
 	if err != nil {
 		c.ResponseError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	c.ResponseJson(w, r, exist)
+	c.ResponseJson(w, r, update)
 }
 
 func (c *ManagementController) UpdateGeoIPHandler(w http.ResponseWriter, r *http.Request) {
-	err := c.geoIpService.StartUpdate(r.Context())
+	db := chi.URLParam(r, "db")
+	err := c.geoIpService.StartUpdate(r.Context(), service.DBType(db))
 	if err != nil {
 		if errors.Is(err, utils.ErrUpdateInProgress) {
 			c.ResponseError(w, err.Error(), http.StatusConflict)
