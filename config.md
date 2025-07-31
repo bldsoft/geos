@@ -18,7 +18,7 @@
 |GEOIP_DB_PATCHES_SOURCE||Source for downloading patches for city database (in .tar.gz)|
 |GEOIP_DB_ISP_SOURCE||Source to download GeoIP2 ISP database from|
 |GEOIP_DB_ISP_PATCHES_SOURCE||Source for downloading custom ISP database patches (in .tar.gz)|
-|AUTO_UPDATE_PERIOD|0|Amount of hours to wait before trying to automatically update from the source|
+|AUTO_UPDATE_PERIOD_SEC|0|Amount of seconds to wait before trying to automatically update from the source|
 |GEOIP_DB_PATH|../../db.mmdb|Path to GeoLite2 or GeoIP2 city database|
 |GEOIP_DB_ISP_PATH||Path to GeoIP2 ISP database|
 |DISCOVERY_TYPE|none|Discovery type (none, in-house, consul)|
