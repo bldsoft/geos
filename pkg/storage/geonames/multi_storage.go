@@ -2,25 +2,24 @@ package geonames
 
 import (
 	"context"
-	"errors"
 
 	"github.com/bldsoft/geos/pkg/entity"
 )
 
-type MultiStorage[T Storage] struct {
-	storages []T
+type MultiStorage struct {
+	storages []Storage
 }
 
-func NewMultiStorage[T Storage](storages ...T) *MultiStorage[T] {
-	return &MultiStorage[T]{storages: storages}
+func NewMultiStorage(storages ...Storage) *MultiStorage {
+	return &MultiStorage{storages: storages}
 }
 
-func (s *MultiStorage[T]) Add(storages ...T) *MultiStorage[T] {
+func (s *MultiStorage) Add(storages ...Storage) *MultiStorage {
 	s.storages = append(s.storages, storages...)
 	return s
 }
 
-func (s *MultiStorage[T]) Continents(ctx context.Context) []*entity.GeoNameContinent {
+func (s *MultiStorage) Continents(ctx context.Context) []*entity.GeoNameContinent {
 	var res []*entity.GeoNameContinent
 	for _, s := range s.storages {
 		res = append(res, s.Continents(ctx)...)
@@ -28,7 +27,7 @@ func (s *MultiStorage[T]) Continents(ctx context.Context) []*entity.GeoNameConti
 	return res
 }
 
-func (s *MultiStorage[T]) Countries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error) {
+func (s *MultiStorage) Countries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error) {
 	var res []*entity.GeoNameCountry
 	for _, s := range s.storages {
 		countries, err := s.Countries(ctx, filter)
@@ -41,7 +40,7 @@ func (s *MultiStorage[T]) Countries(ctx context.Context, filter entity.GeoNameFi
 	return res, nil
 }
 
-func (s *MultiStorage[T]) Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameAdminSubdivision, error) {
+func (s *MultiStorage) Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameAdminSubdivision, error) {
 	var res []*entity.GeoNameAdminSubdivision
 	for _, s := range s.storages {
 		subdivisions, err := s.Subdivisions(ctx, filter)
@@ -54,7 +53,7 @@ func (s *MultiStorage[T]) Subdivisions(ctx context.Context, filter entity.GeoNam
 	return res, nil
 }
 
-func (s *MultiStorage[T]) Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error) {
+func (s *MultiStorage) Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error) {
 	var res []*entity.GeoName
 	for _, s := range s.storages {
 		cities, err := s.Cities(ctx, filter)
@@ -65,26 +64,4 @@ func (s *MultiStorage[T]) Cities(ctx context.Context, filter entity.GeoNameFilte
 		res = append(res, cities...)
 	}
 	return res, nil
-}
-
-func (s *MultiStorage[T]) CheckUpdates(ctx context.Context) (entity.Update, error) {
-	res := entity.Update{}
-	var multiErr error
-	for _, storage := range s.storages {
-		update, err := storage.CheckUpdates(ctx)
-		if err != nil {
-			multiErr = errors.Join(multiErr, err)
-			continue
-		}
-		res = entity.JoinUpdates(res, update)
-	}
-	return res, multiErr
-}
-
-func (s *MultiStorage[T]) Update(ctx context.Context, force bool) error {
-	var multiErr error
-	for _, storage := range s.storages {
-		multiErr = errors.Join(multiErr, storage.Update(ctx, force))
-	}
-	return multiErr
 }

@@ -9,7 +9,6 @@ import (
 	"net"
 	"path/filepath"
 
-	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/source"
 	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/maxmind/mmdbwriter"
@@ -33,7 +32,7 @@ type DatabasePatch struct {
 	db    *maxminddb.Reader
 }
 
-func NewDatabasePatchesFromTarGz(source *source.TSUpdatableFile) ([]*DatabasePatch, error) {
+func NewDatabasePatchesFromTarGz(source *source.TSUpdatableFile) ([]Database, error) {
 	ctx := context.Background()
 	r, err := source.Reader(ctx)
 	if err != nil {
@@ -46,7 +45,7 @@ func NewDatabasePatchesFromTarGz(source *source.TSUpdatableFile) ([]*DatabasePat
 		return nil, err
 	}
 
-	var customDBs []*DatabasePatch
+	var customDBs []Database
 	for fileName, content := range contents {
 		if filepath.Ext(fileName) != ".json" {
 			return nil, utils.ErrUnknownFormat
@@ -81,6 +80,26 @@ func NewDatabasePatchesFromTarGz(source *source.TSUpdatableFile) ([]*DatabasePat
 	}
 
 	return customDBs, nil
+}
+
+func NewDatabasePatchFromJSON(source *source.TSUpdatableFile) (*DatabasePatch, error) {
+	ctx := context.Background()
+	r, err := source.Reader(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	content, err := io.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+
+	jsonReader, err := NewJSONRecordReader(bytes.NewReader(content))
+	if err != nil {
+		return nil, err
+	}
+	return NewDatabasePatch(jsonReader)
 }
 
 func NewDatabasePatch(reader MMDBRecordReader) (*DatabasePatch, error) {
@@ -150,14 +169,4 @@ func (db *DatabasePatch) RawData() (io.Reader, error) {
 
 func (db *DatabasePatch) MetaData() (*maxminddb.Metadata, error) {
 	return &db.db.Metadata, nil
-}
-
-//--- these are controlled by the custom database
-
-func (db *DatabasePatch) Update(_ context.Context, _ bool) error {
-	return errors.ErrUnsupported
-}
-
-func (db *DatabasePatch) CheckUpdates(_ context.Context) (entity.Update[entity.PatchVersion], error) {
-	return entity.Update[entity.PatchVersion]{}, errors.ErrUnsupported
 }

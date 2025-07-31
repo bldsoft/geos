@@ -17,6 +17,8 @@ type MaxmindDatabase struct {
 
 	reader atomic.Pointer[maxminddb.Reader]
 	dbRaw  atomic.Pointer[[]byte]
+
+	lastUpdate entity.MMDBVersion
 }
 
 func Open(source *source.MMDBSource) (*MaxmindDatabase, error) {
@@ -24,7 +26,13 @@ func Open(source *source.MMDBSource) (*MaxmindDatabase, error) {
 	res := &MaxmindDatabase{
 		source: source,
 	}
-	if err := res.update(ctx); err != nil {
+
+	version, err := source.Version(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := res.update(ctx, version); err != nil {
 		return nil, err
 	}
 	return res, nil
@@ -47,23 +55,27 @@ func (db *MaxmindDatabase) Networks(options ...maxminddb.NetworksOption) (*maxmi
 }
 
 func (db *MaxmindDatabase) Update(ctx context.Context, force bool) error {
-	update, err := db.CheckUpdates(ctx)
+	update, err := db.source.CheckUpdates(ctx)
 	if err != nil {
 		return err
 	}
 
-	if !update.RemoteVersion.IsHigher(update.CurrentVersion) {
-		return nil
+	if update.RemoteVersion.Compare(update.CurrentVersion) > 0 {
+		if err := db.source.Update(ctx, force); err != nil {
+			return err
+		}
 	}
 
-	if err := db.source.Update(ctx, force); err != nil {
-		return err
+	if update.RemoteVersion.Compare(source.MMDBVersion(db.lastUpdate)) > 0 {
+		if err := db.update(ctx, update.RemoteVersion); err != nil {
+			return err
+		}
 	}
 
-	return db.update(ctx)
+	return nil
 }
 
-func (db *MaxmindDatabase) update(ctx context.Context) error {
+func (db *MaxmindDatabase) update(ctx context.Context, sourceVersion source.MMDBVersion) error {
 	reader, err := db.source.Reader(ctx)
 	if err != nil {
 		return err
@@ -82,9 +94,17 @@ func (db *MaxmindDatabase) update(ctx context.Context) error {
 	db.reader.Store(dbReader)
 	db.dbRaw.Store(&dbRaw)
 
+	db.lastUpdate = entity.MMDBVersion(sourceVersion)
 	return nil
 }
 
 func (db *MaxmindDatabase) CheckUpdates(ctx context.Context) (entity.Update[entity.MMDBVersion], error) {
-	return db.source.CheckUpdates(ctx)
+	update, err := db.source.CheckUpdates(ctx)
+	if err != nil {
+		return entity.Update[entity.MMDBVersion]{}, err
+	}
+	return entity.Update[entity.MMDBVersion]{
+		CurrentVersion: entity.MMDBVersion(db.lastUpdate),
+		RemoteVersion:  entity.MMDBVersion(update.RemoteVersion),
+	}, nil
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/url"
 	"path/filepath"
 	"sync"
 	"time"
@@ -57,20 +58,24 @@ func openPatchedDB[T maxmind.CSVEntity](
 		return nil
 	}
 
-	multiDB := maxmind.NewMultiMaxMindDB[maxmind.Database](originalDB).WithLogger(
+	patchedDB := maxmind.NewPatchedDatabase(originalDB).WithLogger(
 		*log.Logger.WithFields(log.Fields{"db": customPrefix}),
 	)
 
 	if conf.PatchesRemoteURL != "" {
+		patchesURL, err := url.Parse(conf.PatchesRemoteURL)
+		if err != nil {
+			log.Fatalf("Failed to parse patches remote url: %s", err)
+		}
 		patchesSource := source.NewTSUpdatableFile(
-			filepath.Join(conf.LocalPath, customPrefix+"_patches.tar.gz"),
-			conf.PatchesRemoteURL,
+			filepath.Join(filepath.Dir(conf.LocalPath), customPrefix+"_patch"+filepath.Ext(patchesURL.Path)),
+			patchesURL.String(),
 		)
-		customDB := maxmind.NewCustomDatabaseFromTarGz(patchesSource)
-		multiDB = multiDB.Add(customDB)
+		customDB := maxmind.NewCustomDatabase(patchesSource)
+		patchedDB = patchedDB.SetCustom(customDB)
 	}
 
-	return withCachedCSVDump[T](multiDB, csvDumpDir)
+	return withCachedCSVDump[T](patchedDB, filepath.Join(csvDumpDir, customPrefix+".csv"))
 }
 
 type DBConfig struct {
@@ -240,7 +245,7 @@ func (r *GeoIPRepository) StartUpdate(ctx context.Context, dbType MaxmindDBType)
 	}
 }
 
-func (r *GeoIPRepository) CheckUpdates(ctx context.Context, dbType MaxmindDBType) (entity.DBUpdate, error) {
+func (r *GeoIPRepository) CheckUpdates(ctx context.Context, dbType MaxmindDBType) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
 	result, err, _ := r.checkUpdatesSF.Do("check_updates_"+string(dbType), func() (interface{}, error) {
 		switch dbType {
 		case MaxmindDBTypeCity:
@@ -248,16 +253,16 @@ func (r *GeoIPRepository) CheckUpdates(ctx context.Context, dbType MaxmindDBType
 		case MaxmindDBTypeISP:
 			return r.checkISPUpdates(ctx)
 		default:
-			return entity.DBUpdate{}, errors.New("unknown database type")
+			return entity.DBUpdate[entity.PatchedMMDBVersion]{}, errors.New("unknown database type")
 		}
 	})
-	return result.(entity.DBUpdate), err
+	return result.(entity.DBUpdate[entity.PatchedMMDBVersion]), err
 }
 
-func (r *GeoIPRepository) checkCityUpdates(ctx context.Context) (entity.DBUpdate, error) {
+func (r *GeoIPRepository) checkCityUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
 	update, err := r.dbCity.CheckUpdates(ctx)
 	if err != nil {
-		return entity.DBUpdate{}, err
+		return entity.DBUpdate[entity.PatchedMMDBVersion]{}, err
 	}
 	return entity.NewDBUpdate(
 		update,
@@ -266,10 +271,10 @@ func (r *GeoIPRepository) checkCityUpdates(ctx context.Context) (entity.DBUpdate
 	), nil
 }
 
-func (r *GeoIPRepository) checkISPUpdates(ctx context.Context) (entity.DBUpdate, error) {
+func (r *GeoIPRepository) checkISPUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
 	update, err := r.dbISP.CheckUpdates(ctx)
 	if err != nil {
-		return entity.DBUpdate{}, err
+		return entity.DBUpdate[entity.PatchedMMDBVersion]{}, err
 	}
 	return entity.NewDBUpdate(
 		update,

@@ -76,7 +76,7 @@ func (s *GeoNamesSource) CheckUpdates(ctx context.Context) (Update[ModTimeVersio
 			if err != nil {
 				return err
 			}
-			if res.Load() == nil || update.RemoteVersion.IsHigher(res.Load().RemoteVersion) {
+			if res.Load() == nil || update.RemoteVersion.Compare(res.Load().RemoteVersion) > 0 {
 				res.Store(&update)
 			}
 			return nil

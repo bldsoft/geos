@@ -124,16 +124,16 @@ func (c *Client) Close() {
 	c.conn.Close()
 }
 
-func (c *Client) CheckGeoIPCityUpdates(ctx context.Context) (entity.DBUpdate, error) {
-	return entity.DBUpdate{}, errors.ErrUnsupported
+func (c *Client) CheckGeoIPCityUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
+	return entity.DBUpdate[entity.PatchedMMDBVersion]{}, errors.ErrUnsupported
 }
 
-func (c *Client) CheckGeoIPISPUpdates(ctx context.Context) (entity.DBUpdate, error) {
-	return entity.DBUpdate{}, errors.ErrUnsupported
+func (c *Client) CheckGeoIPISPUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
+	return entity.DBUpdate[entity.PatchedMMDBVersion]{}, errors.ErrUnsupported
 }
 
-func (c *Client) CheckGeonamesUpdates(ctx context.Context) (entity.DBUpdate, error) {
-	return entity.DBUpdate{}, errors.ErrUnsupported
+func (c *Client) CheckGeonamesUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedGeoNamesVersion], error) {
+	return entity.DBUpdate[entity.PatchedGeoNamesVersion]{}, errors.ErrUnsupported
 }
 
 func (c *Client) UpdateGeoIPCity(ctx context.Context) error {

@@ -20,7 +20,7 @@ type GeoRepository interface {
 	Database(ctx context.Context, dbType DBType, format DumpFormat) (*entity.Database, error)
 
 	StartUpdate(ctx context.Context, dbType DBType) error
-	CheckUpdates(ctx context.Context, dbType DBType) (entity.DBUpdate, error)
+	CheckUpdates(ctx context.Context, dbType DBType) (entity.DBUpdate[entity.PatchedMMDBVersion], error)
 }
 
 type GeoIpService struct {
@@ -88,7 +88,7 @@ func (r *GeoIpService) Database(ctx context.Context, dbType DBType, format DumpF
 	return r.rep.Database(ctx, dbType, format)
 }
 
-func (r *GeoIpService) CheckUpdates(ctx context.Context, dbType DBType) (entity.DBUpdate, error) {
+func (r *GeoIpService) CheckUpdates(ctx context.Context, dbType DBType) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
 	return r.rep.CheckUpdates(ctx, dbType)
 }
 

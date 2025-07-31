@@ -148,29 +148,39 @@ func (c *Client) requestWithApiKey(ctx context.Context) *resty.Request {
 	return c.client.R().SetContext(ctx).SetHeader(microservice.APIKey, c.APIKey())
 }
 
-func (c *Client) CheckGeoIPCityUpdates(ctx context.Context) (entity.DBUpdate, error) {
-	return getRequest[entity.DBUpdate](c.requestWithApiKey(ctx), "dump/city/update")
+func (c *Client) CheckGeoIPCityUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
+	return getRequest[entity.DBUpdate[entity.PatchedMMDBVersion]](c.requestWithApiKey(ctx), "dump/city/update")
 }
 
-func (c *Client) CheckGeoIPISPUpdates(ctx context.Context) (entity.DBUpdate, error) {
-	return getRequest[entity.DBUpdate](c.requestWithApiKey(ctx), "dump/isp/update")
+func (c *Client) CheckGeoIPISPUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
+	return getRequest[entity.DBUpdate[entity.PatchedMMDBVersion]](c.requestWithApiKey(ctx), "dump/isp/update")
 }
 
-func (c *Client) CheckGeonamesUpdates(ctx context.Context) (entity.DBUpdate, error) {
-	return getRequest[entity.DBUpdate](c.requestWithApiKey(ctx), "geoname/update")
+func (c *Client) CheckGeonamesUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedGeoNamesVersion], error) {
+	return getRequest[entity.DBUpdate[entity.PatchedGeoNamesVersion]](c.requestWithApiKey(ctx), "geoname/update")
 }
 
 func (c *Client) UpdateGeoIPCity(ctx context.Context) error {
-	_, err := c.requestWithApiKey(ctx).Put("update")
-	return err
+	return c.update(ctx, "dump/city/update")
 }
 
 func (c *Client) UpdateGeoIPISP(ctx context.Context) error {
-	_, err := c.requestWithApiKey(ctx).Put("dump/isp/update")
-	return err
+	return c.update(ctx, "dump/isp/update")
 }
 
 func (c *Client) UpdateGeonames(ctx context.Context) error {
-	_, err := c.requestWithApiKey(ctx).Put("geoname/update")
-	return err
+	return c.update(ctx, "geoname/update")
+}
+
+func (c *Client) update(ctx context.Context, path string) error {
+	resp, err := c.requestWithApiKey(ctx).Put(path)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode() >= 400 && resp.StatusCode() != http.StatusConflict {
+		return &RespError{StatusCode: resp.StatusCode(), Response: string(resp.Body())}
+	}
+
+	return nil
 }

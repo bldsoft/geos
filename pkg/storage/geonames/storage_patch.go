@@ -3,8 +3,8 @@ package geonames
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"io"
 	"path/filepath"
 
 	"github.com/bldsoft/geos/pkg/entity"
@@ -90,10 +90,10 @@ type StoragePatch struct {
 	cities       []*entity.GeoName
 }
 
-func NewStoragePatchesFromTarGz(source *source.TSUpdatableFile) ([]*StoragePatch, error) {
+func NewStoragePatchesFromTarGz(source *source.TSUpdatableFile) ([]Storage, error) {
 	ctx := context.Background()
 
-	var customStorages []*StoragePatch
+	var customStorages []Storage
 	r, err := source.Reader(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open custom geonames storage archive: %w", err)
@@ -111,16 +111,40 @@ func NewStoragePatchesFromTarGz(source *source.TSUpdatableFile) ([]*StoragePatch
 			continue
 		}
 
-		var records []CustomGeonamesRecord
-		if err := json.Unmarshal(data, &records); err != nil {
+		patch, err := newStoragePatchFromJSON(data)
+		if err != nil {
 			log.ErrorWithFields(log.Fields{"err": err, "name": filename}, "failed to unmarshal custom geonames record")
 			continue
 		}
-
-		customStorages = append(customStorages, NewStoragePatch(records))
+		customStorages = append(customStorages, patch)
 	}
 
 	return customStorages, nil
+}
+
+func NewStoragePatchFromJSON(source *source.TSUpdatableFile) (*StoragePatch, error) {
+	ctx := context.Background()
+
+	r, err := source.Reader(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open custom geonames storage archive: %w", err)
+	}
+	defer r.Close()
+
+	content, err := io.ReadAll(r)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read custom geonames storage archive: %w", err)
+	}
+
+	return newStoragePatchFromJSON(content)
+}
+
+func newStoragePatchFromJSON(data []byte) (*StoragePatch, error) {
+	var records []CustomGeonamesRecord
+	if err := json.Unmarshal(data, &records); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal custom geonames record: %w", err)
+	}
+	return NewStoragePatch(records), nil
 }
 
 func NewStoragePatch(records []CustomGeonamesRecord) *StoragePatch {
@@ -158,12 +182,4 @@ func (s *StoragePatch) Subdivisions(_ context.Context, filter entity.GeoNameFilt
 
 func (s *StoragePatch) Cities(_ context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error) {
 	return customFilter(s.cities, filter), nil
-}
-
-func (s *StoragePatch) CheckUpdates(ctx context.Context) (entity.Update, error) {
-	return entity.Update{}, errors.ErrUnsupported
-}
-
-func (s *StoragePatch) Update(_ context.Context, _ bool) error {
-	return errors.ErrUnsupported
 }

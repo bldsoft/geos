@@ -5,12 +5,10 @@ import (
 	"io"
 	"net"
 
-	"github.com/bldsoft/geos/pkg/entity"
-	"github.com/bldsoft/geos/pkg/storage/source"
 	"github.com/oschwald/maxminddb-golang"
 )
 
-type Database[V entity.Version[V]] interface {
+type Database interface {
 	Lookup(ip net.IP, result interface{}) error
 	// LookupNetwork(ip net.IP, result interface{}) (network *net.IPNet, ok bool, err error)
 	// LookupOffset(ip net.IP) (uintptr, error)
@@ -21,12 +19,10 @@ type Database[V entity.Version[V]] interface {
 
 	RawData() (io.Reader, error) // mmdb
 	MetaData() (*maxminddb.Metadata, error)
-
-	source.Updater[V]
 }
 
-type CSVDumper[V entity.Version[V]] interface {
-	Database[V]
+type CSVDumper interface {
+	Database
 	WriteCSVTo(ctx context.Context, w io.Writer) error
 	CSV(ctx context.Context, gzipCompress bool) (io.Reader, error)
 }

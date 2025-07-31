@@ -1,11 +1,10 @@
 package source
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"io"
-	"strconv"
-	"strings"
 
 	"github.com/bldsoft/geos/pkg/storage/maxmind/mmdb"
 	"github.com/hashicorp/go-version"
@@ -14,39 +13,21 @@ import (
 const metadataChunkSize = 128 * 1024
 
 type MMDBVersion struct {
-	version    *version.Version
-	buildEpoch uint
+	Version    *version.Version
+	BuildEpoch uint
 }
 
-func ParseMMDBVersion(s string) (MMDBVersion, error) {
-	parts := strings.Split(s, "-")
-	if len(parts) != 2 {
-		return MMDBVersion{}, fmt.Errorf("invalid version format: %s", s)
+func (s MMDBVersion) Compare(other MMDBVersion) int {
+	if s.Version == nil {
+		return -1
 	}
-
-	version, err := version.NewVersion(parts[0])
-	if err != nil {
-		return MMDBVersion{}, err
+	if other.Version == nil {
+		return 1
 	}
-
-	buildEpoch, err := strconv.ParseUint(parts[1], 10, 64)
-	if err != nil {
-		return MMDBVersion{}, err
-	}
-
-	return MMDBVersion{version: version, buildEpoch: uint(buildEpoch)}, nil
-}
-
-func (s MMDBVersion) IsHigher(other MMDBVersion) bool {
-	if s.version.GreaterThan(other.version) {
-		return true
-	}
-
-	return s.buildEpoch > other.buildEpoch
-}
-
-func (s MMDBVersion) String() string {
-	return fmt.Sprintf("%s-%d", s.version.String(), s.buildEpoch)
+	return cmp.Or(
+		s.Version.Compare(other.Version),
+		cmp.Compare(s.BuildEpoch, other.BuildEpoch),
+	)
 }
 
 type MMDBSource struct {
@@ -67,6 +48,10 @@ func NewMMDBSource(sourceUrl, dbPath string) *MMDBSource {
 
 func (s *MMDBSource) Reader(ctx context.Context) (io.ReadCloser, error) {
 	return s.dbFile.Reader(ctx)
+}
+
+func (s *MMDBSource) Version(ctx context.Context) (MMDBVersion, error) {
+	return s.dbFile.Version(ctx)
 }
 
 func (s *MMDBSource) Update(ctx context.Context, force bool) error {
@@ -104,7 +89,7 @@ func extractMMDBState(metadataBuf []byte) (MMDBVersion, error) {
 	}
 
 	return MMDBVersion{
-		version:    v,
-		buildEpoch: meta.BuildEpoch,
+		Version:    v,
+		BuildEpoch: meta.BuildEpoch,
 	}, nil
 }

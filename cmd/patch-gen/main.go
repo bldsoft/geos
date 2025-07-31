@@ -161,10 +161,10 @@ func main() {
 func geonamesStorage(ctx context.Context, customFilePath string) geonames.Storage {
 	origStorage := source.NewGeoNamesSource("/tmp/")
 	originalStorage := geonames.NewStorage(origStorage, true)
-	geonameStorage := geonames.NewMultiStorage[geonames.Storage](originalStorage)
+	geonameStorage := geonames.NewPatchedStorage(originalStorage)
 
 	customSource := source.NewTSUpdatableFile(customFilePath, "")
-	customStorage := geonames.NewCustomStorageFromTarGz(customSource)
+	customStorage := geonames.NewCustomStorage(customSource)
 	return geonameStorage.Add(customStorage)
 }
 

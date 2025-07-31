@@ -2,8 +2,6 @@ package source
 
 import (
 	"context"
-	"fmt"
-	"strconv"
 	"time"
 )
 
@@ -25,25 +23,10 @@ func NewTSUpdatableFile(path, url string) *TSUpdatableFile {
 
 type ModTimeVersion time.Time
 
-func ParseModTimeVersion(s string) (ModTimeVersion, error) {
-	unix, err := strconv.ParseInt(s, 10, 64)
-	if err != nil {
-		return ModTimeVersion{}, err
-	}
-	return ModTimeVersion(time.Unix(unix, 0)), nil
-}
-
-func (v ModTimeVersion) IsHigher(other ModTimeVersion) bool {
-	return time.Time(v).After(time.Time(other))
+func (v ModTimeVersion) Compare(other ModTimeVersion) int {
+	return time.Time(v).Compare(time.Time(other))
 }
 
 func (v ModTimeVersion) Time() time.Time {
 	return time.Time(v)
-}
-
-func (v ModTimeVersion) String() string {
-	if v.Time().IsZero() {
-		return "0"
-	}
-	return fmt.Sprintf("%d", v.Time().Unix())
 }

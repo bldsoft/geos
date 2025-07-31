@@ -14,7 +14,7 @@ var ErrFileExists = errors.New("file exists")
 var ErrFileNotExists = errors.New("file not exists")
 var ErrRemoteURLNotSet = errors.New("remote URL is not set")
 
-type UpdatableFile[V Version[V]] struct {
+type UpdatableFile[V Comparable[V]] struct {
 	LocalPath string
 	RemoteURL string
 
@@ -24,7 +24,7 @@ type UpdatableFile[V Version[V]] struct {
 	VersionFunc func(ctx context.Context, path string, rep ReadFileRepository) (V, error)
 }
 
-func NewUpdatableFile[V Version[V]](
+func NewUpdatableFile[V Comparable[V]](
 	path,
 	url string,
 	versionFunc func(ctx context.Context, path string, rep ReadFileRepository) (V, error),
@@ -140,7 +140,7 @@ func (u *UpdatableFile[V]) needUpdate(ctx context.Context) (bool, error) {
 		return false, err
 	}
 
-	return remoteVersion.IsHigher(localVersion), nil
+	return remoteVersion.Compare(localVersion) > 0, nil
 }
 
 func (u *UpdatableFile[V]) tmpFilePath() string {

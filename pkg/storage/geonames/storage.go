@@ -205,7 +205,7 @@ func (r *GeoNameStorage) State() *state.GeosState {
 	}
 }
 
-func (s *GeoNameStorage) CheckUpdates(ctx context.Context) (entity.Update, error) {
+func (s *GeoNameStorage) CheckUpdates(ctx context.Context) (entity.Update[source.ModTimeVersion], error) {
 	return s.source.CheckUpdates(ctx)
 }
 
@@ -214,7 +214,7 @@ func (s *GeoNameStorage) Update(ctx context.Context, force bool) error {
 	if err != nil {
 		return err
 	}
-	if update.RemoteVersion == "" {
+	if update.RemoteVersion.Compare(update.CurrentVersion) <= 0 {
 		return nil
 	}
 

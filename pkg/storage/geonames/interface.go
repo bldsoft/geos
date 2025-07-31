@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/bldsoft/geos/pkg/entity"
-	"github.com/bldsoft/geos/pkg/storage/source"
 )
 
 type Storage interface {
@@ -12,6 +11,4 @@ type Storage interface {
 	Countries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error)
 	Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameAdminSubdivision, error)
 	Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error)
-
-	source.Updater
 }

@@ -14,7 +14,7 @@ type GeoNameRepository interface {
 	Dump(ctx context.Context, format DumpFormat) ([]byte, error)
 
 	StartUpdate(ctx context.Context) error
-	CheckUpdates(ctx context.Context) (entity.DBUpdate[entity.GeoNamesVersion], error)
+	CheckUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedGeoNamesVersion], error)
 }
 
 type GeoNameService struct {
@@ -25,7 +25,7 @@ func NewGeoNameService(rep GeoNameRepository) *GeoNameService {
 	return &GeoNameService{rep}
 }
 
-func (s *GeoNameService) CheckUpdates(ctx context.Context) (entity.FullMMDBVersion, error) {
+func (s *GeoNameService) CheckUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedGeoNamesVersion], error) {
 	return s.GeoNameRepository.CheckUpdates(ctx)
 }
 

@@ -2,22 +2,20 @@ package source
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"time"
 )
 
-type Update[T Version[T]] struct {
-	CurrentVersion T
-	RemoteVersion  T
+type Comparable[T any] interface {
+	Compare(other T) int
 }
 
-type Version[T any] interface {
-	IsHigher(other T) bool
-	fmt.Stringer
+type Update[V Comparable[V]] struct {
+	CurrentVersion V
+	RemoteVersion  V
 }
 
-type Updater[V Version[V]] interface {
+type Updater[V Comparable[V]] interface {
 	Update(ctx context.Context, force bool) error
 	CheckUpdates(ctx context.Context) (Update[V], error)
 }
