@@ -6,7 +6,6 @@ import (
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/source"
-	"github.com/bldsoft/geos/pkg/storage/state"
 	"github.com/bldsoft/gost/utils/errgroup"
 	"github.com/mkrou/geonames"
 	"github.com/mkrou/geonames/models"
@@ -186,23 +185,6 @@ func (r *GeoNameStorage) Cities(ctx context.Context, filter entity.GeoNameFilter
 		return nil, ErrGeoNameNotReady
 	}
 	return cities.GetEntities(ctx, filter)
-}
-
-func (r *GeoNameStorage) State() *state.GeosState {
-	var timestampsSum int64
-	for _, file := range []*source.TSUpdatableFile{
-		r.source.CountriesFile,
-		r.source.AdminDivisionsFile,
-		r.source.Cities500File,
-	} {
-		if version, err := file.Version(context.Background()); err == nil {
-			timestampsSum += version.Time().Unix()
-		}
-	}
-
-	return &state.GeosState{
-		GeonamesTimestamps: timestampsSum,
-	}
 }
 
 func (s *GeoNameStorage) CheckUpdates(ctx context.Context) (entity.Update[source.ModTimeVersion], error) {

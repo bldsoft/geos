@@ -15,6 +15,7 @@ import (
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/maxmind"
 	"github.com/bldsoft/geos/pkg/storage/source"
+	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
 )
 
@@ -153,8 +154,7 @@ func (db *maxmindDBWithCachedCSVDump) updateDump(ctx context.Context, force bool
 	tmpFile, err := db.fileRepository.CreateIfNotExists(ctx, temp)
 	if err != nil {
 		if errors.Is(err, source.ErrFileExists) {
-			// already updating
-			return nil
+			return utils.ErrUpdateInProgress
 		}
 		return fmt.Errorf("failed to create temporary file: %w", err)
 	}

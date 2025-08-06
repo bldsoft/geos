@@ -8,7 +8,6 @@ import (
 	"net"
 	"net/url"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/bldsoft/geos/pkg/entity"
@@ -26,8 +25,6 @@ var (
 
 	ErrCSVNotSupported = fmt.Errorf("%w: csv format", errors.ErrUnsupported)
 	ErrDBNotAvailable  = fmt.Errorf("db %w", utils.ErrNotAvailable)
-
-	csvDumpOnce = sync.Once{}
 )
 
 type DumpFormat string
@@ -48,7 +45,7 @@ const (
 func openPatchedDB[T maxmind.CSVEntity](
 	conf DBConfig, customPrefix, csvDumpDir string, required bool,
 ) *maxmindDBWithCachedCSVDump {
-	dbSource := source.NewMMDBSource(conf.RemoteURL, conf.LocalPath)
+	dbSource := source.NewMMDBSource(conf.LocalPath, conf.RemoteURL)
 	originalDB, err := maxmind.Open(dbSource)
 	if err != nil {
 		if required {
@@ -65,7 +62,11 @@ func openPatchedDB[T maxmind.CSVEntity](
 	if conf.PatchesRemoteURL != "" {
 		patchesURL, err := url.Parse(conf.PatchesRemoteURL)
 		if err != nil {
-			log.Fatalf("Failed to parse patches remote url: %s", err)
+			if required {
+				log.Fatalf("Failed to parse patches remote url: %s", err)
+			}
+			log.Warnf("Failed to parse patches remote url: %s", err)
+			return nil
 		}
 		patchesSource := source.NewTSUpdatableFile(
 			filepath.Join(filepath.Dir(conf.LocalPath), customPrefix+"_patch"+filepath.Ext(patchesURL.Path)),

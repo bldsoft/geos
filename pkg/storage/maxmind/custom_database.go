@@ -29,6 +29,7 @@ func NewCustomDatabase(source *source.TSUpdatableFile) *CustomDatabase {
 	version, err := source.Version(context.Background())
 	if err != nil {
 		logger.Errorf("failed to get local version: %v", err)
+		return res
 	}
 
 	if err := res.update(context.Background(), version); err != nil {

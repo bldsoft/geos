@@ -34,7 +34,7 @@ type MMDBSource struct {
 	dbFile *UpdatableFile[MMDBVersion]
 }
 
-func NewMMDBSource(sourceUrl, dbPath string) *MMDBSource {
+func NewMMDBSource(dbPath, sourceUrl string) *MMDBSource {
 	res := &MMDBSource{
 		dbFile: NewUpdatableFile(
 			dbPath,
