@@ -148,7 +148,7 @@ func (db *DatabasePatch) Available() bool {
 	return true
 }
 
-func (db *DatabasePatch) Lookup(ip net.IP, result interface{}) error {
+func (db *DatabasePatch) Lookup(ctx context.Context, ip net.IP, result interface{}) error {
 	_, ok, err := db.db.LookupNetwork(ip, result)
 	if err != nil {
 		return err
@@ -159,14 +159,14 @@ func (db *DatabasePatch) Lookup(ip net.IP, result interface{}) error {
 	return nil
 }
 
-func (db *DatabasePatch) Networks(options ...maxminddb.NetworksOption) (*maxminddb.Networks, error) {
+func (db *DatabasePatch) Networks(ctx context.Context, options ...maxminddb.NetworksOption) (*maxminddb.Networks, error) {
 	return db.db.Networks(options...), nil
 }
 
-func (db *DatabasePatch) RawData() (io.Reader, error) {
+func (db *DatabasePatch) RawData(ctx context.Context) (io.Reader, error) {
 	return bytes.NewReader(db.dbRaw), nil
 }
 
-func (db *DatabasePatch) MetaData() (*maxminddb.Metadata, error) {
+func (db *DatabasePatch) MetaData(ctx context.Context) (*maxminddb.Metadata, error) {
 	return &db.db.Metadata, nil
 }

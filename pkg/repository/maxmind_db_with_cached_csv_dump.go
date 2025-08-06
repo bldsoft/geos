@@ -27,43 +27,38 @@ type maxmindDBWithCachedCSVDump struct {
 	fileRepository           source.FileRepository
 }
 
-func withCachedCSVDump[T maxmind.CSVEntity](db *maxmind.PatchedDatabase, csvDumpPath string) *maxmindDBWithCachedCSVDump {
+func withCachedCSVDump[T maxmind.CSVEntity](
+	ctx context.Context,
+	db *maxmind.PatchedDatabase,
+	csvDumpPath string,
+) *maxmindDBWithCachedCSVDump {
 	res := &maxmindDBWithCachedCSVDump{
 		PatchedDatabase: db,
 		csvDumper:       maxmind.NewCSVDumper[T](db),
 		csvDumpPath:     csvDumpPath + ".gz",
 		fileRepository:  source.NewLocalFileRepository(),
 	}
-	res.initCSVDump(context.Background())
+	res.initCSVDump(ctx)
 	return res
 }
 
 func (db *maxmindDBWithCachedCSVDump) initCSVDump(ctx context.Context) {
-	logger := log.FromContext(ctx)
-	meta, err := db.MetaData()
-	if err != nil {
-		logger.ErrorWithFields(log.Fields{"err": err}, "Failed to get db metadata")
-	} else {
-		logger = logger.WithFields(log.Fields{"db type": meta.DatabaseType})
-		ctx = context.WithValue(ctx, log.LoggerCtxKey, logger)
-	}
-
 	r, err := db.fileRepository.Reader(ctx, db.csvDumpPath)
 	if err == nil {
 		defer r.Close()
 		data, err := io.ReadAll(r)
 		if err != nil {
-			logger.InfoWithFields(log.Fields{"err": err}, "Failed to read GeoIP dump")
+			log.FromContext(ctx).InfoWithFields(log.Fields{"err": err}, "Failed to read GeoIP dump")
 			return
 		}
 		db.archivedCSVWithNamesDump.Store(&data)
 		return
 	}
 
-	logger.InfoWithFields(log.Fields{"err": err}, "Failed to open GeoIP dump")
+	log.FromContext(ctx).InfoWithFields(log.Fields{"err": err}, "Failed to open GeoIP dump")
 	go func() {
 		if err := db.updateDump(ctx, true); err != nil {
-			logger.InfoWithFields(log.Fields{"err": err}, "Failed to update GeoIP dump")
+			log.FromContext(ctx).InfoWithFields(log.Fields{"err": err}, "Failed to update GeoIP dump")
 		}
 	}()
 }

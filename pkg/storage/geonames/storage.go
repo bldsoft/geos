@@ -43,26 +43,26 @@ type GeoNameStorage struct {
 	cities       atomic.Pointer[geonameEntityStorage[*entity.GeoName]]
 }
 
-func NewStorage(source *source.GeoNamesSource, syncInit ...bool) *GeoNameStorage {
+func NewStorage(ctx context.Context, source *source.GeoNamesSource, syncInit ...bool) *GeoNameStorage {
 	s := &GeoNameStorage{
 		source: source,
 	}
 
 	if len(syncInit) > 0 && syncInit[0] {
-		s.fill()
+		s.fill(ctx)
 	} else {
-		go s.fill()
+		go s.fill(ctx)
 	}
 
 	return s
 }
 
-func (s *GeoNameStorage) fill() {
+func (s *GeoNameStorage) fill(ctx context.Context) {
 	var eg errgroup.Group
 
 	var countries *geonameEntityStorage[*entity.GeoNameCountry]
 	eg.Go(func() error {
-		countries = newGeonameEntityStorage(s.source.CountriesFile, func(parser geonames.Parser) ([]*entity.GeoNameCountry, error) {
+		countries = newGeonameEntityStorage(ctx, s.source.CountriesFile, func(parser geonames.Parser) ([]*entity.GeoNameCountry, error) {
 			var countries []*entity.GeoNameCountry
 			err := parser.GetCountries(func(c *models.Country) error {
 				countries = append(countries, &entity.GeoNameCountry{Country: c})
@@ -75,7 +75,7 @@ func (s *GeoNameStorage) fill() {
 
 	var subdivisions *geonameEntityStorage[*entity.GeoNameAdminSubdivision]
 	eg.Go(func() error {
-		subdivisions = newGeonameEntityStorage(s.source.AdminDivisionsFile, func(parser geonames.Parser) ([]*entity.GeoNameAdminSubdivision, error) {
+		subdivisions = newGeonameEntityStorage(ctx, s.source.AdminDivisionsFile, func(parser geonames.Parser) ([]*entity.GeoNameAdminSubdivision, error) {
 			var subdivisions []*entity.GeoNameAdminSubdivision
 			err := parser.GetAdminDivisions(func(division *models.AdminDivision) error {
 				subdivisions = append(subdivisions, &entity.GeoNameAdminSubdivision{AdminDivision: division})
@@ -88,7 +88,7 @@ func (s *GeoNameStorage) fill() {
 
 	var cities *geonameEntityStorage[*entity.GeoName]
 	eg.Go(func() error {
-		cities = newGeonameEntityStorage(s.source.Cities500File, func(parser geonames.Parser) ([]*entity.GeoName, error) {
+		cities = newGeonameEntityStorage(ctx, s.source.Cities500File, func(parser geonames.Parser) ([]*entity.GeoName, error) {
 			var cities []*entity.GeoName
 			err := parser.GetGeonames(geonames.Cities500, func(c *models.Geoname) error {
 				cities = append(cities, &entity.GeoName{Geoname: c})
@@ -204,6 +204,6 @@ func (s *GeoNameStorage) Update(ctx context.Context, force bool) error {
 		return err
 	}
 
-	s.fill()
+	s.fill(ctx)
 	return nil
 }

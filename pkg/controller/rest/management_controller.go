@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/bldsoft/geos/pkg/service"
 	"github.com/bldsoft/geos/pkg/utils"
 	gost "github.com/bldsoft/gost/controller"
+	"github.com/bldsoft/gost/log"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -23,7 +25,8 @@ func NewManagementController(geoIpService controller.GeoIpService, geoNameServic
 
 func (c *ManagementController) CheckGeoIPUpdatesHandler(w http.ResponseWriter, r *http.Request) {
 	db := chi.URLParam(r, "db")
-	update, err := c.geoIpService.CheckUpdates(r.Context(), service.DBType(db))
+	ctx := context.WithValue(r.Context(), log.LoggerCtxKey, log.FromContext(r.Context()).WithFields(log.Fields{"db": db}))
+	update, err := c.geoIpService.CheckUpdates(ctx, service.DBType(db))
 	if err != nil {
 		c.ResponseError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -33,7 +36,8 @@ func (c *ManagementController) CheckGeoIPUpdatesHandler(w http.ResponseWriter, r
 
 func (c *ManagementController) UpdateGeoIPHandler(w http.ResponseWriter, r *http.Request) {
 	db := chi.URLParam(r, "db")
-	err := c.geoIpService.StartUpdate(r.Context(), service.DBType(db))
+	ctx := context.WithValue(r.Context(), log.LoggerCtxKey, log.FromContext(r.Context()).WithFields(log.Fields{"db": db}))
+	err := c.geoIpService.StartUpdate(ctx, service.DBType(db))
 	if err != nil {
 		if errors.Is(err, utils.ErrUpdateInProgress) {
 			c.ResponseError(w, err.Error(), http.StatusConflict)
@@ -46,7 +50,8 @@ func (c *ManagementController) UpdateGeoIPHandler(w http.ResponseWriter, r *http
 }
 
 func (c *ManagementController) CheckGeonamesUpdatesHandler(w http.ResponseWriter, r *http.Request) {
-	updates, err := c.geoNameService.CheckUpdates(r.Context())
+	ctx := context.WithValue(r.Context(), log.LoggerCtxKey, log.FromContext(r.Context()).WithFields(log.Fields{"db": "geonames"}))
+	updates, err := c.geoNameService.CheckUpdates(ctx)
 	if err != nil {
 		c.ResponseError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -55,7 +60,8 @@ func (c *ManagementController) CheckGeonamesUpdatesHandler(w http.ResponseWriter
 }
 
 func (c *ManagementController) UpdateGeonamesHandler(w http.ResponseWriter, r *http.Request) {
-	err := c.geoNameService.StartUpdate(r.Context())
+	ctx := context.WithValue(r.Context(), log.LoggerCtxKey, log.FromContext(r.Context()).WithFields(log.Fields{"db": "geonames"}))
+	err := c.geoNameService.StartUpdate(ctx)
 	if err != nil {
 		if errors.Is(err, utils.ErrUpdateInProgress) {
 			c.ResponseError(w, err.Error(), http.StatusConflict)

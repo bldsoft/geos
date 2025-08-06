@@ -11,7 +11,7 @@ import (
 )
 
 func BenchmarkGeonamesCity(b *testing.B) {
-	storage := geonames.NewStorage(source.NewGeoNamesSource(b.TempDir()), true)
+	storage := geonames.NewStorage(context.Background(), source.NewGeoNamesSource(b.TempDir()), true)
 	tests := []struct {
 		Name   string
 		Filter entity.GeoNameFilter

@@ -21,8 +21,7 @@ type MaxmindDatabase struct {
 	lastUpdate entity.MMDBVersion
 }
 
-func Open(source *source.MMDBSource) (*MaxmindDatabase, error) {
-	ctx := context.Background()
+func Open(ctx context.Context, source *source.MMDBSource) (*MaxmindDatabase, error) {
 	res := &MaxmindDatabase{
 		source: source,
 	}
@@ -38,19 +37,19 @@ func Open(source *source.MMDBSource) (*MaxmindDatabase, error) {
 	return res, nil
 }
 
-func (db *MaxmindDatabase) Lookup(ip net.IP, result interface{}) error {
+func (db *MaxmindDatabase) Lookup(ctx context.Context, ip net.IP, result interface{}) error {
 	return db.reader.Load().Lookup(ip, result)
 }
 
-func (db *MaxmindDatabase) RawData() (io.Reader, error) {
+func (db *MaxmindDatabase) RawData(ctx context.Context) (io.Reader, error) {
 	return bytes.NewBuffer(*db.dbRaw.Load()), nil
 }
 
-func (db *MaxmindDatabase) MetaData() (*maxminddb.Metadata, error) {
+func (db *MaxmindDatabase) MetaData(ctx context.Context) (*maxminddb.Metadata, error) {
 	return &db.reader.Load().Metadata, nil
 }
 
-func (db *MaxmindDatabase) Networks(options ...maxminddb.NetworksOption) (*maxminddb.Networks, error) {
+func (db *MaxmindDatabase) Networks(ctx context.Context, options ...maxminddb.NetworksOption) (*maxminddb.Networks, error) {
 	return db.reader.Load().Networks(), nil
 }
 

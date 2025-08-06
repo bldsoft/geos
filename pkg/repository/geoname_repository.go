@@ -34,20 +34,23 @@ type GeoNameRepository struct {
 }
 
 func NewGeoNamesRepository(config StorageConfig) *GeoNameRepository {
+	logger := log.Logger.WithFields(log.Fields{"db": "geonames"})
+	ctx := context.WithValue(context.Background(), log.LoggerCtxKey, logger)
+
 	origSource := source.NewGeoNamesSource(config.LocalDir)
-	original := geonames.NewStorage(origSource)
+	original := geonames.NewStorage(ctx, origSource)
 	storage := geonames.NewPatchedStorage(original)
 
 	if config.PatchesRemoteURL != "" {
 		patchesURL, err := url.Parse(config.PatchesRemoteURL)
 		if err != nil {
-			log.Fatalf("Failed to parse patches remote url: %s", err)
+			log.FromContext(ctx).Fatalf("Failed to parse patches remote url: %s", err)
 		}
 		patchSource := source.NewTSUpdatableFile(
 			filepath.Join(filepath.Dir(config.LocalDir), GeonamesDBType+"_patch"+filepath.Ext(patchesURL.Path)),
 			config.PatchesRemoteURL,
 		)
-		custom := geonames.NewCustomStorage(patchSource)
+		custom := geonames.NewCustomStorage(ctx, patchSource)
 		storage = storage.Add(custom)
 	}
 

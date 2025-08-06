@@ -31,16 +31,16 @@ type geonameEntityStorage[T entity.GeoNameEntity] struct {
 	fillCollectionCallback func(parser geonames.Parser) ([]T, error)
 }
 
-func newGeonameEntityStorage[T entity.GeoNameEntity](file *source.TSUpdatableFile, fillCollectionCallback func(parser geonames.Parser) ([]T, error)) *geonameEntityStorage[T] {
+func newGeonameEntityStorage[T entity.GeoNameEntity](ctx context.Context, file *source.TSUpdatableFile, fillCollectionCallback func(parser geonames.Parser) ([]T, error)) *geonameEntityStorage[T] {
 	s := &geonameEntityStorage[T]{
 		index:                  &index[T]{},
 		fillCollectionCallback: fillCollectionCallback,
 	}
-	s.init(file)
+	s.init(ctx, file)
 	return s
 }
 
-func (s *geonameEntityStorage[T]) init(file *source.TSUpdatableFile) {
+func (s *geonameEntityStorage[T]) init(ctx context.Context, file *source.TSUpdatableFile) {
 	parser := geonames.Parser(func(filename string) (io.ReadCloser, error) {
 		return file.Reader(context.Background())
 	})
@@ -54,7 +54,7 @@ func (s *geonameEntityStorage[T]) init(file *source.TSUpdatableFile) {
 			s.index.Init(s.collection)
 			break
 		}
-		log.Logger.ErrorWithFields(log.Fields{"err": err}, "Failed to load GeoNames dump")
+		log.FromContext(ctx).ErrorWithFields(log.Fields{"err": err}, "Failed to load GeoNames dump")
 	}
 }
 

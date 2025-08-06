@@ -16,22 +16,22 @@ type CustomStorage struct {
 	lastUpdate source.ModTimeVersion
 }
 
-func NewCustomStorage(source *source.TSUpdatableFile) *CustomStorage {
-	logger := log.Logger.WithFields(log.Fields{"source": source.LocalPath, "db": "custom geonames"})
+func NewCustomStorage(ctx context.Context, source *source.TSUpdatableFile) *CustomStorage {
+	ctx = context.WithValue(ctx, log.LoggerCtxKey, log.FromContext(ctx).WithFields(log.Fields{"type": "patch"}))
 
 	res := &CustomStorage{
 		source: source,
 	}
 	res.base.Store(NewMultiStorage())
 
-	version, err := source.Version(context.Background())
+	version, err := source.Version(ctx)
 	if err != nil {
-		logger.Errorf("failed to get local version: %v", err)
+		log.FromContext(ctx).Errorf("failed to get local version: %v", err)
 		return res
 	}
 
-	if err := res.update(context.Background(), version); err != nil {
-		logger.Errorf("failed to get patches: %v", err)
+	if err := res.update(ctx, version); err != nil {
+		log.FromContext(ctx).Errorf("failed to get patches: %v", err)
 	}
 	return res
 }

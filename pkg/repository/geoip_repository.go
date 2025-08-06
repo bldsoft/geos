@@ -45,38 +45,39 @@ const (
 func openPatchedDB[T maxmind.CSVEntity](
 	conf DBConfig, customPrefix, csvDumpDir string, required bool,
 ) *maxmindDBWithCachedCSVDump {
+	logger := log.Logger.WithFields(log.Fields{"db": customPrefix})
+	ctx := context.WithValue(context.Background(), log.LoggerCtxKey, logger)
+
 	dbSource := source.NewMMDBSource(conf.LocalPath, conf.RemoteURL)
-	originalDB, err := maxmind.Open(dbSource)
+	originalDB, err := maxmind.Open(ctx, dbSource)
 	if err != nil {
 		if required {
-			log.Fatalf("Failed to read %s db: %s", customPrefix, err)
+			logger.Fatalf("Failed to read db: %s", err)
 		}
-		log.Warnf("Failed to read %s db: %s", customPrefix, err)
+		logger.Warnf("Failed to read db: %s", err)
 		return nil
 	}
 
-	patchedDB := maxmind.NewPatchedDatabase(originalDB).WithLogger(
-		*log.Logger.WithFields(log.Fields{"db": customPrefix}),
-	)
+	patchedDB := maxmind.NewPatchedDatabase(originalDB)
 
 	if conf.PatchesRemoteURL != "" {
 		patchesURL, err := url.Parse(conf.PatchesRemoteURL)
 		if err != nil {
 			if required {
-				log.Fatalf("Failed to parse patches remote url: %s", err)
+				logger.Fatalf("Failed to parse patches remote url: %s", err)
 			}
-			log.Warnf("Failed to parse patches remote url: %s", err)
+			logger.Warnf("Failed to parse patches remote url: %s", err)
 			return nil
 		}
 		patchesSource := source.NewTSUpdatableFile(
 			filepath.Join(filepath.Dir(conf.LocalPath), customPrefix+"_patch"+filepath.Ext(patchesURL.Path)),
 			patchesURL.String(),
 		)
-		customDB := maxmind.NewCustomDatabase(patchesSource)
+		customDB := maxmind.NewCustomDatabase(ctx, patchesSource)
 		patchedDB = patchedDB.SetCustom(customDB)
 	}
 
-	return withCachedCSVDump[T](patchedDB, filepath.Join(csvDumpDir, customPrefix+".csv"))
+	return withCachedCSVDump[T](ctx, patchedDB, filepath.Join(csvDumpDir, customPrefix+".csv"))
 }
 
 type DBConfig struct {
@@ -126,23 +127,23 @@ func NewGeoIPRepository(cfg GeoIPRepositoryConfig) *GeoIPRepository {
 	return res
 }
 
-func lookup[T any](db maxmind.Database, ip net.IP) (*T, error) {
+func lookup[T any](ctx context.Context, db maxmind.Database, ip net.IP) (*T, error) {
 	var obj T
-	return &obj, db.Lookup(ip, &obj)
+	return &obj, db.Lookup(ctx, ip, &obj)
 }
 
 func (r *GeoIPRepository) Country(ctx context.Context, ip net.IP) (*entity.Country, error) {
-	return lookup[entity.Country](r.dbCity, ip)
+	return lookup[entity.Country](ctx, r.dbCity, ip)
 }
 
 func (r *GeoIPRepository) City(ctx context.Context, ip net.IP, includeISP bool) (*entity.City, error) {
-	city, err := lookup[entity.City](r.dbCity, ip)
+	city, err := lookup[entity.City](ctx, r.dbCity, ip)
 	if err != nil {
 		return nil, err
 	}
 	if includeISP {
 		var isp entity.ISP
-		err := r.dbISP.Lookup(ip, &isp)
+		err := r.dbISP.Lookup(ctx, ip, &isp)
 		if err != nil {
 			log.FromContext(ctx).ErrorWithFields(log.Fields{"err": err}, "Failed to fill ISP")
 		} else {
@@ -153,7 +154,7 @@ func (r *GeoIPRepository) City(ctx context.Context, ip net.IP, includeISP bool) 
 }
 
 func (r *GeoIPRepository) CityLite(ctx context.Context, ip net.IP, lang string) (*entity.CityLite, error) {
-	cityLiteDB, err := lookup[entity.CityLiteDb](r.dbCity, ip)
+	cityLiteDB, err := lookup[entity.CityLiteDb](ctx, r.dbCity, ip)
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +166,7 @@ func (r *GeoIPRepository) MetaData(ctx context.Context, dbType MaxmindDBType) (*
 	if err != nil {
 		return nil, err
 	}
-	return db.MetaData()
+	return db.MetaData(ctx)
 }
 
 func (r *GeoIPRepository) Database(ctx context.Context, dbType MaxmindDBType, format DumpFormat) (*entity.Database, error) {
@@ -173,7 +174,7 @@ func (r *GeoIPRepository) Database(ctx context.Context, dbType MaxmindDBType, fo
 	if err != nil {
 		return nil, err
 	}
-	meta, err := db.MetaData()
+	meta, err := db.MetaData(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +191,7 @@ func (r *GeoIPRepository) Database(ctx context.Context, dbType MaxmindDBType, fo
 			return nil, fmt.Errorf("%s: %w", dbType, ErrCSVNotSupported)
 		}
 	case DumpFormatMMDB:
-		data, err = db.RawData()
+		data, err = db.RawData(ctx)
 	default:
 		return nil, utils.ErrUnknownFormat
 	}

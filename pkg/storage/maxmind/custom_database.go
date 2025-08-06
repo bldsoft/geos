@@ -18,22 +18,22 @@ type CustomDatabase struct {
 	lastUpdate source.ModTimeVersion
 }
 
-func NewCustomDatabase(source *source.TSUpdatableFile) *CustomDatabase {
-	logger := log.Logger.WithFields(log.Fields{"source": source.LocalPath, "db": "custom maxmind"})
+func NewCustomDatabase(ctx context.Context, source *source.TSUpdatableFile) *CustomDatabase {
+	ctx = context.WithValue(ctx, log.LoggerCtxKey, log.FromContext(ctx).WithFields(log.Fields{"type": "patch"}))
 
 	res := &CustomDatabase{
 		source: source,
 	}
 	res.base.Store(NewMultiMaxMindDB())
 
-	version, err := source.Version(context.Background())
+	version, err := source.Version(ctx)
 	if err != nil {
-		logger.Errorf("failed to get local version: %v", err)
+		log.FromContext(ctx).Errorf("Failed to get local version: %v", err)
 		return res
 	}
 
-	if err := res.update(context.Background(), version); err != nil {
-		logger.Errorf("failed to get patches: %v", err)
+	if err := res.update(ctx, version); err != nil {
+		log.FromContext(ctx).Errorf("Failed to get patches: %v", err)
 	}
 
 	return res
@@ -43,20 +43,20 @@ func (db *CustomDatabase) db() *MultiMaxMindDB {
 	return db.base.Load()
 }
 
-func (db *CustomDatabase) Lookup(ip net.IP, result interface{}) error {
-	return db.db().Lookup(ip, result)
+func (db *CustomDatabase) Lookup(ctx context.Context, ip net.IP, result interface{}) error {
+	return db.db().Lookup(ctx, ip, result)
 }
 
-func (db *CustomDatabase) Networks(options ...maxminddb.NetworksOption) (*maxminddb.Networks, error) {
-	return db.db().Networks(options...)
+func (db *CustomDatabase) Networks(ctx context.Context, options ...maxminddb.NetworksOption) (*maxminddb.Networks, error) {
+	return db.db().Networks(ctx, options...)
 }
 
-func (db *CustomDatabase) RawData() (io.Reader, error) {
-	return db.db().RawData()
+func (db *CustomDatabase) RawData(ctx context.Context) (io.Reader, error) {
+	return db.db().RawData(ctx)
 }
 
-func (db *CustomDatabase) MetaData() (*maxminddb.Metadata, error) {
-	return db.db().MetaData()
+func (db *CustomDatabase) MetaData(ctx context.Context) (*maxminddb.Metadata, error) {
+	return db.db().MetaData(ctx)
 }
 
 func (db *CustomDatabase) Update(ctx context.Context, force bool) error {

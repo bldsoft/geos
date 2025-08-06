@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/bldsoft/geos/pkg/entity"
-	"github.com/bldsoft/gost/log"
 )
 
 type PatchedDatabase struct {
@@ -22,11 +21,6 @@ func NewPatchedDatabase(db *MaxmindDatabase) *PatchedDatabase {
 
 func (db *PatchedDatabase) SetCustom(custom *CustomDatabase) *PatchedDatabase {
 	db.custom = custom
-	return db
-}
-
-func (db *PatchedDatabase) WithLogger(logger log.ServiceLogger) *PatchedDatabase {
-	db.MultiMaxMindDB.WithLogger(logger)
 	return db
 }
 

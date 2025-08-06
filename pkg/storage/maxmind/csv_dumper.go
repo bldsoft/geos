@@ -19,12 +19,12 @@ func NewCSVDumper[T CSVEntity](db Database) *MaxmindCSVDumper[T] {
 	return &MaxmindCSVDumper[T]{db}
 }
 func (db MaxmindCSVDumper[T]) WriteCSVTo(ctx context.Context, w io.Writer) error {
-	networks, err := db.Networks(maxminddb.SkipAliasedNetworks)
+	networks, err := db.Networks(ctx, maxminddb.SkipAliasedNetworks)
 	if err != nil {
 		return err
 	}
 
-	meta, err := db.MetaData()
+	meta, err := db.MetaData(ctx)
 	if err != nil {
 		return err
 	}
