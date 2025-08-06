@@ -42,8 +42,8 @@ func (s *PatchedStorage) CheckUpdates(ctx context.Context) (entity.Update[entity
 		if err != nil {
 			return entity.Update[entity.PatchedGeoNamesVersion]{}, err
 		}
-		res.CurrentVersion.PatchVersion = entity.ModTimeVersion(customUpdate.CurrentVersion)
-		res.RemoteVersion.PatchVersion = entity.ModTimeVersion(customUpdate.RemoteVersion)
+		res.CurrentVersion.Patch = (*entity.ModTimeVersion)(&customUpdate.CurrentVersion)
+		res.RemoteVersion.Patch = (*entity.ModTimeVersion)(&customUpdate.RemoteVersion)
 	}
 	return res, nil
 }

@@ -56,8 +56,8 @@ func (db *PatchedDatabase) CheckUpdates(ctx context.Context) (entity.Update[enti
 		if err != nil {
 			return entity.Update[entity.PatchedMMDBVersion]{}, err
 		}
-		res.CurrentVersion.Patch = entity.ModTimeVersion(customUpdate.CurrentVersion)
-		res.RemoteVersion.Patch = entity.ModTimeVersion(customUpdate.RemoteVersion)
+		res.CurrentVersion.Patch = (*entity.ModTimeVersion)(&customUpdate.CurrentVersion)
+		res.RemoteVersion.Patch = (*entity.ModTimeVersion)(&customUpdate.RemoteVersion)
 	}
 
 	return res, nil

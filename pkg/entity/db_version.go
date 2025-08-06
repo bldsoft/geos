@@ -3,6 +3,7 @@ package entity
 import (
 	"cmp"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/bldsoft/geos/pkg/storage/source"
@@ -55,6 +56,9 @@ func (v ModTimeVersion) Compare(other ModTimeVersion) int {
 }
 
 func (v ModTimeVersion) MarshalJSON() ([]byte, error) {
+	if time.Time(v).IsZero() {
+		return json.Marshal(0)
+	}
 	return json.Marshal(time.Time(v).Unix())
 }
 
@@ -71,39 +75,66 @@ type PatchVersion = ModTimeVersion
 type GeoNamesVersion = ModTimeVersion
 
 type PatchedMMDBVersion struct {
-	DB    MMDBVersion    `json:"db,omitempty"`
-	Patch ModTimeVersion `json:"patch,omitempty"`
+	DB    MMDBVersion     `json:"db,omitempty"`
+	Patch *ModTimeVersion `json:"patch,omitempty"`
 }
 
 func (v PatchedMMDBVersion) Compare(other PatchedMMDBVersion) int {
+	if v.Patch == nil {
+		return v.DB.Compare(other.DB)
+	}
 	return cmp.Or(
 		v.DB.Compare(other.DB),
-		v.Patch.Compare(other.Patch),
+		v.Patch.Compare(*other.Patch),
 	)
+}
+
+func (v PatchedMMDBVersion) String() string {
+	if v.Patch == nil {
+		return fmt.Sprintf("%s-%d", v.DB.Version.String(), v.DB.BuildEpoch)
+	}
+	return fmt.Sprintf("%s-%d/p-%d", v.DB.Version.String(), v.DB.BuildEpoch, time.Time(*v.Patch).Unix())
 }
 
 type PatchedGeoNamesVersion struct {
-	DB           GeoNamesVersion
-	PatchVersion ModTimeVersion
+	DB    GeoNamesVersion `json:"db,omitempty"`
+	Patch *ModTimeVersion `json:"patch,omitempty"`
 }
 
 func (v PatchedGeoNamesVersion) Compare(other PatchedGeoNamesVersion) int {
+	if v.Patch == nil {
+		return v.DB.Compare(other.DB)
+	}
 	return cmp.Or(
 		v.DB.Compare(other.DB),
-		v.PatchVersion.Compare(other.PatchVersion),
+		v.Patch.Compare(*other.Patch),
 	)
 }
 
-type Update[V source.Comparable[V]] = source.Update[V]
-
-type DBUpdate[V source.Comparable[V]] struct {
-	CurrentVersion   V      `json:"currentVersion"`
-	AvailableVersion *V     `json:"availableVersion,omitempty"`
-	UpdateError      string `json:"updateError,omitempty"`
-	InProgress       bool   `json:"inProgress,omitempty"`
+func (v PatchedGeoNamesVersion) String() string {
+	if v.Patch == nil {
+		return fmt.Sprintf("%d", time.Time(v.DB).Unix())
+	}
+	return fmt.Sprintf("%d/p-%d", time.Time(v.DB).Unix(), time.Time(*v.Patch).Unix())
 }
 
-func NewDBUpdate[V source.Comparable[V]](update Update[V], inProgress bool, lastUpdateError *string) DBUpdate[V] {
+type Comparable[V any] = source.Comparable[V]
+
+type Update[V source.Comparable[V]] = source.Update[V]
+
+type Version[V any] interface {
+	source.Comparable[V]
+	fmt.Stringer
+}
+
+type DBUpdate[V Version[V]] struct {
+	CurrentVersion   V       `json:"currentVersion"`
+	AvailableVersion *V      `json:"availableVersion,omitempty"`
+	UpdateError      *string `json:"updateError,omitempty"`
+	InProgress       bool    `json:"inProgress,omitempty"`
+}
+
+func NewDBUpdate[V Version[V]](update Update[V], inProgress bool, lastUpdateError *string) DBUpdate[V] {
 	res := DBUpdate[V]{
 		CurrentVersion: update.CurrentVersion,
 		InProgress:     inProgress,
@@ -114,7 +145,7 @@ func NewDBUpdate[V source.Comparable[V]](update Update[V], inProgress bool, last
 	}
 
 	if !inProgress && lastUpdateError != nil {
-		res.UpdateError = *lastUpdateError
+		res.UpdateError = lastUpdateError
 	}
 
 	return res
