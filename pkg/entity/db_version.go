@@ -52,7 +52,7 @@ func (v *MMDBVersion) UnmarshalJSON(data []byte) error {
 type ModTimeVersion time.Time
 
 func (v ModTimeVersion) Compare(other ModTimeVersion) int {
-	return time.Time(v).Compare(time.Time(other))
+	return cmp.Compare(time.Time(v).Unix(), time.Time(other).Unix())
 }
 
 func (v ModTimeVersion) MarshalJSON() ([]byte, error) {

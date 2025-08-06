@@ -24,13 +24,7 @@ func NewCustomStorage(ctx context.Context, source *source.TSUpdatableFile) *Cust
 	}
 	res.base.Store(NewMultiStorage())
 
-	version, err := source.Version(ctx)
-	if err != nil {
-		log.FromContext(ctx).Errorf("failed to get local version: %v", err)
-		return res
-	}
-
-	if err := res.update(ctx, version); err != nil {
+	if err := res.update(ctx); err != nil {
 		log.FromContext(ctx).Errorf("failed to get patches: %v", err)
 	}
 	return res
@@ -58,7 +52,7 @@ func (s *CustomStorage) Update(ctx context.Context, force bool) error {
 	}
 
 	if update.RemoteVersion.Compare(s.lastUpdate) > 0 {
-		if err := s.update(ctx, update.RemoteVersion); err != nil {
+		if err := s.update(ctx); err != nil {
 			return err
 		}
 	}
@@ -66,7 +60,7 @@ func (s *CustomStorage) Update(ctx context.Context, force bool) error {
 	return nil
 }
 
-func (s *CustomStorage) update(ctx context.Context, version source.ModTimeVersion) error {
+func (s *CustomStorage) update(ctx context.Context) error {
 	var patches []Storage
 	var err error
 	if filepath.Ext(s.source.LocalPath) == ".json" {
@@ -78,6 +72,11 @@ func (s *CustomStorage) update(ctx context.Context, version source.ModTimeVersio
 	} else {
 		patches, err = NewStoragePatchesFromTarGz(s.source)
 	}
+	if err != nil {
+		return err
+	}
+
+	version, err := s.source.Version(ctx)
 	if err != nil {
 		return err
 	}

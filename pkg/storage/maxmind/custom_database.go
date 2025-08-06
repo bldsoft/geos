@@ -26,13 +26,7 @@ func NewCustomDatabase(ctx context.Context, source *source.TSUpdatableFile) *Cus
 	}
 	res.base.Store(NewMultiMaxMindDB())
 
-	version, err := source.Version(ctx)
-	if err != nil {
-		log.FromContext(ctx).Errorf("Failed to get local version: %v", err)
-		return res
-	}
-
-	if err := res.update(ctx, version); err != nil {
+	if err := res.update(ctx); err != nil {
 		log.FromContext(ctx).Errorf("Failed to get patches: %v", err)
 	}
 
@@ -72,14 +66,14 @@ func (db *CustomDatabase) Update(ctx context.Context, force bool) error {
 	}
 
 	if update.RemoteVersion.Compare(db.lastUpdate) > 0 {
-		if err := db.update(ctx, update.RemoteVersion); err != nil {
+		if err := db.update(ctx); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (db *CustomDatabase) update(_ context.Context, version source.ModTimeVersion) error {
+func (db *CustomDatabase) update(ctx context.Context) error {
 	var patches []Database
 	var err error
 	if filepath.Ext(db.source.LocalPath) == ".json" {
@@ -94,6 +88,12 @@ func (db *CustomDatabase) update(_ context.Context, version source.ModTimeVersio
 			return err
 		}
 	}
+
+	version, err := db.source.Version(ctx)
+	if err != nil {
+		return err
+	}
+
 	db.base.Store(NewMultiMaxMindDB(patches...))
 	db.lastUpdate = version
 	return nil

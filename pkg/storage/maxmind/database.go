@@ -26,12 +26,7 @@ func Open(ctx context.Context, source *source.MMDBSource) (*MaxmindDatabase, err
 		source: source,
 	}
 
-	version, err := source.Version(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := res.update(ctx, version); err != nil {
+	if err := res.update(ctx); err != nil {
 		return nil, err
 	}
 	return res, nil
@@ -66,7 +61,7 @@ func (db *MaxmindDatabase) Update(ctx context.Context, force bool) error {
 	}
 
 	if update.RemoteVersion.Compare(source.MMDBVersion(db.lastUpdate)) > 0 {
-		if err := db.update(ctx, update.RemoteVersion); err != nil {
+		if err := db.update(ctx); err != nil {
 			return err
 		}
 	}
@@ -74,8 +69,13 @@ func (db *MaxmindDatabase) Update(ctx context.Context, force bool) error {
 	return nil
 }
 
-func (db *MaxmindDatabase) update(ctx context.Context, sourceVersion source.MMDBVersion) error {
+func (db *MaxmindDatabase) update(ctx context.Context) error {
 	reader, err := db.source.Reader(ctx)
+	if err != nil {
+		return err
+	}
+
+	version, err := db.source.Version(ctx)
 	if err != nil {
 		return err
 	}
@@ -93,7 +93,7 @@ func (db *MaxmindDatabase) update(ctx context.Context, sourceVersion source.MMDB
 	db.reader.Store(dbReader)
 	db.dbRaw.Store(&dbRaw)
 
-	db.lastUpdate = entity.MMDBVersion(sourceVersion)
+	db.lastUpdate = entity.MMDBVersion(version)
 	return nil
 }
 
