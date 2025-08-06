@@ -80,12 +80,11 @@ type PatchedMMDBVersion struct {
 }
 
 func (v PatchedMMDBVersion) Compare(other PatchedMMDBVersion) int {
-	if v.Patch == nil {
-		return v.DB.Compare(other.DB)
-	}
+	vPatch := cmp.Or(v.Patch, new(ModTimeVersion))
+	oPatch := cmp.Or(other.Patch, new(ModTimeVersion))
 	return cmp.Or(
 		v.DB.Compare(other.DB),
-		v.Patch.Compare(*other.Patch),
+		vPatch.Compare(*oPatch),
 	)
 }
 
@@ -102,12 +101,11 @@ type PatchedGeoNamesVersion struct {
 }
 
 func (v PatchedGeoNamesVersion) Compare(other PatchedGeoNamesVersion) int {
-	if v.Patch == nil {
-		return v.DB.Compare(other.DB)
-	}
+	vPatch := cmp.Or(v.Patch, new(ModTimeVersion))
+	oPatch := cmp.Or(other.Patch, new(ModTimeVersion))
 	return cmp.Or(
 		v.DB.Compare(other.DB),
-		v.Patch.Compare(*other.Patch),
+		vPatch.Compare(*oPatch),
 	)
 }
 
