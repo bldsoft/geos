@@ -13,6 +13,9 @@ type GeoIpService interface {
 	CityLite(ctx context.Context, address string, lang string) (*entity.CityLite, error)
 	MetaData(ctx context.Context, dbType service.DBType) (*entity.MetaData, error)
 	Database(ctx context.Context, dbType service.DBType, format service.DumpFormat) (*entity.Database, error)
+
+	StartUpdate(ctx context.Context, dbType service.DBType) error
+	CheckUpdates(ctx context.Context, dbType service.DBType) (entity.DBUpdate[entity.PatchedMMDBVersion], error)
 }
 
 type GeoNameService interface {
@@ -21,4 +24,7 @@ type GeoNameService interface {
 	Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameAdminSubdivision, error)
 	Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error)
 	Dump(ctx context.Context, format service.DumpFormat) ([]byte, error)
+
+	StartUpdate(ctx context.Context) error
+	CheckUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedGeoNamesVersion], error)
 }

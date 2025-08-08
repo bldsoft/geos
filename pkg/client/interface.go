@@ -19,7 +19,17 @@ type GeoNameClient interface {
 	GeoNameCities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error)
 }
 
+type ManagementClient interface {
+	CheckGeoIPCityUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedMMDBVersion], error)
+	CheckGeoIPISPUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedMMDBVersion], error)
+	CheckGeonamesUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedGeoNamesVersion], error)
+	UpdateGeoIPCity(ctx context.Context) error
+	UpdateGeoIPISP(ctx context.Context) error
+	UpdateGeonames(ctx context.Context) error
+}
+
 type Client interface {
 	GeoIPClient
 	GeoNameClient
+	ManagementClient
 }

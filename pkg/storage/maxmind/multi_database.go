@@ -2,9 +2,12 @@ package maxmind
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"net"
+
+	"maps"
 
 	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
@@ -18,18 +21,12 @@ import (
 var ErrNoDatabases = errors.New("no databases")
 
 type MultiMaxMindDB struct {
-	dbs    []Database
-	logger log.ServiceLogger
+	dbs []Database
 }
 
 func NewMultiMaxMindDB(dbs ...Database) *MultiMaxMindDB {
-	res := &MultiMaxMindDB{dbs: dbs, logger: log.Logger}
+	res := &MultiMaxMindDB{dbs: dbs}
 	return res
-}
-
-func (db *MultiMaxMindDB) WithLogger(logger log.ServiceLogger) *MultiMaxMindDB {
-	db.logger = logger
-	return db
 }
 
 func (db *MultiMaxMindDB) Add(dbs ...Database) *MultiMaxMindDB {
@@ -37,10 +34,10 @@ func (db *MultiMaxMindDB) Add(dbs ...Database) *MultiMaxMindDB {
 	return db
 }
 
-func (db *MultiMaxMindDB) Lookup(ip net.IP, result interface{}) error {
+func (db *MultiMaxMindDB) Lookup(ctx context.Context, ip net.IP, result interface{}) error {
 	var multiErr error
 	for i := len(db.dbs) - 1; i >= 0; i-- {
-		err := db.dbs[i].Lookup(ip, result)
+		err := db.dbs[i].Lookup(ctx, ip, result)
 		if err == nil {
 			return nil
 		}
@@ -49,9 +46,9 @@ func (db *MultiMaxMindDB) Lookup(ip net.IP, result interface{}) error {
 	return errors.Join(utils.ErrNotFound, multiErr)
 }
 
-func (db *MultiMaxMindDB) dbReader(index int) (*maxminddb.Reader, error) {
+func (db *MultiMaxMindDB) dbReader(ctx context.Context, index int) (*maxminddb.Reader, error) {
 	database := db.dbs[index]
-	reader, err := database.RawData()
+	reader, err := database.RawData(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -67,22 +64,41 @@ func (db *MultiMaxMindDB) dbReader(index int) (*maxminddb.Reader, error) {
 	return maxminddb.FromBytes(bytes)
 }
 
-func (db *MultiMaxMindDB) totalNodes() int {
+func (db *MultiMaxMindDB) totalNodes(ctx context.Context) int {
 	totalNodes := 0
 	for _, db := range db.dbs {
-		if meta, _ := db.MetaData(); meta != nil {
+		if meta, _ := db.MetaData(ctx); meta != nil {
 			totalNodes += int(meta.NodeCount)
 		}
 	}
 	return totalNodes
 }
 
-func (db *MultiMaxMindDB) RawData() (io.Reader, error) {
-	if len(db.dbs) == 0 {
+func (db *MultiMaxMindDB) nonEmptyDatabases(ctx context.Context) []Database {
+	var res []Database
+	for _, database := range db.dbs {
+		if !db.isEmptyDatabase(ctx, database) {
+			res = append(res, database)
+		}
+	}
+	return res
+}
+
+func (db *MultiMaxMindDB) isEmptyDatabase(ctx context.Context, database Database) bool {
+	meta, err := database.MetaData(ctx)
+	if err != nil {
+		return true
+	}
+	return meta.NodeCount == 0
+}
+
+func (db *MultiMaxMindDB) RawData(ctx context.Context) (io.Reader, error) {
+	nonEmtpyDbs := db.nonEmptyDatabases(ctx)
+	if len(nonEmtpyDbs) == 0 {
 		return nil, ErrNoDatabases
 	}
-	if len(db.dbs) == 1 {
-		return db.dbs[0].RawData()
+	if len(nonEmtpyDbs) == 1 {
+		return nonEmtpyDbs[0].RawData(ctx)
 	}
 
 	opts := mmdbwriter.Options{IncludeReservedNetworks: true}
@@ -91,7 +107,7 @@ func (db *MultiMaxMindDB) RawData() (io.Reader, error) {
 		return nil, err
 	}
 
-	currentNode, totalNodes := 0, db.totalNodes()
+	currentNode, totalNodes := 0, db.totalNodes(ctx)
 	percent := (totalNodes / 100) + 1
 
 	type networkNode struct {
@@ -100,13 +116,13 @@ func (db *MultiMaxMindDB) RawData() (io.Reader, error) {
 	}
 	const bufSize = 1000
 	readedNodeC := make(chan networkNode, bufSize)
-	convetedNodeC := make(chan MMDBRecord, bufSize)
+	convertedNodeC := make(chan MMDBRecord, bufSize)
 
 	var eg errgroup.Group
 	eg.Go(func() (err error) {
 		defer close(readedNodeC)
 		for i := range db.dbs {
-			dbReader, err := db.dbReader(i)
+			dbReader, err := db.dbReader(ctx, i)
 			if err != nil {
 				return err
 			}
@@ -128,18 +144,18 @@ func (db *MultiMaxMindDB) RawData() (io.Reader, error) {
 	})
 
 	eg.Go(func() (err error) {
-		defer close(convetedNodeC)
+		defer close(convertedNodeC)
 		for node := range readedNodeC {
 			var rec MMDBRecord
 			rec.Network = node.network
 			rec.Data, _ = toMMDBType(node.data).(mmdbtype.Map)
-			convetedNodeC <- rec
+			convertedNodeC <- rec
 		}
 		return nil
 	})
 
 	eg.Go(func() error {
-		for convertedNode := range convetedNodeC {
+		for convertedNode := range convertedNodeC {
 			err = tree.InsertFunc(convertedNode.Network, inserter.ReplaceWith(convertedNode.Data))
 			if err != nil {
 				return err
@@ -147,7 +163,7 @@ func (db *MultiMaxMindDB) RawData() (io.Reader, error) {
 			currentNode++
 			if currentNode%percent == 0 {
 				percents := currentNode / percent
-				db.logger.Debugf("Merging databases %d%%", percents)
+				log.FromContext(ctx).Debugf("Merging databases %d%%", percents)
 			}
 		}
 		return nil
@@ -156,7 +172,7 @@ func (db *MultiMaxMindDB) RawData() (io.Reader, error) {
 	if err := eg.Wait(); err != nil {
 		return nil, err
 	}
-	db.logger.Debug("Merging databases 100%")
+	log.FromContext(ctx).Debug("Merging databases 100%")
 
 	var buf bytes.Buffer
 	if _, err := tree.WriteTo(&buf); err != nil {
@@ -165,47 +181,44 @@ func (db *MultiMaxMindDB) RawData() (io.Reader, error) {
 	return &buf, nil
 }
 
-func (db *MultiMaxMindDB) Reader() (*maxminddb.Reader, error) {
-	reader, err := db.RawData()
+func (db *MultiMaxMindDB) Reader(ctx context.Context) (*maxminddb.Reader, error) {
+	reader, err := db.RawData(ctx)
 	if err != nil {
 		return nil, err
 	}
 	return maxminddb.FromBytes(reader.(*bytes.Buffer).Bytes())
 }
 
-func (db *MultiMaxMindDB) Networks(options ...maxminddb.NetworksOption) (*maxminddb.Networks, error) {
-	reader, err := db.Reader()
+func (db *MultiMaxMindDB) Networks(ctx context.Context, options ...maxminddb.NetworksOption) (*maxminddb.Networks, error) {
+	reader, err := db.Reader(ctx)
 	if err != nil {
 		return nil, err
 	}
 	return reader.Networks(options...), nil
 }
 
-func (db *MultiMaxMindDB) MetaData() (*maxminddb.Metadata, error) {
+func (db *MultiMaxMindDB) MetaData(ctx context.Context) (*maxminddb.Metadata, error) {
 	if len(db.dbs) == 0 {
 		return nil, ErrNoDatabases
 	}
 	if len(db.dbs) == 1 {
-		return db.dbs[0].MetaData()
+		return db.dbs[0].MetaData(ctx)
 	}
 
-	mainMeta, err := db.dbs[0].MetaData()
+	mainMeta, err := db.dbs[0].MetaData(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	var res maxminddb.Metadata
-	res = *mainMeta
+	res := *mainMeta
 	res.Description = make(map[string]string)
-	for key, value := range mainMeta.Description {
-		res.Description[key] = value
-	}
+	maps.Copy(res.Description, mainMeta.Description)
 	res.Description["en"] += " patched by GEOS service."
 
 	for _, db := range db.dbs {
-		meta, err := db.MetaData()
+		meta, err := db.MetaData(ctx)
 		if err != nil {
-			log.Logger.WarnWithFields(log.Fields{"err": err}, "failed to get db metadata")
+			log.FromContext(ctx).WarnWithFields(log.Fields{"err": err}, "failed to get db metadata")
 			continue
 		}
 		res.BuildEpoch = max(res.BuildEpoch, meta.BuildEpoch)

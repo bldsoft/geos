@@ -18,6 +18,9 @@ type GeoRepository interface {
 	CityLite(ctx context.Context, ip net.IP, lang string) (*entity.CityLite, error)
 	MetaData(ctx context.Context, dbType DBType) (*entity.MetaData, error)
 	Database(ctx context.Context, dbType DBType, format DumpFormat) (*entity.Database, error)
+
+	StartUpdate(ctx context.Context, dbType DBType) error
+	CheckUpdates(ctx context.Context, dbType DBType) (entity.DBUpdate[entity.PatchedMMDBVersion], error)
 }
 
 type GeoIpService struct {
@@ -83,4 +86,12 @@ func (r *GeoIpService) MetaData(ctx context.Context, dbType DBType) (*entity.Met
 
 func (r *GeoIpService) Database(ctx context.Context, dbType DBType, format DumpFormat) (*entity.Database, error) {
 	return r.rep.Database(ctx, dbType, format)
+}
+
+func (r *GeoIpService) CheckUpdates(ctx context.Context, dbType DBType) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
+	return r.rep.CheckUpdates(ctx, dbType)
+}
+
+func (r *GeoIpService) StartUpdate(ctx context.Context, dbType DBType) error {
+	return r.rep.StartUpdate(ctx, dbType)
 }

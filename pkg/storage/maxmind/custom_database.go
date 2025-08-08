@@ -1,173 +1,109 @@
 package maxmind
 
 import (
-	"bytes"
-	"errors"
-	"fmt"
+	"context"
 	"io"
-	"io/fs"
 	"net"
-	"os"
 	"path/filepath"
-	"strings"
+	"sync/atomic"
 
-	"github.com/bldsoft/geos/pkg/utils"
+	"github.com/bldsoft/geos/pkg/storage/source"
 	"github.com/bldsoft/gost/log"
-	"github.com/maxmind/mmdbwriter"
-	"github.com/maxmind/mmdbwriter/inserter"
-	"github.com/maxmind/mmdbwriter/mmdbtype"
 	"github.com/oschwald/maxminddb-golang"
 )
 
-type MMDBRecord struct {
-	Network *net.IPNet
-	Data    mmdbtype.Map
+type CustomDatabase struct {
+	base       atomic.Pointer[MultiMaxMindDB]
+	source     *source.TSUpdatableFile
+	lastUpdate source.ModTimeVersion
 }
 
-type MMDBRecordReader interface {
-	ReadMMDBRecord() (MMDBRecord, error)
+func NewCustomDatabase(ctx context.Context, source *source.TSUpdatableFile) *CustomDatabase {
+	ctx = context.WithValue(ctx, log.LoggerCtxKey, log.FromContext(ctx).WithFields(log.Fields{"type": "patch"}))
+
+	res := &CustomDatabase{
+		source: source,
+	}
+	res.base.Store(NewMultiMaxMindDB())
+
+	if err := res.update(ctx); err != nil {
+		log.FromContext(ctx).Errorf("Failed to get patches: %v", err)
+	}
+
+	return res
 }
 
-type CustomMaxMindDB struct {
-	tree  *mmdbwriter.Tree
-	dbRaw []byte
-	db    *maxminddb.Reader
+func (db *CustomDatabase) db() *MultiMaxMindDB {
+	return db.base.Load()
 }
 
-func NewCustomDatabasesFromDir(dir, customDBPrefix string) []Database {
-	var customDBs []Database
-	err := filepath.WalkDir(dir, func(s string, d fs.DirEntry, e error) error {
-		if e != nil {
-			return e
-		}
-		if !d.Type().IsRegular() || !strings.HasPrefix(d.Name(), customDBPrefix) {
-			return nil
-		}
-
-		path := filepath.Join(dir, d.Name())
-		custom, err := NewCustomMaxMindDBFromFile(path)
-		if err != nil {
-			if errors.Is(err, utils.ErrUnknownFormat) {
-				return nil
-			}
-			return err
-		}
-		customDBs = append(customDBs, custom)
-
-		return nil
-	})
-	if err != nil {
-		log.WarnWithFields(log.Fields{"err": err}, "failed to read custom databases")
-	}
-	return customDBs
+func (db *CustomDatabase) Lookup(ctx context.Context, ip net.IP, result interface{}) error {
+	return db.db().Lookup(ctx, ip, result)
 }
 
-func NewCustomMaxMindDBFromFile(path string) (*CustomMaxMindDB, error) {
-	file, err := os.OpenFile(path, os.O_RDONLY, 0666)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	var reader MMDBRecordReader
-	switch filepath.Ext(path) {
-	case ".json":
-		reader, err = NewJSONRecordReader(file)
-	default:
-		return nil, utils.ErrUnknownFormat
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	db, err := NewCustomMaxMindDB(reader)
-	if err != nil {
-		return nil, err
-	}
-
-	stat, err := file.Stat()
-	if err != nil {
-		return nil, err
-	}
-	return db.WithMetadata(maxminddb.Metadata{
-		Description:              map[string]string{"en": fmt.Sprintf("path = %s", path)},
-		DatabaseType:             db.db.Metadata.DatabaseType,
-		Languages:                db.db.Metadata.Languages,
-		BinaryFormatMajorVersion: db.db.Metadata.BinaryFormatMajorVersion,
-		BinaryFormatMinorVersion: db.db.Metadata.BinaryFormatMinorVersion,
-		BuildEpoch:               uint(stat.ModTime().Unix()),
-		IPVersion:                db.db.Metadata.IPVersion,
-		NodeCount:                db.db.Metadata.NodeCount,
-		RecordSize:               db.db.Metadata.RecordSize,
-	}), nil
+func (db *CustomDatabase) Networks(ctx context.Context, options ...maxminddb.NetworksOption) (*maxminddb.Networks, error) {
+	return db.db().Networks(ctx, options...)
 }
 
-func NewCustomMaxMindDB(reader MMDBRecordReader) (*CustomMaxMindDB, error) {
-	tree, err := mmdbwriter.New(mmdbwriter.Options{IncludeReservedNetworks: true})
-	if err != nil {
-		return nil, err
-	}
-
-	for {
-		rec, err := reader.ReadMMDBRecord()
-		if err != nil {
-			break
-		}
-		if err := tree.InsertFunc(rec.Network, inserter.TopLevelMergeWith(rec.Data)); err != nil {
-			return nil, err
-		}
-	}
-
-	if err != nil && !errors.Is(err, io.EOF) {
-		return nil, err
-	}
-	err = nil
-
-	var buf bytes.Buffer
-	if _, err := tree.WriteTo(&buf); err != nil {
-		return nil, err
-	}
-	dbRaw := buf.Bytes()
-
-	db, err := maxminddb.FromBytes(buf.Bytes())
-	if err != nil {
-		return nil, err
-	}
-	return &CustomMaxMindDB{
-		tree:  tree,
-		dbRaw: dbRaw,
-		db:    db,
-	}, nil
+func (db *CustomDatabase) RawData(ctx context.Context) (io.Reader, error) {
+	return db.db().RawData(ctx)
 }
 
-func (db *CustomMaxMindDB) WithMetadata(meta maxminddb.Metadata) *CustomMaxMindDB {
-	db.db.Metadata = meta
-	return db
+func (db *CustomDatabase) MetaData(ctx context.Context) (*maxminddb.Metadata, error) {
+	return db.db().MetaData(ctx)
 }
 
-func (db *CustomMaxMindDB) Available() bool {
-	return true
-}
-
-func (db *CustomMaxMindDB) Lookup(ip net.IP, result interface{}) error {
-	_, ok, err := db.db.LookupNetwork(ip, result)
+func (db *CustomDatabase) Update(ctx context.Context, force bool) error {
+	update, err := db.source.CheckUpdates(ctx)
 	if err != nil {
 		return err
 	}
-	if !ok {
-		return utils.ErrNotFound
+
+	if update.RemoteVersion.Compare(update.CurrentVersion) > 0 {
+		if err := db.source.Update(ctx, force); err != nil {
+			return err
+		}
+	}
+
+	if update.RemoteVersion.Compare(db.lastUpdate) > 0 {
+		if err := db.update(ctx); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func (db *CustomMaxMindDB) Networks(options ...maxminddb.NetworksOption) (*maxminddb.Networks, error) {
-	return db.db.Networks(options...), nil
+func (db *CustomDatabase) update(ctx context.Context) error {
+	var patches []Database
+	var err error
+	if filepath.Ext(db.source.LocalPath) == ".json" {
+		patch, err := NewDatabasePatchFromJSON(db.source)
+		if err != nil {
+			return err
+		}
+		patches = []Database{patch}
+	} else {
+		patches, err = NewDatabasePatchesFromTarGz(db.source)
+		if err != nil {
+			return err
+		}
+	}
+
+	version, err := db.source.Version(ctx)
+	if err != nil {
+		return err
+	}
+
+	db.base.Store(NewMultiMaxMindDB(patches...))
+	db.lastUpdate = version
+	return nil
 }
 
-func (db *CustomMaxMindDB) RawData() (io.Reader, error) {
-	return bytes.NewReader(db.dbRaw), nil
-}
-
-func (db *CustomMaxMindDB) MetaData() (*maxminddb.Metadata, error) {
-	return &db.db.Metadata, nil
+func (db *CustomDatabase) CheckUpdates(ctx context.Context) (source.Update[source.ModTimeVersion], error) {
+	update, err := db.source.CheckUpdates(ctx)
+	if err != nil {
+		return source.Update[source.ModTimeVersion]{}, err
+	}
+	update.CurrentVersion = db.lastUpdate
+	return update, nil
 }

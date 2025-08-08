@@ -9,16 +9,16 @@ import (
 )
 
 type Database interface {
-	Lookup(ip net.IP, result interface{}) error
+	Lookup(ctx context.Context, ip net.IP, result interface{}) error
 	// LookupNetwork(ip net.IP, result interface{}) (network *net.IPNet, ok bool, err error)
 	// LookupOffset(ip net.IP) (uintptr, error)
-	Networks(options ...maxminddb.NetworksOption) (*maxminddb.Networks, error)
+	Networks(ctx context.Context, options ...maxminddb.NetworksOption) (*maxminddb.Networks, error)
 	// NetworksWithin(network *net.IPNet, options ...maxminddb.NetworksOption) (*maxminddb.Networks, error)
 	// Verify() error
 	// Close() error
 
-	RawData() (io.Reader, error) // mmdb
-	MetaData() (*maxminddb.Metadata, error)
+	RawData(ctx context.Context) (io.Reader, error) // mmdb
+	MetaData(ctx context.Context) (*maxminddb.Metadata, error)
 }
 
 type CSVDumper interface {

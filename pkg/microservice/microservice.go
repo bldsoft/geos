@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"path/filepath"
 	"sync"
 	"time"
 
@@ -13,7 +12,6 @@ import (
 	"github.com/bldsoft/geos/pkg/controller/rest"
 	"github.com/bldsoft/geos/pkg/repository"
 	"github.com/bldsoft/geos/pkg/service"
-	"github.com/bldsoft/geos/pkg/storage/geonames"
 	"github.com/bldsoft/gost/auth"
 	"github.com/bldsoft/gost/clickhouse"
 	gost "github.com/bldsoft/gost/controller"
@@ -92,17 +90,37 @@ func (m *Microservice) initServices() {
 		log.Debug("Log export to ClickHouse is off")
 	}
 
-	rep := repository.NewGeoIPRepository(m.config.GeoDbPath, m.config.GeoDbISPPath, m.config.GeoIPCsvDumpDirPath)
+	rep := repository.NewGeoIPRepository(repository.GeoIPRepositoryConfig{
+		City: repository.DBConfig{
+			LocalPath:        m.config.GeoDbPath,
+			RemoteURL:        m.config.GeoDbSource,
+			PatchesRemoteURL: m.config.GeoDbPatchesSource,
+		},
+		ISP: repository.DBConfig{
+			LocalPath:        m.config.GeoDbISPPath,
+			RemoteURL:        m.config.GeoDbISPSource,
+			PatchesRemoteURL: m.config.GeoDbISPPatchesSource,
+		},
+		CSVDirPath:       m.config.GeoIPCsvDumpDirPath,
+		AutoUpdatePeriod: time.Duration(m.config.AutoUpdatePeriodSec) * time.Second,
+	})
 	m.geoIpService = service.NewGeoIpService(rep)
 
-	geoNameStorage := m.geonamesStorage()
-	geoNameRep := repository.NewGeoNamesRepository(geoNameStorage)
+	geonameStorageConfig := repository.StorageConfig{
+		LocalDir:         m.config.GeoNameDumpDirPath,
+		PatchesRemoteURL: m.config.GeoNamePatchesSource,
+		AutoUpdatePeriod: time.Duration(m.config.AutoUpdatePeriodSec) * time.Second,
+	}
+
+	geoNameRep := repository.NewGeoNamesRepository(geonameStorageConfig)
 	m.geoNameService = service.NewGeoNameService(geoNameRep)
 
 	m.discovery = common.NewDiscovery(m.config.Server, m.config.Discovery)
 	m.setDiscoveryMeta()
 
 	m.asyncRunners = append(m.asyncRunners, m.discovery)
+	m.asyncRunners = append(m.asyncRunners, server.NewContextAsyncRunner(rep.Run))
+	m.asyncRunners = append(m.asyncRunners, server.NewContextAsyncRunner(geoNameRep.Run))
 
 	if m.config.NeedGrpc() {
 		grpcService := NewGrpcMicroservice(m.config.GRPCServiceBindAddress.HostPort(), m.geoIpService, m.geoNameService)
@@ -112,13 +130,6 @@ func (m *Microservice) initServices() {
 	} else {
 		log.Info("gRPC is off")
 	}
-
-}
-
-func (m *Microservice) geonamesStorage() geonames.Storage {
-	original := geonames.NewStorage(m.config.GeoNameDumpDirPath)
-	customs := geonames.NewCustomStoragesFromDir(filepath.Dir(m.config.GeoDbPath), "geonames")
-	return geonames.NewMultiStorage(original).Add(customs...)
 }
 
 func (m *Microservice) BuildRoutes(router chi.Router) {
@@ -135,12 +146,19 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 		r.Get("/city/{addr}", geoIpController.GetCityHandler)
 		r.Get("/city-lite/{addr}", geoIpController.GetCityLiteHandler)
 
-		r.With(m.ApiKeyMiddleware()).Get("/dump", geoIpController.GetDumpHandler) // deprecated, used by streampool
+		managementController := rest.NewManagementController(m.geoIpService, m.geoNameService)
+		r.Group(func(r chi.Router) {
+			r.Use(m.ApiKeyMiddleware())
+			r.Get("/dump", geoIpController.GetDumpHandler) // deprecated, used by streampool
+		})
+
 		r.Route("/dump/{db}", func(r chi.Router) {
 			r.Use(m.ApiKeyMiddleware())
 			r.Get("/csv", geoIpController.GetCSVDatabaseHandler)
 			r.Get("/mmdb", geoIpController.GetMMDBDatabaseHandler)
 			r.Get("/metadata", geoIpController.GetDatabaseMetaHandler)
+			r.Get("/update", managementController.CheckGeoIPUpdatesHandler)
+			r.Put("/update", managementController.UpdateGeoIPHandler)
 		})
 
 		geoNameController := rest.NewGeoNameController(m.geoNameService)
@@ -152,7 +170,12 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 			r.Post("/subdivision", geoNameController.GetGeoNameSubdivisionsHandler)
 			r.Get("/city", geoNameController.GetGeoNameCitiesHandler)
 			r.Post("/city", geoNameController.GetGeoNameCitiesHandler)
-			r.With(m.ApiKeyMiddleware()).Get("/dump", geoNameController.GetDumpHandler)
+			r.Group(func(r chi.Router) {
+				r.Use(m.ApiKeyMiddleware())
+				r.Get("/dump", geoNameController.GetDumpHandler)
+				r.Get("/update", managementController.CheckGeonamesUpdatesHandler)
+				r.Put("/update", managementController.UpdateGeonamesHandler)
+			})
 		})
 	})
 }

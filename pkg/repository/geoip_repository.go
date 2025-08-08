@@ -6,12 +6,17 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/url"
 	"path/filepath"
+	"time"
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/maxmind"
+	"github.com/bldsoft/geos/pkg/storage/source"
 	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
+	"github.com/bldsoft/gost/utils/errgroup"
+	"golang.org/x/sync/singleflight"
 )
 
 var (
@@ -37,63 +42,108 @@ const (
 	MaxmindDBTypeISP  MaxmindDBType = "isp"
 )
 
-func openPatchedDB[T maxmind.CSVEntity](path string, customPrefix string, required bool) *maxmindDBWithCachedCSVDump {
-	originalDB, err := maxmind.Open(path)
+func openPatchedDB[T maxmind.CSVEntity](
+	conf DBConfig, customPrefix, csvDumpDir string, required bool,
+) *maxmindDBWithCachedCSVDump {
+	logger := log.Logger.WithFields(log.Fields{"db": customPrefix})
+	ctx := context.WithValue(context.Background(), log.LoggerCtxKey, logger)
+
+	dbSource := source.NewMMDBSource(conf.LocalPath, conf.RemoteURL)
+	originalDB, err := maxmind.Open(ctx, dbSource)
 	if err != nil {
 		if required {
-			log.Fatalf("Failed to read %s db: %s", customPrefix, err)
+			logger.Fatalf("Failed to read db: %s", err)
 		}
-		log.Warnf("Failed to read %s db: %s", customPrefix, err)
+		logger.Warnf("Failed to read db: %s", err)
 		return nil
 	}
-	customDBs := maxmind.NewCustomDatabasesFromDir(filepath.Dir(path), customPrefix)
-	patchedDB := maxmind.NewMultiMaxMindDB(originalDB).Add(customDBs...)
-	patchedDB = patchedDB.WithLogger(*log.Logger.WithFields(log.Fields{"db": customPrefix}))
-	return withCachedCSVDump[T](patchedDB)
+
+	patchedDB := maxmind.NewPatchedDatabase(originalDB)
+
+	if conf.PatchesRemoteURL != "" {
+		patchesURL, err := url.Parse(conf.PatchesRemoteURL)
+		if err != nil {
+			if required {
+				logger.Fatalf("Failed to parse patches remote url: %s", err)
+			}
+			logger.Warnf("Failed to parse patches remote url: %s", err)
+			return nil
+		}
+		patchesSource := source.NewTSUpdatableFile(
+			filepath.Join(filepath.Dir(conf.LocalPath), customPrefix+"_patch"+filepath.Ext(patchesURL.Path)),
+			patchesURL.String(),
+		)
+		customDB := maxmind.NewCustomDatabase(ctx, patchesSource)
+		patchedDB = patchedDB.SetCustom(customDB)
+	}
+
+	return withCachedCSVDump[T](ctx, patchedDB, filepath.Join(csvDumpDir, customPrefix+".csv"))
+}
+
+type DBConfig struct {
+	LocalPath        string
+	RemoteURL        string
+	PatchesRemoteURL string
+}
+
+type GeoIPRepositoryConfig struct {
+	City             DBConfig
+	ISP              DBConfig
+	CSVDirPath       string
+	AutoUpdatePeriod time.Duration
 }
 
 type GeoIPRepository struct {
-	dbCity  *maxmindDBWithCachedCSVDump
-	dbISP   *maxmindDBWithCachedCSVDump
-	ispPath string
+	cfg           GeoIPRepositoryConfig
+	dbCity, dbISP *maxmindDBWithCachedCSVDump
+
+	checkUpdatesSF singleflight.Group
+
+	cityUpdater, ispUpdater *baseUpdateRepository
 }
 
-func NewGeoIPRepository(dbCityPath, dbISPPath string, csvDirPath string) *GeoIPRepository {
-	rep := GeoIPRepository{
-		dbCity:  openPatchedDB[entity.City](dbCityPath, string(MaxmindDBTypeCity), true),
-		dbISP:   openPatchedDB[entity.ISP](dbISPPath, string(MaxmindDBTypeISP), false),
-		ispPath: dbISPPath,
+func NewGeoIPRepository(cfg GeoIPRepositoryConfig) *GeoIPRepository {
+	res := &GeoIPRepository{
+		cfg:    cfg,
+		dbCity: openPatchedDB[entity.City](cfg.City, string(MaxmindDBTypeCity), cfg.CSVDirPath, true),
+		dbISP:  openPatchedDB[entity.ISP](cfg.ISP, string(MaxmindDBTypeISP), cfg.CSVDirPath, false),
 	}
+	res.cityUpdater = NewBaseUpdateRepository(
+		"geoip_city.lock",
+		cfg.AutoUpdatePeriod,
+		res.dbCity.Update,
+	)
 
-	go rep.initCSVDumps(context.Background(), csvDirPath)
-	return &rep
+	res.ispUpdater = NewBaseUpdateRepository(
+		"geoip_isp.lock",
+		cfg.AutoUpdatePeriod,
+		func(ctx context.Context, force bool) error {
+			if res.dbISP == nil {
+				return utils.ErrDisabled
+			}
+			return res.dbISP.Update(ctx, force)
+		},
+	)
+	return res
 }
 
-func (r *GeoIPRepository) initCSVDumps(ctx context.Context, csvDirPath string) {
-	r.dbCity.initCSVDump(ctx, filepath.Join(csvDirPath, "dump.csv"))
-
-	if r.dbISP != nil {
-		r.dbISP.initCSVDump(ctx, filepath.Join(csvDirPath, "isp.csv"))
-	}
-}
-
-func lookup[T any](db maxmind.Database, ip net.IP) (*T, error) {
+func lookup[T any](ctx context.Context, db maxmind.Database, ip net.IP) (*T, error) {
 	var obj T
-	return &obj, db.Lookup(ip, &obj)
+	return &obj, db.Lookup(ctx, ip, &obj)
 }
 
 func (r *GeoIPRepository) Country(ctx context.Context, ip net.IP) (*entity.Country, error) {
-	return lookup[entity.Country](r.dbCity, ip)
+	return lookup[entity.Country](ctx, r.dbCity, ip)
 }
 
 func (r *GeoIPRepository) City(ctx context.Context, ip net.IP, includeISP bool) (*entity.City, error) {
-	city, err := lookup[entity.City](r.dbCity, ip)
+	city, err := lookup[entity.City](ctx, r.dbCity, ip)
 	if err != nil {
 		return nil, err
 	}
 	if includeISP {
 		var isp entity.ISP
-		err := r.dbISP.Lookup(ip, &isp)
+		err := r.dbISP.Lookup(ctx, ip, &isp)
 		if err != nil {
 			log.FromContext(ctx).ErrorWithFields(log.Fields{"err": err}, "Failed to fill ISP")
 		} else {
@@ -104,7 +154,7 @@ func (r *GeoIPRepository) City(ctx context.Context, ip net.IP, includeISP bool) 
 }
 
 func (r *GeoIPRepository) CityLite(ctx context.Context, ip net.IP, lang string) (*entity.CityLite, error) {
-	cityLiteDB, err := lookup[entity.CityLiteDb](r.dbCity, ip)
+	cityLiteDB, err := lookup[entity.CityLiteDb](ctx, r.dbCity, ip)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +166,7 @@ func (r *GeoIPRepository) MetaData(ctx context.Context, dbType MaxmindDBType) (*
 	if err != nil {
 		return nil, err
 	}
-	return db.MetaData()
+	return db.MetaData(ctx)
 }
 
 func (r *GeoIPRepository) Database(ctx context.Context, dbType MaxmindDBType, format DumpFormat) (*entity.Database, error) {
@@ -124,7 +174,7 @@ func (r *GeoIPRepository) Database(ctx context.Context, dbType MaxmindDBType, fo
 	if err != nil {
 		return nil, err
 	}
-	meta, err := db.MetaData()
+	meta, err := db.MetaData(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +191,7 @@ func (r *GeoIPRepository) Database(ctx context.Context, dbType MaxmindDBType, fo
 			return nil, fmt.Errorf("%s: %w", dbType, ErrCSVNotSupported)
 		}
 	case DumpFormatMMDB:
-		data, err = db.RawData()
+		data, err = db.RawData(ctx)
 	default:
 		return nil, utils.ErrUnknownFormat
 	}
@@ -155,13 +205,13 @@ func (r *GeoIPRepository) Database(ctx context.Context, dbType MaxmindDBType, fo
 	}, nil
 }
 
-func (r *GeoIPRepository) database(ctx context.Context, dbType MaxmindDBType) (maxmind.Database, error) {
+func (r *GeoIPRepository) database(_ context.Context, dbType MaxmindDBType) (maxmind.Database, error) {
 	var db maxmind.Database
 	switch dbType {
 	case MaxmindDBTypeCity:
 		db = r.dbCity
 	case MaxmindDBTypeISP:
-		if len(r.ispPath) == 0 {
+		if r.dbISP == nil {
 			return nil, ErrGeoIPCSVDisabled
 		}
 		db = r.dbISP
@@ -173,4 +223,64 @@ func (r *GeoIPRepository) database(ctx context.Context, dbType MaxmindDBType) (m
 		return nil, ErrDBNotAvailable
 	}
 	return db, nil
+}
+
+func (r *GeoIPRepository) Run(ctx context.Context) error {
+	var errGroup errgroup.Group
+	errGroup.Go(func() error {
+		return r.cityUpdater.Run(ctx)
+	})
+	errGroup.Go(func() error {
+		return r.ispUpdater.Run(ctx)
+	})
+	return errGroup.Wait()
+}
+
+func (r *GeoIPRepository) StartUpdate(ctx context.Context, dbType MaxmindDBType) error {
+	switch dbType {
+	case MaxmindDBTypeCity:
+		return r.cityUpdater.StartUpdate(ctx)
+	case MaxmindDBTypeISP:
+		return r.ispUpdater.StartUpdate(ctx)
+	default:
+		return errors.New("unknown database type")
+	}
+}
+
+func (r *GeoIPRepository) CheckUpdates(ctx context.Context, dbType MaxmindDBType) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
+	result, err, _ := r.checkUpdatesSF.Do("check_updates_"+string(dbType), func() (interface{}, error) {
+		switch dbType {
+		case MaxmindDBTypeCity:
+			return r.checkCityUpdates(ctx)
+		case MaxmindDBTypeISP:
+			return r.checkISPUpdates(ctx)
+		default:
+			return entity.DBUpdate[entity.PatchedMMDBVersion]{}, errors.New("unknown database type")
+		}
+	})
+	return result.(entity.DBUpdate[entity.PatchedMMDBVersion]), err
+}
+
+func (r *GeoIPRepository) checkCityUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
+	update, err := r.dbCity.CheckUpdates(ctx)
+	if err != nil {
+		return entity.DBUpdate[entity.PatchedMMDBVersion]{}, err
+	}
+	return entity.NewDBUpdate(
+		update,
+		r.cityUpdater.IsInProgress(),
+		r.cityUpdater.LastErr(),
+	), nil
+}
+
+func (r *GeoIPRepository) checkISPUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
+	update, err := r.dbISP.CheckUpdates(ctx)
+	if err != nil {
+		return entity.DBUpdate[entity.PatchedMMDBVersion]{}, err
+	}
+	return entity.NewDBUpdate(
+		update,
+		r.ispUpdater.IsInProgress(),
+		r.ispUpdater.LastErr(),
+	), nil
 }

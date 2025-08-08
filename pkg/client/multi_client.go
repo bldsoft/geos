@@ -12,9 +12,10 @@ type MultiClient struct {
 	Clients []Client
 }
 
-func getFromAny[T any](ctx context.Context, clients []Client, f func(ctx context.Context, client Client) (*T, error)) (*T, error) {
+func getFromAny[T any](ctx context.Context, clients []Client, f func(ctx context.Context, client Client) (T, error)) (T, error) {
 	if len(clients) == 0 {
-		return nil, errors.New("no clients")
+		var zero T
+		return zero, errors.New("no clients")
 	}
 	var multiErr error
 	for _, client := range clients {
@@ -24,7 +25,8 @@ func getFromAny[T any](ctx context.Context, clients []Client, f func(ctx context
 		}
 		multiErr = multierror.Append(multiErr, err)
 	}
-	return nil, multiErr
+	var zero T
+	return zero, multiErr
 }
 
 func (c *MultiClient) Country(ctx context.Context, address string) (*entity.Country, error) {
@@ -45,7 +47,7 @@ func (c *MultiClient) CityLite(ctx context.Context, address, lang string) (*enti
 	})
 }
 
-func getManyFromAny[T any](ctx context.Context, clients []Client, f func(ctx context.Context, client Client) ([]*T, error)) ([]*T, error) {
+func getManyFromAny[T any](ctx context.Context, clients []Client, f func(ctx context.Context, client Client) ([]T, error)) ([]T, error) {
 	var multiErr error
 	for _, client := range clients {
 		obj, err := f(ctx, client)
@@ -78,4 +80,43 @@ func (c *MultiClient) GeoNameCities(ctx context.Context, filter entity.GeoNameFi
 	return getManyFromAny(ctx, c.Clients, func(ctx context.Context, client Client) ([]*entity.GeoName, error) {
 		return client.GeoNameCities(ctx, filter)
 	})
+}
+
+func (c *MultiClient) CheckGeoIPCityUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
+	return getFromAny(ctx, c.Clients, func(ctx context.Context, client Client) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
+		return client.CheckGeoIPCityUpdates(ctx)
+	})
+}
+
+func (c *MultiClient) CheckGeoIPISPUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
+	return getFromAny(ctx, c.Clients, func(ctx context.Context, client Client) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
+		return client.CheckGeoIPISPUpdates(ctx)
+	})
+}
+
+func (c *MultiClient) CheckGeonamesUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedGeoNamesVersion], error) {
+	return getFromAny(ctx, c.Clients, func(ctx context.Context, client Client) (entity.DBUpdate[entity.PatchedGeoNamesVersion], error) {
+		return client.CheckGeonamesUpdates(ctx)
+	})
+}
+
+func (c *MultiClient) UpdateGeoIPCity(ctx context.Context) error {
+	_, err := getFromAny(ctx, c.Clients, func(ctx context.Context, client Client) (any, error) {
+		return nil, client.UpdateGeoIPCity(ctx)
+	})
+	return err
+}
+
+func (c *MultiClient) UpdateGeoIPISP(ctx context.Context) error {
+	_, err := getFromAny(ctx, c.Clients, func(ctx context.Context, client Client) (any, error) {
+		return nil, client.UpdateGeoIPISP(ctx)
+	})
+	return err
+}
+
+func (c *MultiClient) UpdateGeonames(ctx context.Context) error {
+	_, err := getFromAny(ctx, c.Clients, func(ctx context.Context, client Client) (any, error) {
+		return nil, client.UpdateGeonames(ctx)
+	})
+	return err
 }

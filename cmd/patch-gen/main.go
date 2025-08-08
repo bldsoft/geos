@@ -13,6 +13,7 @@ import (
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/geonames"
+	"github.com/bldsoft/geos/pkg/storage/source"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/exp/slices"
 
@@ -158,14 +159,13 @@ func main() {
 }
 
 func geonamesStorage(ctx context.Context, customFilePath string) geonames.Storage {
-	originalStorage := geonames.NewStorage("/tmp/")
-	geonameStorage := geonames.NewMultiStorage(originalStorage)
+	origStorage := source.NewGeoNamesSource("/tmp/")
+	originalStorage := geonames.NewStorage(ctx, origStorage, true)
+	geonameStorage := geonames.NewPatchedStorage(originalStorage)
 
-	if customStorage, err := geonames.NewCustomStorageFromFile(customFilePath); err == nil {
-		return geonameStorage.Add(customStorage)
-	}
-	originalStorage.WaitReady()
-	return geonameStorage
+	customSource := source.NewTSUpdatableFile(customFilePath, "")
+	customStorage := geonames.NewCustomStorage(ctx, customSource)
+	return geonameStorage.Add(customStorage)
 }
 
 func isGeoNameIDAlradyInUse(ctx context.Context, storage geonames.Storage, id uint64) error {

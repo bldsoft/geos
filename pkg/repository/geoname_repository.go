@@ -4,18 +4,90 @@ import (
 	"bytes"
 	"context"
 	"encoding/csv"
+	"net/url"
+	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/geonames"
+	"github.com/bldsoft/geos/pkg/storage/source"
+	"github.com/bldsoft/gost/log"
+	"golang.org/x/sync/singleflight"
 )
 
+const GeonamesDBType = "geonames"
+
+type StorageConfig struct {
+	LocalDir         string
+	PatchesRemoteURL string
+	AutoUpdatePeriod time.Duration
+}
 type GeoNameRepository struct {
-	storage geonames.Storage
+	cfg     StorageConfig
+	storage *geonames.PatchedStorage
+
+	storageUpdater *updaterWithLastErr
+
+	*baseUpdateRepository
+	checkUpdatesSF singleflight.Group
 }
 
-func NewGeoNamesRepository(storage geonames.Storage) *GeoNameRepository {
-	return &GeoNameRepository{storage: storage}
+func NewGeoNamesRepository(config StorageConfig) *GeoNameRepository {
+	logger := log.Logger.WithFields(log.Fields{"db": "geonames"})
+	ctx := context.WithValue(context.Background(), log.LoggerCtxKey, logger)
+
+	origSource := source.NewGeoNamesSource(config.LocalDir)
+	original := geonames.NewStorage(ctx, origSource)
+	storage := geonames.NewPatchedStorage(original)
+
+	if config.PatchesRemoteURL != "" {
+		patchesURL, err := url.Parse(config.PatchesRemoteURL)
+		if err != nil {
+			log.FromContext(ctx).Fatalf("Failed to parse patches remote url: %s", err)
+		}
+		patchSource := source.NewTSUpdatableFile(
+			filepath.Join(filepath.Dir(config.LocalDir), GeonamesDBType+"_patch"+filepath.Ext(patchesURL.Path)),
+			config.PatchesRemoteURL,
+		)
+		custom := geonames.NewCustomStorage(ctx, patchSource)
+		storage = storage.Add(custom)
+	}
+
+	res := &GeoNameRepository{
+		cfg:            config,
+		storage:        storage,
+		storageUpdater: newUpdaterWithLastErr(storage.Update),
+	}
+	res.baseUpdateRepository = NewBaseUpdateRepository(
+		"geonames.lock",
+		config.AutoUpdatePeriod,
+		res.storageUpdater.Update,
+	)
+	return res
+}
+
+func (r *GeoNameRepository) Run(ctx context.Context) error {
+	return r.baseUpdateRepository.Run(ctx)
+}
+
+func (r *GeoNameRepository) StartUpdate(ctx context.Context) error {
+	return r.baseUpdateRepository.StartUpdate(ctx)
+}
+
+func (r *GeoNameRepository) CheckUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedGeoNamesVersion], error) {
+	result, err, _ := r.checkUpdatesSF.Do("check_updates", func() (interface{}, error) {
+		updates, err := r.storage.CheckUpdates(ctx)
+		if err != nil {
+			return entity.DBUpdate[entity.PatchedGeoNamesVersion]{}, err
+		}
+		return entity.NewDBUpdate(
+			updates,
+			r.IsInProgress(),
+			r.LastErr(),
+		), nil
+	})
+	return result.(entity.DBUpdate[entity.PatchedGeoNamesVersion]), err
 }
 
 func (r *GeoNameRepository) Continents(ctx context.Context) []*entity.GeoNameContinent {
