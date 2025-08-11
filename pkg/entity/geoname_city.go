@@ -14,14 +14,6 @@ type GeoName struct {
 	SubdivisionName string `csv:"subdivision name"`
 }
 
-type geoNameJson struct {
-	*modelGeoNameJson
-	ContinentCode   string `csv:"continent code" json:"continentCode"`
-	ContinentName   string `csv:"continent name" json:"continentName"`
-	CountryName     string `csv:"country name" json:"countryName"`
-	SubdivisionName string `csv:"subdivision name" json:"subdivisionName"`
-}
-
 // same as models.Geoname, but with json tags
 type modelGeoNameJson struct {
 	Id                    int         `csv:"geonameid" valid:"required" json:"geoNameID"`
@@ -82,21 +74,37 @@ func (g GeoName) GetTimeZone() string {
 }
 
 func (s GeoName) MarshalJSON() ([]byte, error) {
-	return json.Marshal(&geoNameJson{
-		modelGeoNameJson: (*modelGeoNameJson)(s.Geoname),
-		ContinentCode:    s.ContinentCode,
-		ContinentName:    s.ContinentName,
-		CountryName:      s.CountryName,
-		SubdivisionName:  s.SubdivisionName,
+
+	type ModelTmp modelGeoNameJson
+	return json.Marshal(struct {
+		*ModelTmp
+		ContinentCode   string `csv:"continent code" json:"continentCode"`
+		ContinentName   string `csv:"continent name" json:"continentName"`
+		CountryName     string `csv:"country name" json:"countryName"`
+		SubdivisionName string `csv:"subdivision name" json:"subdivisionName"`
+	}{
+		ModelTmp:        (*ModelTmp)(s.Geoname),
+		ContinentCode:   s.ContinentCode,
+		ContinentName:   s.ContinentName,
+		CountryName:     s.CountryName,
+		SubdivisionName: s.SubdivisionName,
 	})
 }
 
 func (s *GeoName) UnmarshalJSON(data []byte) error {
-	var geoNameJson geoNameJson
+	type ModelTmp modelGeoNameJson
+	type tmp struct {
+		*ModelTmp
+		ContinentCode   string `csv:"continent code" json:"continentCode"`
+		ContinentName   string `csv:"continent name" json:"continentName"`
+		CountryName     string `csv:"country name" json:"countryName"`
+		SubdivisionName string `csv:"subdivision name" json:"subdivisionName"`
+	}
+	var geoNameJson tmp
 	if err := json.Unmarshal(data, &geoNameJson); err != nil {
 		return err
 	}
-	s.Geoname = (*models.Geoname)(geoNameJson.modelGeoNameJson)
+	s.Geoname = (*models.Geoname)(geoNameJson.ModelTmp)
 	s.ContinentCode = geoNameJson.ContinentCode
 	s.ContinentName = geoNameJson.ContinentName
 	s.CountryName = geoNameJson.CountryName

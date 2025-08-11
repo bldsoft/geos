@@ -14,13 +14,6 @@ type GeoNameAdminSubdivision struct {
 	CountryName   string `csv:"country name"`
 }
 
-type adminSubdivisionJson struct {
-	*modelSubdivisionJson
-	ContinentCode string `csv:"continent code" json:"continentCode"`
-	ContinentName string `csv:"continent name" json:"continentName"`
-	CountryName   string `csv:"country name" json:"countryName"`
-}
-
 // same as models.AdminDivision, but with json tags
 type modelSubdivisionJson struct {
 	Code      string `csv:"concatenated codes" valid:"required" json:"code"`
@@ -74,20 +67,33 @@ func (s GeoNameAdminSubdivision) GetTimeZone() string {
 }
 
 func (s GeoNameAdminSubdivision) MarshalJSON() ([]byte, error) {
-	return json.Marshal(&adminSubdivisionJson{
-		modelSubdivisionJson: (*modelSubdivisionJson)(s.AdminDivision),
-		ContinentCode:        s.ContinentCode,
-		ContinentName:        s.ContinentName,
-		CountryName:          s.CountryName,
+	type ModelTmp modelSubdivisionJson
+	return json.Marshal(struct {
+		*ModelTmp
+		ContinentCode string `csv:"continent code" json:"continentCode"`
+		ContinentName string `csv:"continent name" json:"continentName"`
+		CountryName   string `csv:"country name" json:"countryName"`
+	}{
+		ModelTmp:      (*ModelTmp)(s.AdminDivision),
+		ContinentCode: s.ContinentCode,
+		ContinentName: s.ContinentName,
+		CountryName:   s.CountryName,
 	})
 }
 
 func (s *GeoNameAdminSubdivision) UnmarshalJSON(data []byte) error {
-	var subdivisionJson adminSubdivisionJson
+	type ModelTmp modelSubdivisionJson
+	type tmp struct {
+		*ModelTmp
+		ContinentCode string `csv:"continent code" json:"continentCode"`
+		ContinentName string `csv:"continent name" json:"continentName"`
+		CountryName   string `csv:"country name" json:"countryName"`
+	}
+	var subdivisionJson tmp
 	if err := json.Unmarshal(data, &subdivisionJson); err != nil {
 		return err
 	}
-	s.AdminDivision = (*models.AdminDivision)(subdivisionJson.modelSubdivisionJson)
+	s.AdminDivision = (*models.AdminDivision)(subdivisionJson.ModelTmp)
 	s.ContinentCode = subdivisionJson.ContinentCode
 	s.ContinentName = subdivisionJson.ContinentName
 	s.CountryName = subdivisionJson.CountryName

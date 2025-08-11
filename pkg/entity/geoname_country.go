@@ -11,12 +11,7 @@ type GeoNameCountry struct {
 	ContinentName string `csv:"continent name"`
 }
 
-type geoNameCountryJson struct {
-	*modelCountryJson
-	ContinentName string `csv:"continent name" json:"continentName"`
-}
-
-// same as models.Country, but with json tags
+// same as models.Country, but with рjson tags
 type modelCountryJson struct {
 	Iso2Code           string  `csv:"ISO" valid:"required" json:"iso2Code"`
 	Iso3Code           string  `csv:"ISO3" valid:"required" json:"iso3Code"`
@@ -76,18 +71,27 @@ func (s GeoNameCountry) GetTimeZone() string {
 }
 
 func (s GeoNameCountry) MarshalJSON() ([]byte, error) {
-	return json.Marshal(&geoNameCountryJson{
-		modelCountryJson: (*modelCountryJson)(s.Country),
-		ContinentName:    s.ContinentName,
+	type ModelTmp modelCountryJson
+	return json.Marshal(struct {
+		*ModelTmp
+		ContinentName string `csv:"continent name" json:"continentName"`
+	}{
+		ModelTmp:      (*ModelTmp)(s.Country),
+		ContinentName: s.ContinentName,
 	})
 }
 
 func (s *GeoNameCountry) UnmarshalJSON(data []byte) error {
-	var countryJson geoNameCountryJson
+	type ModelTmp modelCountryJson
+	type tmp struct {
+		*ModelTmp
+		ContinentName string `csv:"continent name" json:"continentName"`
+	}
+	var countryJson tmp
 	if err := json.Unmarshal(data, &countryJson); err != nil {
 		return err
 	}
-	s.Country = (*models.Country)(countryJson.modelCountryJson)
+	s.Country = (*models.Country)(countryJson.ModelTmp)
 	s.ContinentName = countryJson.ContinentName
 	return nil
 }
