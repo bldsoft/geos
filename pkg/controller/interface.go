@@ -11,6 +11,7 @@ type GeoIpService interface {
 	Country(ctx context.Context, address string) (*entity.Country, error)
 	City(ctx context.Context, address string, includeISP bool) (*entity.City, error)
 	CityLite(ctx context.Context, address string, lang string) (*entity.CityLite, error)
+	Hosting(ctx context.Context, address string) (*entity.Hosting, error)
 	MetaData(ctx context.Context, dbType service.DBType) (*entity.MetaData, error)
 	Database(ctx context.Context, dbType service.DBType, format service.DumpFormat) (*entity.Database, error)
 

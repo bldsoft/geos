@@ -38,8 +38,9 @@ const (
 type MaxmindDBType string
 
 const (
-	MaxmindDBTypeCity MaxmindDBType = "city"
-	MaxmindDBTypeISP  MaxmindDBType = "isp"
+	MaxmindDBTypeCity    MaxmindDBType = "city"
+	MaxmindDBTypeISP     MaxmindDBType = "isp"
+	MaxmindDBTypeHosting MaxmindDBType = "hosting"
 )
 
 func openPatchedDB[T maxmind.CSVEntity](
@@ -47,6 +48,11 @@ func openPatchedDB[T maxmind.CSVEntity](
 ) *maxmindDBWithCachedCSVDump {
 	logger := log.Logger.WithFields(log.Fields{"db": customPrefix})
 	ctx := context.WithValue(context.Background(), log.LoggerCtxKey, logger)
+
+	if len(conf.LocalPath) == 0 && len(conf.RemoteURL) == 0 && !required {
+		logger.Info("DB is not set, skipping")
+		return nil
+	}
 
 	dbSource := source.NewMMDBSource(conf.LocalPath, conf.RemoteURL)
 	originalDB, err := maxmind.Open(ctx, dbSource)
@@ -89,24 +95,26 @@ type DBConfig struct {
 type GeoIPRepositoryConfig struct {
 	City             DBConfig
 	ISP              DBConfig
+	Hosting          DBConfig
 	CSVDirPath       string
 	AutoUpdatePeriod time.Duration
 }
 
 type GeoIPRepository struct {
-	cfg           GeoIPRepositoryConfig
-	dbCity, dbISP *maxmindDBWithCachedCSVDump
+	cfg                      GeoIPRepositoryConfig
+	dbCity, dbISP, dbHosting *maxmindDBWithCachedCSVDump
 
 	checkUpdatesSF singleflight.Group
 
-	cityUpdater, ispUpdater *baseUpdateRepository
+	cityUpdater, ispUpdater, hostingUpdater *baseUpdateRepository
 }
 
 func NewGeoIPRepository(cfg GeoIPRepositoryConfig) *GeoIPRepository {
 	res := &GeoIPRepository{
-		cfg:    cfg,
-		dbCity: openPatchedDB[entity.City](cfg.City, string(MaxmindDBTypeCity), cfg.CSVDirPath, true),
-		dbISP:  openPatchedDB[entity.ISP](cfg.ISP, string(MaxmindDBTypeISP), cfg.CSVDirPath, false),
+		cfg:       cfg,
+		dbCity:    openPatchedDB[entity.City](cfg.City, string(MaxmindDBTypeCity), cfg.CSVDirPath, true),
+		dbISP:     openPatchedDB[entity.ISP](cfg.ISP, string(MaxmindDBTypeISP), cfg.CSVDirPath, false),
+		dbHosting: openPatchedDB[entity.Hosting](cfg.Hosting, string(MaxmindDBTypeHosting), cfg.CSVDirPath, false),
 	}
 	res.cityUpdater = NewBaseUpdateRepository(
 		"geoip_city.lock",
@@ -122,6 +130,16 @@ func NewGeoIPRepository(cfg GeoIPRepositoryConfig) *GeoIPRepository {
 				return utils.ErrDisabled
 			}
 			return res.dbISP.Update(ctx, force)
+		},
+	)
+	res.hostingUpdater = NewBaseUpdateRepository(
+		"geoip_hosting.lock",
+		cfg.AutoUpdatePeriod,
+		func(ctx context.Context, force bool) error {
+			if res.dbHosting == nil {
+				return utils.ErrDisabled
+			}
+			return res.dbHosting.Update(ctx, force)
 		},
 	)
 	return res
@@ -159,6 +177,10 @@ func (r *GeoIPRepository) CityLite(ctx context.Context, ip net.IP, lang string) 
 		return nil, err
 	}
 	return entity.DbToCityLite(cityLiteDB, lang), nil
+}
+
+func (r *GeoIPRepository) Hosting(ctx context.Context, ip net.IP) (*entity.Hosting, error) {
+	return lookup[entity.Hosting](ctx, r.dbHosting, ip)
 }
 
 func (r *GeoIPRepository) MetaData(ctx context.Context, dbType MaxmindDBType) (*entity.MetaData, error) {
@@ -215,6 +237,11 @@ func (r *GeoIPRepository) database(_ context.Context, dbType MaxmindDBType) (max
 			return nil, ErrGeoIPCSVDisabled
 		}
 		db = r.dbISP
+	case MaxmindDBTypeHosting:
+		if r.dbHosting == nil {
+			return nil, ErrGeoIPCSVDisabled
+		}
+		db = r.dbHosting
 	default:
 		return nil, errors.New("unknown database type")
 	}
@@ -233,6 +260,9 @@ func (r *GeoIPRepository) Run(ctx context.Context) error {
 	errGroup.Go(func() error {
 		return r.ispUpdater.Run(ctx)
 	})
+	errGroup.Go(func() error {
+		return r.hostingUpdater.Run(ctx)
+	})
 	return errGroup.Wait()
 }
 
@@ -242,6 +272,8 @@ func (r *GeoIPRepository) StartUpdate(ctx context.Context, dbType MaxmindDBType)
 		return r.cityUpdater.StartUpdate(ctx)
 	case MaxmindDBTypeISP:
 		return r.ispUpdater.StartUpdate(ctx)
+	case MaxmindDBTypeHosting:
+		return r.hostingUpdater.StartUpdate(ctx)
 	default:
 		return errors.New("unknown database type")
 	}
@@ -254,6 +286,8 @@ func (r *GeoIPRepository) CheckUpdates(ctx context.Context, dbType MaxmindDBType
 			return r.checkCityUpdates(ctx)
 		case MaxmindDBTypeISP:
 			return r.checkISPUpdates(ctx)
+		case MaxmindDBTypeHosting:
+			return r.checkHostingUpdates(ctx)
 		default:
 			return entity.DBUpdate[entity.PatchedMMDBVersion]{}, errors.New("unknown database type")
 		}
@@ -282,5 +316,17 @@ func (r *GeoIPRepository) checkISPUpdates(ctx context.Context) (entity.DBUpdate[
 		update,
 		r.ispUpdater.IsInProgress(),
 		r.ispUpdater.LastErr(),
+	), nil
+}
+
+func (r *GeoIPRepository) checkHostingUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
+	update, err := r.dbHosting.CheckUpdates(ctx)
+	if err != nil {
+		return entity.DBUpdate[entity.PatchedMMDBVersion]{}, err
+	}
+	return entity.NewDBUpdate(
+		update,
+		r.hostingUpdater.IsInProgress(),
+		r.hostingUpdater.LastErr(),
 	), nil
 }

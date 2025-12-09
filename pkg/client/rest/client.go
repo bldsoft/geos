@@ -101,6 +101,10 @@ func (c *Client) CityLite(ctx context.Context, address, lang string) (*entity.Ci
 	return get[*entity.CityLite](ctx, c.client, "city-lite/"+address, nil)
 }
 
+func (c *Client) Hosting(ctx context.Context, address string) (*entity.Hosting, error) {
+	return get[*entity.Hosting](ctx, c.client, "hosting/"+address, nil)
+}
+
 func (c *Client) GeoIPDump(ctx context.Context) (*resty.Response, error) {
 	return c.client.R().SetHeader(microservice.APIKey, c.APIKey()).Get("/dump")
 }
@@ -156,6 +160,10 @@ func (c *Client) CheckGeoIPISPUpdates(ctx context.Context) (entity.DBUpdate[enti
 	return getRequest[entity.DBUpdate[entity.PatchedMMDBVersion]](c.requestWithApiKey(ctx), "dump/isp/update")
 }
 
+func (c *Client) CheckGeoIPHostingUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
+	return getRequest[entity.DBUpdate[entity.PatchedMMDBVersion]](c.requestWithApiKey(ctx), "dump/hosting/update")
+}
+
 func (c *Client) CheckGeonamesUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedGeoNamesVersion], error) {
 	return getRequest[entity.DBUpdate[entity.PatchedGeoNamesVersion]](c.requestWithApiKey(ctx), "geoname/update")
 }
@@ -166,6 +174,10 @@ func (c *Client) UpdateGeoIPCity(ctx context.Context) error {
 
 func (c *Client) UpdateGeoIPISP(ctx context.Context) error {
 	return c.update(ctx, "dump/isp/update")
+}
+
+func (c *Client) UpdateGeoIPHosting(ctx context.Context) error {
+	return c.update(ctx, "dump/hosting/update")
 }
 
 func (c *Client) UpdateGeonames(ctx context.Context) error {
