@@ -642,6 +642,46 @@ const docTemplate = `{
                 }
             }
         },
+        "/hosting/{addr}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "geo IP"
+                ],
+                "summary": "hosting",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ip or hostname",
+                        "name": "addr",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entity.Hosting"
+                        }
+                    },
+                    "400": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/ping": {
             "get": {
                 "produces": [
@@ -1010,7 +1050,16 @@ const docTemplate = `{
                 "code": {
                     "type": "string"
                 },
+                "continentCode": {
+                    "type": "string"
+                },
+                "continentName": {
+                    "type": "string"
+                },
                 "countryCode": {
+                    "type": "string"
+                },
+                "countryName": {
                     "type": "string"
                 },
                 "digitalElevationModel": {
@@ -1037,6 +1086,9 @@ const docTemplate = `{
                 "population": {
                     "type": "integer"
                 },
+                "subdivisionName": {
+                    "type": "string"
+                },
                 "timezone": {
                     "type": "string"
                 }
@@ -1049,6 +1101,15 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "code": {
+                    "type": "string"
+                },
+                "continentCode": {
+                    "type": "string"
+                },
+                "continentName": {
+                    "type": "string"
+                },
+                "countryName": {
                     "type": "string"
                 },
                 "geonameId": {
@@ -1069,6 +1130,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "continent": {
+                    "type": "string"
+                },
+                "continentName": {
                     "type": "string"
                 },
                 "currencyCode": {
@@ -1117,6 +1181,17 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "tld": {
+                    "type": "string"
+                }
+            }
+        },
+        "entity.Hosting": {
+            "type": "object",
+            "properties": {
+                "datacenter": {
+                    "type": "string"
+                },
+                "domain": {
                     "type": "string"
                 }
             }
