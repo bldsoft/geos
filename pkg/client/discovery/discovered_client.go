@@ -133,3 +133,10 @@ func (c *discoveredClient) UpdateGeonames(ctx context.Context) error {
 		})
 	return err
 }
+
+func (c *discoveredClient) Hosting(ctx context.Context, address string) (*entity.Hosting, error) {
+	return doWithClientLoader[client.Client, *entity.Hosting](c.clientLoader, true,
+		func(client client.Client) (res *entity.Hosting, err error) {
+			return client.Hosting(ctx, address)
+		})
+}
