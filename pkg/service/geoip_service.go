@@ -16,6 +16,7 @@ type GeoRepository interface {
 	Country(ctx context.Context, ip net.IP) (*entity.Country, error)
 	City(ctx context.Context, ip net.IP, includeISP bool) (*entity.City, error)
 	CityLite(ctx context.Context, ip net.IP, lang string) (*entity.CityLite, error)
+	Hosting(ctx context.Context, ip net.IP) (*entity.Hosting, error)
 	MetaData(ctx context.Context, dbType DBType) (*entity.MetaData, error)
 	Database(ctx context.Context, dbType DBType, format DumpFormat) (*entity.Database, error)
 
@@ -78,6 +79,14 @@ func (s *GeoIpService) CityLite(ctx context.Context, address string, lang string
 	}
 
 	return s.rep.CityLite(ctx, ip, lang)
+}
+
+func (s *GeoIpService) Hosting(ctx context.Context, address string) (*entity.Hosting, error) {
+	ip, err := s.ip(ctx, address)
+	if err != nil {
+		return nil, err
+	}
+	return s.rep.Hosting(ctx, ip)
 }
 
 func (r *GeoIpService) MetaData(ctx context.Context, dbType DBType) (*entity.MetaData, error) {

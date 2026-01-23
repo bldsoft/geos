@@ -17,6 +17,7 @@ type GeoNameClient interface {
 	GeoNameCountries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error)
 	GeoNameSubdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameAdminSubdivision, error)
 	GeoNameCities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error)
+	Hosting(ctx context.Context, address string) (*entity.Hosting, error)
 }
 
 type ManagementClient interface {

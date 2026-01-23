@@ -25,14 +25,17 @@ type Config struct {
 	GRPCServiceBindAddress config.Address `mapstructure:"GRPC_SERVICE_BIND_ADDRESS" description:"Service configuration related to what address bind to and port to listen"`
 	GRPCServiceAddress     config.Address `mapstructure:"GRPC_SERVICE_ADDRESS" description:"GRPC public address"`
 
-	GeoDbSource           string `mapstructure:"GEOIP_DB_SOURCE" description:"Source to download GeoLite2 or GeoIP2 city database from"`
-	GeoDbPatchesSource    string `mapstructure:"GEOIP_DB_PATCHES_SOURCE" description:"Source for downloading patches for city database (in .tar.gz)"`
-	GeoDbISPSource        string `mapstructure:"GEOIP_DB_ISP_SOURCE" description:"Source to download GeoIP2 ISP database from"`
-	GeoDbISPPatchesSource string `mapstructure:"GEOIP_DB_ISP_PATCHES_SOURCE" description:"Source for downloading custom ISP database patches (in .tar.gz)"`
-	AutoUpdatePeriodSec   int    `mapstructure:"AUTO_UPDATE_PERIOD_SEC" description:"Amount of seconds to wait before trying to automatically update from the source"`
+	GeoDbSource               string `mapstructure:"GEOIP_DB_SOURCE" description:"Source to download GeoLite2 or GeoIP2 city database from"`
+	GeoDbPatchesSource        string `mapstructure:"GEOIP_DB_PATCHES_SOURCE" description:"Source for downloading patches for city database (in .tar.gz)"`
+	GeoDbISPSource            string `mapstructure:"GEOIP_DB_ISP_SOURCE" description:"Source to download GeoIP2 ISP database from"`
+	GeoDbISPPatchesSource     string `mapstructure:"GEOIP_DB_ISP_PATCHES_SOURCE" description:"Source for downloading custom ISP database patches (in .tar.gz)"`
+	GeoDbHostingSource        string `mapstructure:"GEOIP_DB_HOSTING_SOURCE" description:"Source to download hosting database from"`
+	GeoDbHostingPatchesSource string `mapstructure:"GEOIP_DB_HOSTING_PATCHES_SOURCE" description:"Source for downloading custom hosting database patches (in .tar.gz)"`
+	AutoUpdatePeriodSec       int    `mapstructure:"AUTO_UPDATE_PERIOD_SEC" description:"Amount of seconds to wait before trying to automatically update from the source"`
 
-	GeoDbPath    string `mapstructure:"GEOIP_DB_PATH" description:"Path to GeoLite2 or GeoIP2 city database"`
-	GeoDbISPPath string `mapstructure:"GEOIP_DB_ISP_PATH" description:"Path to GeoIP2 ISP database"`
+	GeoDbPath        string `mapstructure:"GEOIP_DB_PATH" description:"Path to GeoLite2 or GeoIP2 city database"`
+	GeoDbISPPath     string `mapstructure:"GEOIP_DB_ISP_PATH" description:"Path to GeoIP2 ISP database"`
+	GeoDbHostingPath string `mapstructure:"GEOIP_DB_HOSTING_PATH" description:"Path to hosting database"`
 
 	Discovery common.Config `mapstructure:"DISCOVERY"`
 
@@ -70,6 +73,5 @@ func (c *Config) Validate() error {
 	if _, err := os.Stat(c.GeoDbISPPath); err != nil && len(c.GeoDbISPSource) == 0 {
 		return fmt.Errorf("GEOIP_DB_ISP_PATH %s: %w", c.GeoDbISPPath, err)
 	}
-
 	return nil
 }

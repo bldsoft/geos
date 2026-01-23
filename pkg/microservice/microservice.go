@@ -101,6 +101,11 @@ func (m *Microservice) initServices() {
 			RemoteURL:        m.config.GeoDbISPSource,
 			PatchesRemoteURL: m.config.GeoDbISPPatchesSource,
 		},
+		Hosting: repository.DBConfig{
+			LocalPath:        m.config.GeoDbHostingPath,
+			RemoteURL:        m.config.GeoDbHostingSource,
+			PatchesRemoteURL: m.config.GeoDbHostingPatchesSource,
+		},
 		CSVDirPath:       m.config.GeoIPCsvDumpDirPath,
 		AutoUpdatePeriod: time.Duration(m.config.AutoUpdatePeriodSec) * time.Second,
 	})
@@ -145,6 +150,7 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 		r.Get("/country/{addr}", geoIpController.GetCountryHandler)
 		r.Get("/city/{addr}", geoIpController.GetCityHandler)
 		r.Get("/city-lite/{addr}", geoIpController.GetCityLiteHandler)
+		r.Get("/hosting/{addr}", geoIpController.GetHostingHandler)
 
 		managementController := rest.NewManagementController(m.geoIpService, m.geoNameService)
 		r.Group(func(r chi.Router) {

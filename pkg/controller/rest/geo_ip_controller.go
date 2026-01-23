@@ -86,6 +86,24 @@ func (c *GeoIpController) GetCityLiteHandler(w http.ResponseWriter, r *http.Requ
 	c.ResponseJson(w, r, city)
 }
 
+// @Summary hosting
+// @Produce json
+// @Tags geo IP
+// @Param addr path string true "ip or hostname"
+// @Success 200 {object} entity.Hosting
+// @Failure 400 {string} string "error"
+// @Failure 500 {string} string "error"
+// @Router /hosting/{addr} [get]
+func (c *GeoIpController) GetHostingHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	hosting, err := c.geoIpService.Hosting(ctx, c.address(r))
+	if err != nil {
+		c.responseError(w, r, err)
+		return
+	}
+	c.ResponseJson(w, r, hosting)
+}
+
 // @Summary geoip database dump
 // @Security ApiKeyAuth
 // @Deprecated

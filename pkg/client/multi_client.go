@@ -120,3 +120,9 @@ func (c *MultiClient) UpdateGeonames(ctx context.Context) error {
 	})
 	return err
 }
+
+func (c *MultiClient) Hosting(ctx context.Context, address string) (*entity.Hosting, error) {
+	return getFromAny(ctx, c.Clients, func(ctx context.Context, client Client) (*entity.Hosting, error) {
+		return client.Hosting(ctx, address)
+	})
+}

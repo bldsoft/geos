@@ -18,9 +18,12 @@
 |GEOIP_DB_PATCHES_SOURCE||Source for downloading patches for city database (in .tar.gz)|
 |GEOIP_DB_ISP_SOURCE||Source to download GeoIP2 ISP database from|
 |GEOIP_DB_ISP_PATCHES_SOURCE||Source for downloading custom ISP database patches (in .tar.gz)|
+|GEOIP_DB_HOSTING_SOURCE||Source to download hosting database from|
+|GEOIP_DB_HOSTING_PATCHES_SOURCE||Source for downloading custom hosting database patches (in .tar.gz)|
 |AUTO_UPDATE_PERIOD_SEC|0|Amount of seconds to wait before trying to automatically update from the source|
 |GEOIP_DB_PATH|../../db.mmdb|Path to GeoLite2 or GeoIP2 city database|
 |GEOIP_DB_ISP_PATH||Path to GeoIP2 ISP database|
+|GEOIP_DB_HOSTING_PATH||Path to hosting database|
 |DISCOVERY_TYPE|none|Discovery type (none, in-house, consul)|
 |DISCOVERY_INHOUSE_EMBEDDED|true|If true, in-house discovery will use service bind address|
 |DISCOVERY_INHOUSE_BIND_ADDRESS|0.0.0.0:3001|For non embedded mode. Configuration related to what address to bind to and ports to listen on.|
@@ -31,7 +34,7 @@
 |DISCOVERY_CONSUL_TOKEN|| Token is used to provide a per-request ACL token|
 |DISCOVERY_CONSUL_HEALTH_CHECK_TTL|30s|Check TTL|
 |DISCOVERY_CONSUL_DEREREGISTER_TTL|30s|If a check is in the critical state for more than this configured value,	then the service will automatically be deregistered|
-|GEONAME_DUMP_DIR||The path to the directory where the GeoNames dumps are located (countryInfo.txt, admin1CodesASKII.txt, cities5000.zip). If variable isn't set, GeoNames api will be disabled. The dumps will be loaded when service starts, if something is missing|
+|GEONAME_DUMP_DIR|/data/geoname|The path to the directory where the GeoNames dumps are located (countryInfo.txt, admin1CodesASKII.txt, cities5000.zip). If variable isn't set, GeoNames api will be disabled. The dumps will be loaded when service starts, if something is missing|
 |GEONAME_PATCHES_SOURCE||Source for downloading custom GeoNames patches (in .tar.gz)|
 |GEOIP_DUMP_DIR||The path to the directory where the csv ip database is located. If the variable is set and the csv file is missing, the service will generate it from the mmdb when it starts.|
 |API_KEY|Dfga4pBfeRsMnxesWmY8eNBCW2Zf46kL|API key for dumps used for importing into other databases|

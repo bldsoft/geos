@@ -136,6 +136,10 @@ func (c *Client) CheckGeonamesUpdates(ctx context.Context) (entity.DBUpdate[enti
 	return entity.DBUpdate[entity.PatchedGeoNamesVersion]{}, errors.ErrUnsupported
 }
 
+func (c *Client) Hosting(ctx context.Context, address string) (*entity.Hosting, error) {
+	return &entity.Hosting{}, errors.ErrUnsupported
+}
+
 func (c *Client) UpdateGeoIPCity(ctx context.Context) error {
 	return errors.ErrUnsupported
 }
