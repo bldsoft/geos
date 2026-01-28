@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"os"
 	"time"
 
@@ -38,8 +40,7 @@ func main() {
 
 					res := maxmind.NewMultiMaxMindDB()
 					for _, path := range paths[:len(paths)-1] {
-						source := source.NewMMDBSource(path, "")
-						db, err := maxmind.Open(ctx.Context, source)
+						db, err := openDatabase(ctx.Context, path)
 						if err != nil {
 							return err
 						}
@@ -59,8 +60,7 @@ func main() {
 				Name: "metadata",
 				Action: func(ctx *cli.Context) error {
 					paths := ctx.Args().Slice()
-					source := source.NewMMDBSource(paths[0], "")
-					db, err := maxmind.Open(ctx.Context, source)
+					db, err := openDatabase(ctx.Context, paths[0])
 					if err != nil {
 						return err
 					}
@@ -80,6 +80,32 @@ func main() {
 					return nil
 				},
 			},
+			{
+				Name: "lookup",
+				Action: func(ctx *cli.Context) error {
+					dbPath := ctx.Args().Get(0)
+					ip := ctx.Args().Get(1)
+					if ip == "" {
+						return fmt.Errorf("ip is required")
+					}
+					db, err := openDatabase(ctx.Context, dbPath)
+					if err != nil {
+						return err
+					}
+					var res map[string]interface{}
+					err = db.Lookup(ctx.Context, net.ParseIP(ip), &res)
+					if err != nil {
+						return err
+					}
+					if len(res) == 0 {
+						return fmt.Errorf("no result found")
+					}
+					for k, v := range res {
+						fmt.Printf("%s: %v\n", k, v)
+					}
+					return nil
+				},
+			},
 		},
 	}
 
@@ -87,4 +113,13 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func openDatabase(ctx context.Context, dbPath string) (*maxmind.MaxmindDatabase, error) {
+	source := source.NewMMDBSource(dbPath, "")
+	db, err := maxmind.Open(ctx, source)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database: %s", dbPath)
+	}
+	return db, nil
 }
