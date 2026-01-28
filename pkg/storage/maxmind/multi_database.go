@@ -5,9 +5,8 @@ import (
 	"context"
 	"errors"
 	"io"
-	"net"
-
 	"maps"
+	"net"
 
 	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
@@ -158,7 +157,8 @@ func (db *MultiMaxMindDB) RawData(ctx context.Context) (io.Reader, error) {
 		for convertedNode := range convertedNodeC {
 			err = tree.InsertFunc(convertedNode.Network, inserter.ReplaceWith(convertedNode.Data))
 			if err != nil {
-				return err
+				log.FromContext(ctx).WarnWithFields(log.Fields{"err": err}, "failed to insert network")
+				continue
 			}
 			currentNode++
 			if currentNode%percent == 0 {

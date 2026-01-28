@@ -1,6 +1,6 @@
 module github.com/bldsoft/geos
 
-go 1.23.0
+go 1.24.0
 
 toolchain go1.24.1
 
@@ -11,16 +11,20 @@ require (
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/hashicorp/go-multierror v1.1.1
+	github.com/hashicorp/go-version v1.7.0
 	github.com/jellydator/ttlcache/v3 v3.0.1
+	github.com/klauspost/compress v1.17.4
 	github.com/manifoldco/promptui v0.9.0
-	github.com/maxmind/mmdbwriter v1.0.0
+	github.com/maxmind/mmdbwriter v1.2.0
 	github.com/mkrou/geonames v1.0.0
 	github.com/oschwald/maxminddb-golang v1.13.1
 	github.com/rs/zerolog v1.29.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	github.com/swaggo/swag v1.8.6
 	github.com/urfave/cli/v2 v2.17.1
+	go.uber.org/atomic v1.11.0
 	golang.org/x/exp v0.0.0-20230510235704-dd950f8aeaea
+	golang.org/x/sync v0.16.0
 	google.golang.org/grpc v1.57.1
 	google.golang.org/protobuf v1.30.0
 )
@@ -65,13 +69,11 @@ require (
 	github.com/hashicorp/go-msgpack v1.1.5 // indirect
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
 	github.com/hashicorp/go-sockaddr v1.0.5 // indirect
-	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hashicorp/serf v0.10.1 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/jszwec/csvutil v1.2.1 // indirect
-	github.com/klauspost/compress v1.17.4 // indirect
 	github.com/krolaw/zipstream v0.0.0-20180621105154-0a2661891f94 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
@@ -82,6 +84,7 @@ require (
 	github.com/miekg/dns v1.1.56 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
+	github.com/oschwald/maxminddb-golang/v2 v2.1.1 // indirect
 	github.com/paulmach/orb v0.10.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.6 // indirect
 	github.com/pierrec/lz4/v4 v4.1.18 // indirect
@@ -100,13 +103,11 @@ require (
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	go.opentelemetry.io/otel v1.21.0 // indirect
 	go.opentelemetry.io/otel/trace v1.21.0 // indirect
-	go.uber.org/atomic v1.11.0 // indirect
-	go4.org/netipx v0.0.0-20220812043211-3cc044ffd68d // indirect
+	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
 	golang.org/x/crypto v0.16.0 // indirect
 	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/net v0.19.0 // indirect
-	golang.org/x/sync v0.16.0 // indirect
-	golang.org/x/sys v0.32.0 // indirect
+	golang.org/x/sys v0.40.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/tools v0.14.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230525234030-28d5490b6b19 // indirect
