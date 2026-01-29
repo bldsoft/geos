@@ -100,7 +100,7 @@ func (db *MultiMaxMindDB) RawData(ctx context.Context) (io.Reader, error) {
 		return nonEmtpyDbs[0].RawData(ctx)
 	}
 
-	opts := mmdbwriter.Options{IncludeReservedNetworks: true}
+	opts := mmdbwriter.Options{IncludeReservedNetworks: true, DisableIPv4Aliasing: true}
 	tree, err := mmdbwriter.New(opts)
 	if err != nil {
 		return nil, err
