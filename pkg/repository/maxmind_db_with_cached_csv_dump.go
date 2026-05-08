@@ -52,6 +52,9 @@ func (db *maxmindDBWithCachedCSVDump) initCSVDump(ctx context.Context) {
 			return
 		}
 		db.archivedCSVWithNamesDump.Store(&data)
+		if err := db.ensureDumpVersion(ctx); err != nil {
+			log.FromContext(ctx).InfoWithFields(log.Fields{"err": err}, "Failed to create GeoIP dump metadata")
+		}
 		return
 	}
 
@@ -85,6 +88,9 @@ func (db *maxmindDBWithCachedCSVDump) WriteCSVTo(ctx context.Context, w io.Write
 func (db *maxmindDBWithCachedCSVDump) Update(ctx context.Context, force bool) error {
 	updates, err := db.PatchedDatabase.CheckUpdates(ctx)
 	if err != nil {
+		if metaErr := db.ensureDumpVersion(ctx); metaErr != nil {
+			return errors.Join(err, metaErr)
+		}
 		return err
 	}
 
@@ -135,6 +141,24 @@ func (db *maxmindDBWithCachedCSVDump) needUpdateDump(ctx context.Context) (bool,
 	}
 
 	return dbVersion.Compare(dumpVersion) > 0, nil
+}
+
+func (db *maxmindDBWithCachedCSVDump) ensureDumpVersion(ctx context.Context) error {
+	exists, err := db.fileRepository.Exists(ctx, db.csvDumpPath)
+	if err != nil || !exists {
+		return err
+	}
+
+	exists, err = db.fileRepository.Exists(ctx, db.dumpMetaDataPath())
+	if err != nil || exists {
+		return err
+	}
+
+	version, err := db.dbVersion(ctx)
+	if err != nil {
+		return err
+	}
+	return db.writeDumpVersion(ctx, version)
 }
 
 func (db *maxmindDBWithCachedCSVDump) updateDump(ctx context.Context, force bool) error {
@@ -234,12 +258,18 @@ func (db *maxmindDBWithCachedCSVDump) dumpVersion(ctx context.Context) (entity.P
 	return meta, nil
 }
 
-func (db *maxmindDBWithCachedCSVDump) dbVersion(ctx context.Context) (entity.PatchedMMDBVersion, error) {
-	udpate, err := db.PatchedDatabase.CheckUpdates(ctx)
-	if err != nil {
+func (db *maxmindDBWithCachedCSVDump) dbVersion(_ context.Context) (entity.PatchedMMDBVersion, error) {
+	return db.CurrentVersion(), nil
+}
+
+func (db *maxmindDBWithCachedCSVDump) currentVersion(ctx context.Context) (entity.PatchedMMDBVersion, error) {
+	if db.archivedCSVWithNamesDump.Load() == nil {
+		return db.dbVersion(ctx)
+	}
+	if err := db.ensureDumpVersion(ctx); err != nil {
 		return entity.PatchedMMDBVersion{}, err
 	}
-	return udpate.CurrentVersion, nil
+	return db.dumpVersion(ctx)
 }
 
 func (db *maxmindDBWithCachedCSVDump) dumpMetaDataPath() string {

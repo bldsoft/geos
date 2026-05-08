@@ -295,6 +295,29 @@ func (r *GeoIPRepository) CheckUpdates(ctx context.Context, dbType MaxmindDBType
 	return result.(entity.DBUpdate[entity.PatchedMMDBVersion]), err
 }
 
+func (r *GeoIPRepository) CurrentVersion(ctx context.Context, dbType MaxmindDBType) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
+	var db *maxmindDBWithCachedCSVDump
+	switch dbType {
+	case MaxmindDBTypeCity:
+		db = r.dbCity
+	case MaxmindDBTypeISP:
+		db = r.dbISP
+	case MaxmindDBTypeHosting:
+		db = r.dbHosting
+	default:
+		return entity.DBUpdate[entity.PatchedMMDBVersion]{}, errors.New("unknown database type")
+	}
+	if db == nil {
+		return entity.DBUpdate[entity.PatchedMMDBVersion]{}, ErrGeoIPCSVDisabled
+	}
+
+	version, err := db.currentVersion(ctx)
+	if err != nil {
+		return entity.DBUpdate[entity.PatchedMMDBVersion]{}, err
+	}
+	return entity.NewDBUpdate(entity.Update[entity.PatchedMMDBVersion]{CurrentVersion: version}, false, nil), nil
+}
+
 func (r *GeoIPRepository) checkCityUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
 	update, err := r.dbCity.CheckUpdates(ctx)
 	if err != nil {

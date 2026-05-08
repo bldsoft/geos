@@ -72,3 +72,24 @@ func (c *ManagementController) UpdateGeonamesHandler(w http.ResponseWriter, r *h
 	}
 	c.ResponseOK(w)
 }
+
+func (c *ManagementController) GetGeonamesCurrentVersionHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := context.WithValue(r.Context(), log.LoggerCtxKey, log.FromContext(r.Context()).WithFields(log.Fields{"db": "geonames"}))
+	update, err := c.geoNameService.CurrentVersion(ctx)
+	if err != nil {
+		c.ResponseError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	c.ResponseJson(w, r, update)
+}
+
+func (c *ManagementController) GetGeoIPCurrentVersionHandler(w http.ResponseWriter, r *http.Request) {
+	db := chi.URLParam(r, "db")
+	ctx := context.WithValue(r.Context(), log.LoggerCtxKey, log.FromContext(r.Context()).WithFields(log.Fields{"db": db}))
+	update, err := c.geoIpService.CurrentVersion(ctx, service.DBType(db))
+	if err != nil {
+		c.ResponseError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	c.ResponseJson(w, r, update)
+}

@@ -156,16 +156,32 @@ func (c *Client) CheckGeoIPCityUpdates(ctx context.Context) (entity.DBUpdate[ent
 	return getRequest[entity.DBUpdate[entity.PatchedMMDBVersion]](c.requestWithApiKey(ctx), "dump/city/update")
 }
 
+func (c *Client) GetGeoIPCityCurrentVersion(ctx context.Context) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
+	return getRequest[entity.DBUpdate[entity.PatchedMMDBVersion]](c.requestWithApiKey(ctx), "dump/city/current")
+}
+
 func (c *Client) CheckGeoIPISPUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
 	return getRequest[entity.DBUpdate[entity.PatchedMMDBVersion]](c.requestWithApiKey(ctx), "dump/isp/update")
+}
+
+func (c *Client) GetGeoIPISPCurrentVersion(ctx context.Context) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
+	return getRequest[entity.DBUpdate[entity.PatchedMMDBVersion]](c.requestWithApiKey(ctx), "dump/isp/current")
 }
 
 func (c *Client) CheckGeoIPHostingUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
 	return getRequest[entity.DBUpdate[entity.PatchedMMDBVersion]](c.requestWithApiKey(ctx), "dump/hosting/update")
 }
 
+func (c *Client) GetGeoIPHostingCurrentVersion(ctx context.Context) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
+	return getRequest[entity.DBUpdate[entity.PatchedMMDBVersion]](c.requestWithApiKey(ctx), "dump/hosting/current")
+}
+
 func (c *Client) CheckGeonamesUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedGeoNamesVersion], error) {
 	return getRequest[entity.DBUpdate[entity.PatchedGeoNamesVersion]](c.requestWithApiKey(ctx), "geoname/update")
+}
+
+func (c *Client) GetGeonamesCurrentVersion(ctx context.Context) (entity.DBUpdate[entity.PatchedGeoNamesVersion], error) {
+	return getRequest[entity.DBUpdate[entity.PatchedGeoNamesVersion]](c.requestWithApiKey(ctx), "geoname/current")
 }
 
 func (c *Client) UpdateGeoIPCity(ctx context.Context) error {

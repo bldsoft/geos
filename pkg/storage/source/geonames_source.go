@@ -89,3 +89,21 @@ func (s *GeoNamesSource) CheckUpdates(ctx context.Context) (Update[ModTimeVersio
 
 	return *res.Load(), nil
 }
+
+func (s *GeoNamesSource) CurrentVersion(ctx context.Context) (ModTimeVersion, error) {
+	var res ModTimeVersion
+	for _, file := range []*UpdatableFile[ModTimeVersion]{
+		s.CountriesFile,
+		s.AdminDivisionsFile,
+		s.Cities500File,
+	} {
+		version, err := file.Version(ctx)
+		if err != nil {
+			return ModTimeVersion{}, err
+		}
+		if version.Compare(res) > 0 {
+			res = version
+		}
+	}
+	return res, nil
+}
