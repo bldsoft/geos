@@ -96,6 +96,13 @@ func (c *discoveredClient) CheckGeoIPCityUpdates(ctx context.Context) (entity.DB
 		})
 }
 
+func (c *discoveredClient) GetGeoIPCityCurrentVersion(ctx context.Context) (entity.PatchedMMDBVersion, error) {
+	return doWithClientLoader(c.clientLoader, true,
+		func(client client.Client) (res entity.PatchedMMDBVersion, err error) {
+			return client.GetGeoIPCityCurrentVersion(ctx)
+		})
+}
+
 func (c *discoveredClient) CheckGeoIPISPUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
 	return doWithClientLoader(c.clientLoader, true,
 		func(client client.Client) (res entity.DBUpdate[entity.PatchedMMDBVersion], err error) {
@@ -103,10 +110,31 @@ func (c *discoveredClient) CheckGeoIPISPUpdates(ctx context.Context) (entity.DBU
 		})
 }
 
+func (c *discoveredClient) GetGeoIPISPCurrentVersion(ctx context.Context) (entity.PatchedMMDBVersion, error) {
+	return doWithClientLoader(c.clientLoader, true,
+		func(client client.Client) (res entity.PatchedMMDBVersion, err error) {
+			return client.GetGeoIPISPCurrentVersion(ctx)
+		})
+}
+
+func (c *discoveredClient) GetGeoIPHostingCurrentVersion(ctx context.Context) (entity.PatchedMMDBVersion, error) {
+	return doWithClientLoader(c.clientLoader, true,
+		func(client client.Client) (res entity.PatchedMMDBVersion, err error) {
+			return client.GetGeoIPHostingCurrentVersion(ctx)
+		})
+}
+
 func (c *discoveredClient) CheckGeonamesUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedGeoNamesVersion], error) {
 	return doWithClientLoader(c.clientLoader, true,
 		func(client client.Client) (res entity.DBUpdate[entity.PatchedGeoNamesVersion], err error) {
 			return client.CheckGeonamesUpdates(ctx)
+		})
+}
+
+func (c *discoveredClient) GetGeonamesCurrentVersion(ctx context.Context) (entity.PatchedGeoNamesVersion, error) {
+	return doWithClientLoader(c.clientLoader, true,
+		func(client client.Client) (res entity.PatchedGeoNamesVersion, err error) {
+			return client.GetGeonamesCurrentVersion(ctx)
 		})
 }
 

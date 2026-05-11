@@ -128,12 +128,28 @@ func (c *Client) CheckGeoIPCityUpdates(ctx context.Context) (entity.DBUpdate[ent
 	return entity.DBUpdate[entity.PatchedMMDBVersion]{}, errors.ErrUnsupported
 }
 
+func (c *Client) GetGeoIPCityCurrentVersion(ctx context.Context) (entity.PatchedMMDBVersion, error) {
+	return entity.PatchedMMDBVersion{}, errors.ErrUnsupported
+}
+
 func (c *Client) CheckGeoIPISPUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
 	return entity.DBUpdate[entity.PatchedMMDBVersion]{}, errors.ErrUnsupported
 }
 
+func (c *Client) GetGeoIPISPCurrentVersion(ctx context.Context) (entity.PatchedMMDBVersion, error) {
+	return entity.PatchedMMDBVersion{}, errors.ErrUnsupported
+}
+
+func (c *Client) GetGeoIPHostingCurrentVersion(ctx context.Context) (entity.PatchedMMDBVersion, error) {
+	return entity.PatchedMMDBVersion{}, errors.ErrUnsupported
+}
+
 func (c *Client) CheckGeonamesUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedGeoNamesVersion], error) {
 	return entity.DBUpdate[entity.PatchedGeoNamesVersion]{}, errors.ErrUnsupported
+}
+
+func (c *Client) GetGeonamesCurrentVersion(ctx context.Context) (entity.PatchedGeoNamesVersion, error) {
+	return entity.PatchedGeoNamesVersion{}, errors.ErrUnsupported
 }
 
 func (c *Client) Hosting(ctx context.Context, address string) (*entity.Hosting, error) {

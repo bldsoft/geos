@@ -17,7 +17,7 @@ type GeoIpService interface {
 
 	StartUpdate(ctx context.Context, dbType service.DBType) error
 	CheckUpdates(ctx context.Context, dbType service.DBType) (entity.DBUpdate[entity.PatchedMMDBVersion], error)
-	CurrentVersion(ctx context.Context, dbType service.DBType) (entity.DBUpdate[entity.PatchedMMDBVersion], error)
+	CurrentVersion(ctx context.Context, dbType service.DBType) (entity.PatchedMMDBVersion, error)
 }
 
 type GeoNameService interface {
@@ -29,5 +29,5 @@ type GeoNameService interface {
 
 	StartUpdate(ctx context.Context) error
 	CheckUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedGeoNamesVersion], error)
-	CurrentVersion(ctx context.Context) (entity.DBUpdate[entity.PatchedGeoNamesVersion], error)
+	CurrentVersion(ctx context.Context) (entity.PatchedGeoNamesVersion, error)
 }
