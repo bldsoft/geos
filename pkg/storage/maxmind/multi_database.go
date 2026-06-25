@@ -5,8 +5,9 @@ import (
 	"context"
 	"errors"
 	"io"
+	"iter"
 	"maps"
-	"net"
+	"net/netip"
 
 	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
@@ -14,7 +15,7 @@ import (
 	"github.com/maxmind/mmdbwriter"
 	"github.com/maxmind/mmdbwriter/inserter"
 	"github.com/maxmind/mmdbwriter/mmdbtype"
-	"github.com/oschwald/maxminddb-golang"
+	"github.com/oschwald/maxminddb-golang/v2"
 )
 
 var ErrNoDatabases = errors.New("no databases")
@@ -33,7 +34,8 @@ func (db *MultiMaxMindDB) Add(dbs ...Database) *MultiMaxMindDB {
 	return db
 }
 
-func (db *MultiMaxMindDB) Lookup(ctx context.Context, ip net.IP, result interface{}) error {
+func (db *MultiMaxMindDB) Lookup(ctx context.Context, ip netip.Addr, result interface{}) error {
+	ip = ip.Unmap()
 	var multiErr error
 	for i := len(db.dbs) - 1; i >= 0; i-- {
 		err := db.dbs[i].Lookup(ctx, ip, result)
@@ -53,14 +55,14 @@ func (db *MultiMaxMindDB) dbReader(ctx context.Context, index int) (*maxminddb.R
 	}
 
 	if buf, ok := reader.(*bytes.Buffer); ok {
-		return maxminddb.FromBytes(buf.Bytes())
+		return maxminddb.OpenBytes(buf.Bytes())
 	}
 
 	bytes, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
-	return maxminddb.FromBytes(bytes)
+	return maxminddb.OpenBytes(bytes)
 }
 
 func (db *MultiMaxMindDB) totalNodes(ctx context.Context) int {
@@ -110,7 +112,7 @@ func (db *MultiMaxMindDB) RawData(ctx context.Context) (io.Reader, error) {
 	percent := (totalNodes / 100) + 1
 
 	type networkNode struct {
-		network *net.IPNet
+		network netip.Prefix
 		data    map[string]interface{}
 	}
 	const bufSize = 1000
@@ -125,20 +127,24 @@ func (db *MultiMaxMindDB) RawData(ctx context.Context) (io.Reader, error) {
 			if err != nil {
 				return err
 			}
-			networks := dbReader.Networks(maxminddb.SkipAliasedNetworks)
-			for networks.Next() {
+
+			// SkipAliasedNetworks is now a default behavior
+			for network := range dbReader.Networks() {
+				if err := network.Err(); err != nil {
+					return err
+				}
+
 				var node networkNode
 				node.data = make(map[string]interface{})
-				node.network, err = networks.Network(&node.data)
+				err := network.Decode(&node.data)
 				if err != nil {
 					return err
 				}
+				node.network = network.Prefix()
 				readedNodeC <- node
 			}
-			if err := networks.Err(); err != nil {
-				return err
-			}
 		}
+
 		return nil
 	})
 
@@ -155,7 +161,7 @@ func (db *MultiMaxMindDB) RawData(ctx context.Context) (io.Reader, error) {
 
 	eg.Go(func() error {
 		for convertedNode := range convertedNodeC {
-			err = tree.InsertFunc(convertedNode.Network, inserter.ReplaceWith(convertedNode.Data))
+			err = tree.InsertFunc(prefixToNetIPNet(convertedNode.Network), inserter.ReplaceWith(convertedNode.Data))
 			if err != nil {
 				log.FromContext(ctx).WarnWithFields(log.Fields{"err": err}, "failed to insert network")
 				continue
@@ -186,10 +192,10 @@ func (db *MultiMaxMindDB) Reader(ctx context.Context) (*maxminddb.Reader, error)
 	if err != nil {
 		return nil, err
 	}
-	return maxminddb.FromBytes(reader.(*bytes.Buffer).Bytes())
+	return maxminddb.OpenBytes(reader.(*bytes.Buffer).Bytes())
 }
 
-func (db *MultiMaxMindDB) Networks(ctx context.Context, options ...maxminddb.NetworksOption) (*maxminddb.Networks, error) {
+func (db *MultiMaxMindDB) Networks(ctx context.Context, options ...maxminddb.NetworksOption) (iter.Seq[maxminddb.Result], error) {
 	reader, err := db.Reader(ctx)
 	if err != nil {
 		return nil, err

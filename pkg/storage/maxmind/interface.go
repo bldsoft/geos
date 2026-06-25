@@ -3,17 +3,18 @@ package maxmind
 import (
 	"context"
 	"io"
-	"net"
+	"iter"
+	"net/netip"
 
-	"github.com/oschwald/maxminddb-golang"
+	"github.com/oschwald/maxminddb-golang/v2"
 )
 
 type Database interface {
-	Lookup(ctx context.Context, ip net.IP, result interface{}) error
-	// LookupNetwork(ip net.IP, result interface{}) (network *net.IPNet, ok bool, err error)
-	// LookupOffset(ip net.IP) (uintptr, error)
-	Networks(ctx context.Context, options ...maxminddb.NetworksOption) (*maxminddb.Networks, error)
-	// NetworksWithin(network *net.IPNet, options ...maxminddb.NetworksOption) (*maxminddb.Networks, error)
+	Lookup(ctx context.Context, ip netip.Addr, result interface{}) error
+	// LookupNetwork(ip netip.Addr, result interface{}) (network netip.Prefix, ok bool, err error)
+	// LookupOffset(ip netip.Addr) (uintptr, error)
+	Networks(ctx context.Context, options ...maxminddb.NetworksOption) (iter.Seq[maxminddb.Result], error)
+	// NetworksWithin(network netip.Prefix, options ...maxminddb.NetworksOption) (*maxminddb.Networks, error)
 	// Verify() error
 	// Close() error
 

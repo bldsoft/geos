@@ -4,7 +4,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/oschwald/maxminddb-golang"
+	"github.com/oschwald/maxminddb-golang/v2"
 )
 
 type MetaData = maxminddb.Metadata

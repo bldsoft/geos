@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/oschwald/maxminddb-golang"
+	"github.com/oschwald/maxminddb-golang/v2"
 )
 
 type Decoder struct {

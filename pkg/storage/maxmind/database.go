@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"net"
+	"iter"
+	"net/netip"
 	"sync/atomic"
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/storage/source"
-	"github.com/oschwald/maxminddb-golang"
+	"github.com/bldsoft/geos/pkg/utils"
+	"github.com/oschwald/maxminddb-golang/v2"
 )
 
 type MaxmindDatabase struct {
@@ -32,8 +34,15 @@ func Open(ctx context.Context, source *source.MMDBSource) (*MaxmindDatabase, err
 	return res, nil
 }
 
-func (db *MaxmindDatabase) Lookup(ctx context.Context, ip net.IP, result interface{}) error {
-	return db.reader.Load().Lookup(ip, result)
+func (db *MaxmindDatabase) Lookup(ctx context.Context, ip netip.Addr, result interface{}) error {
+	r := db.reader.Load().Lookup(ip.Unmap())
+	if err := r.Err(); err != nil {
+		return err
+	}
+	if !r.Found() {
+		return utils.ErrNotFound
+	}
+	return r.Decode(result)
 }
 
 func (db *MaxmindDatabase) RawData(ctx context.Context) (io.Reader, error) {
@@ -44,8 +53,8 @@ func (db *MaxmindDatabase) MetaData(ctx context.Context) (*maxminddb.Metadata, e
 	return &db.reader.Load().Metadata, nil
 }
 
-func (db *MaxmindDatabase) Networks(ctx context.Context, options ...maxminddb.NetworksOption) (*maxminddb.Networks, error) {
-	return db.reader.Load().Networks(), nil
+func (db *MaxmindDatabase) Networks(ctx context.Context, options ...maxminddb.NetworksOption) (iter.Seq[maxminddb.Result], error) {
+	return db.reader.Load().Networks(options...), nil
 }
 
 func (db *MaxmindDatabase) Update(ctx context.Context, force bool) error {
@@ -85,7 +94,7 @@ func (db *MaxmindDatabase) update(ctx context.Context) error {
 		return err
 	}
 
-	dbReader, err := maxminddb.FromBytes(dbRaw)
+	dbReader, err := maxminddb.OpenBytes(dbRaw)
 	if err != nil {
 		return err
 	}
