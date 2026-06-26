@@ -6,7 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
+	"iter"
+	"net/netip"
 	"path/filepath"
 
 	"github.com/bldsoft/geos/pkg/storage/source"
@@ -14,11 +15,11 @@ import (
 	"github.com/maxmind/mmdbwriter"
 	"github.com/maxmind/mmdbwriter/inserter"
 	"github.com/maxmind/mmdbwriter/mmdbtype"
-	"github.com/oschwald/maxminddb-golang"
+	"github.com/oschwald/maxminddb-golang/v2"
 )
 
 type MMDBRecord struct {
-	Network *net.IPNet
+	Network netip.Prefix
 	Data    mmdbtype.Map
 }
 
@@ -113,7 +114,7 @@ func NewDatabasePatch(reader MMDBRecordReader) (*DatabasePatch, error) {
 		if err != nil {
 			break
 		}
-		if err := tree.InsertFunc(rec.Network, inserter.TopLevelMergeWith(rec.Data)); err != nil {
+		if err := tree.InsertFunc(prefixToNetIPNet(rec.Network), inserter.TopLevelMergeWith(rec.Data)); err != nil {
 			return nil, err
 		}
 	}
@@ -128,7 +129,7 @@ func NewDatabasePatch(reader MMDBRecordReader) (*DatabasePatch, error) {
 	}
 	dbRaw := buf.Bytes()
 
-	db, err := maxminddb.FromBytes(buf.Bytes())
+	db, err := maxminddb.OpenBytes(buf.Bytes())
 	if err != nil {
 		return nil, err
 	}
@@ -148,18 +149,18 @@ func (db *DatabasePatch) Available() bool {
 	return true
 }
 
-func (db *DatabasePatch) Lookup(ctx context.Context, ip net.IP, result interface{}) error {
-	_, ok, err := db.db.LookupNetwork(ip, result)
-	if err != nil {
+func (db *DatabasePatch) Lookup(ctx context.Context, ip netip.Addr, result interface{}) error {
+	res := db.db.Lookup(ip.Unmap())
+	if err := res.Err(); err != nil {
 		return err
 	}
-	if !ok {
+	if !res.Found() {
 		return utils.ErrNotFound
 	}
-	return nil
+	return res.Decode(result)
 }
 
-func (db *DatabasePatch) Networks(ctx context.Context, options ...maxminddb.NetworksOption) (*maxminddb.Networks, error) {
+func (db *DatabasePatch) Networks(ctx context.Context, options ...maxminddb.NetworksOption) (iter.Seq[maxminddb.Result], error) {
 	return db.db.Networks(options...), nil
 }
 

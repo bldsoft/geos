@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net"
+	"net/netip"
 	"os"
 	"strconv"
 	"strings"
@@ -326,7 +326,7 @@ func promptNetwork(ctx context.Context) (string, error) {
 	networkPrompt := promptui.Prompt{
 		Label: "Enter network (IP/CIDR)",
 		Validate: func(s string) error {
-			_, _, err := net.ParseCIDR(s)
+			_, err := netip.ParsePrefix(s)
 			return err
 		},
 	}
