@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/bldsoft/geos/pkg/entity"
-	art "github.com/plar/go-adaptive-radix-tree/v2"
+	"github.com/gammazero/radixtree"
 )
 
 type indexRange struct {
@@ -20,27 +20,24 @@ type index[T entity.GeoNameEntity] struct {
 	collection []T
 
 	geoNameIDToCollectionIndex map[uint32]int
-	names                      art.Tree
+	names                      *radixtree.Tree[[]int]
 	countryCodeToRange         map[string]*indexRange
 }
 
 func (idx *index[T]) Init(collection []T) {
 	idx.collection = collection
 
-	idx.names = art.New()
+	idx.names = radixtree.New[[]int]()
 
 	idx.countryCodeToRange = make(map[string]*indexRange)
 	idx.geoNameIDToCollectionIndex = make(map[uint32]int)
 
 	for i, item := range collection {
 		// search by name prefix
-		key := art.Key(strings.ToLower(item.GetName()))
-		var indexes []int
-		if existing, found := idx.names.Search(key); found {
-			indexes = existing.([]int)
-		}
+		key := strings.ToLower(item.GetName())
+		indexes, _ := idx.names.Get(key)
 		indexes = append(indexes, i)
-		idx.names.Insert(key, indexes)
+		idx.names.Put(key, indexes)
 
 		// search by geoNameID
 		idx.geoNameIDToCollectionIndex[uint32(item.GetGeoNameID())] = i
@@ -93,10 +90,9 @@ func (idx *index[T]) GetFiltered(filter entity.GeoNameFilter) (res []T) {
 func (idx *index[T]) indexesByNamePrefix(namePrefix string) []int {
 	namePrefix = strings.ToLower(namePrefix)
 	var res []int
-	idx.names.ForEachPrefix(art.Key(namePrefix), func(node art.Node) bool {
-		res = append(res, node.Value().([]int)...)
-		return true
-	})
+	for _, indexes := range idx.names.IterAt(namePrefix) {
+		res = append(res, indexes...)
+	}
 	return res
 }
 
