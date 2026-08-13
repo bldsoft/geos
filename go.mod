@@ -4,7 +4,6 @@ go 1.25.0
 
 require (
 	github.com/bldsoft/gost v0.0.0-20260212160842-b1b19edb84fe
-	github.com/derekparker/trie v0.0.0-20221221181808-1424fce0c981
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
@@ -16,6 +15,7 @@ require (
 	github.com/maxmind/mmdbwriter v1.2.0
 	github.com/mkrou/geonames v1.0.0
 	github.com/oschwald/maxminddb-golang v1.13.1
+	github.com/plar/go-adaptive-radix-tree/v2 v2.0.4
 	github.com/rs/zerolog v1.33.0
 	github.com/stretchr/testify v1.11.1
 	github.com/swaggo/swag v1.8.6

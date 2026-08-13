@@ -1,11 +1,10 @@
 package geonames
 
 import (
-	"sort"
 	"strings"
 
 	"github.com/bldsoft/geos/pkg/entity"
-	"github.com/derekparker/trie"
+	art "github.com/plar/go-adaptive-radix-tree/v2"
 )
 
 type indexRange struct {
@@ -21,21 +20,27 @@ type index[T entity.GeoNameEntity] struct {
 	collection []T
 
 	geoNameIDToCollectionIndex map[uint32]int
-	trie                       *trie.Trie
+	names                      art.Tree
 	countryCodeToRange         map[string]*indexRange
 }
 
 func (idx *index[T]) Init(collection []T) {
 	idx.collection = collection
 
-	idx.trie = trie.New()
+	idx.names = art.New()
 
 	idx.countryCodeToRange = make(map[string]*indexRange)
 	idx.geoNameIDToCollectionIndex = make(map[uint32]int)
 
 	for i, item := range collection {
 		// search by name prefix
-		idx.trie.Add(strings.ToLower(item.GetName()), i)
+		key := art.Key(strings.ToLower(item.GetName()))
+		var indexes []int
+		if existing, found := idx.names.Search(key); found {
+			indexes = existing.([]int)
+		}
+		indexes = append(indexes, i)
+		idx.names.Insert(key, indexes)
 
 		// search by geoNameID
 		idx.geoNameIDToCollectionIndex[uint32(item.GetGeoNameID())] = i
@@ -87,13 +92,11 @@ func (idx *index[T]) GetFiltered(filter entity.GeoNameFilter) (res []T) {
 
 func (idx *index[T]) indexesByNamePrefix(namePrefix string) []int {
 	namePrefix = strings.ToLower(namePrefix)
-	keys := idx.trie.PrefixSearch(namePrefix)
-	sort.Strings(keys)
-	res := make([]int, 0, len(keys))
-	for _, key := range keys {
-		node, _ := idx.trie.Find(key)
-		res = append(res, node.Meta().(int))
-	}
+	var res []int
+	idx.names.ForEachPrefix(art.Key(namePrefix), func(node art.Node) bool {
+		res = append(res, node.Value().([]int)...)
+		return true
+	})
 	return res
 }
 
