@@ -159,7 +159,7 @@ func (r *GeoIPRepository) City(ctx context.Context, ip net.IP, includeISP bool) 
 	if err != nil {
 		return nil, err
 	}
-	if includeISP {
+	if includeISP && r.dbISP != nil {
 		var isp entity.ISP
 		err := r.dbISP.Lookup(ctx, ip, &isp)
 		if err != nil {
@@ -180,6 +180,9 @@ func (r *GeoIPRepository) CityLite(ctx context.Context, ip net.IP, lang string) 
 }
 
 func (r *GeoIPRepository) Hosting(ctx context.Context, ip net.IP) (*entity.Hosting, error) {
+	if r.dbHosting == nil {
+		return nil, ErrGeoIPCSVDisabled
+	}
 	return lookup[entity.Hosting](ctx, r.dbHosting, ip)
 }
 
@@ -308,6 +311,9 @@ func (r *GeoIPRepository) checkCityUpdates(ctx context.Context) (entity.DBUpdate
 }
 
 func (r *GeoIPRepository) checkISPUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
+	if r.dbISP == nil {
+		return entity.DBUpdate[entity.PatchedMMDBVersion]{}, ErrGeoIPCSVDisabled
+	}
 	update, err := r.dbISP.CheckUpdates(ctx)
 	if err != nil {
 		return entity.DBUpdate[entity.PatchedMMDBVersion]{}, err
@@ -320,6 +326,9 @@ func (r *GeoIPRepository) checkISPUpdates(ctx context.Context) (entity.DBUpdate[
 }
 
 func (r *GeoIPRepository) checkHostingUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
+	if r.dbHosting == nil {
+		return entity.DBUpdate[entity.PatchedMMDBVersion]{}, ErrGeoIPCSVDisabled
+	}
 	update, err := r.dbHosting.CheckUpdates(ctx)
 	if err != nil {
 		return entity.DBUpdate[entity.PatchedMMDBVersion]{}, err
