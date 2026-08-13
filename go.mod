@@ -1,6 +1,6 @@
 module github.com/bldsoft/geos
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/bldsoft/gost v0.0.0-20260212160842-b1b19edb84fe
