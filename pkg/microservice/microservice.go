@@ -2,6 +2,7 @@ package microservice
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"sync"
@@ -12,6 +13,7 @@ import (
 	"github.com/bldsoft/geos/pkg/controller/rest"
 	"github.com/bldsoft/geos/pkg/repository"
 	"github.com/bldsoft/geos/pkg/service"
+	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/auth"
 	"github.com/bldsoft/gost/clickhouse"
 	gost "github.com/bldsoft/gost/controller"
@@ -63,6 +65,8 @@ func (srv *Microservice) getDbJobGroup(db gost_storage.IStorage) *server.AsyncJo
 func (m *Microservice) setDiscoveryMeta() {
 	if ispMeta, err := m.geoIpService.MetaData(context.Background(), repository.MaxmindDBTypeISP); err == nil {
 		m.discovery.SetMetadata(MMDBIspBuildEpochMetaKey, fmt.Sprintf("%d", ispMeta.BuildEpoch))
+	} else if errors.Is(err, utils.ErrDisabled) {
+		log.Logger.DebugWithFields(log.Fields{"err": err}, "isp database is disabled")
 	} else {
 		log.Logger.ErrorWithFields(log.Fields{"err": err}, "failed to get isp database metadata")
 	}
