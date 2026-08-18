@@ -3,13 +3,14 @@ package maxmind
 import (
 	"context"
 	"io"
-	"net"
+	"iter"
+	"net/netip"
 	"path/filepath"
 	"sync/atomic"
 
 	"github.com/bldsoft/geos/pkg/storage/source"
 	"github.com/bldsoft/gost/log"
-	"github.com/oschwald/maxminddb-golang"
+	"github.com/oschwald/maxminddb-golang/v2"
 )
 
 type CustomDatabase struct {
@@ -37,11 +38,11 @@ func (db *CustomDatabase) db() *MultiMaxMindDB {
 	return db.base.Load()
 }
 
-func (db *CustomDatabase) Lookup(ctx context.Context, ip net.IP, result interface{}) error {
+func (db *CustomDatabase) Lookup(ctx context.Context, ip netip.Addr, result interface{}) error {
 	return db.db().Lookup(ctx, ip, result)
 }
 
-func (db *CustomDatabase) Networks(ctx context.Context, options ...maxminddb.NetworksOption) (*maxminddb.Networks, error) {
+func (db *CustomDatabase) Networks(ctx context.Context, options ...maxminddb.NetworksOption) (iter.Seq[maxminddb.Result], error) {
 	return db.db().Networks(ctx, options...)
 }
 

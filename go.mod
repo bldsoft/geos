@@ -16,7 +16,7 @@ require (
 	github.com/manifoldco/promptui v0.9.0
 	github.com/maxmind/mmdbwriter v1.2.0
 	github.com/mkrou/geonames v1.0.0
-	github.com/oschwald/maxminddb-golang v1.13.1
+	github.com/oschwald/maxminddb-golang/v2 v2.4.0
 	github.com/rs/zerolog v1.33.0
 	github.com/stretchr/testify v1.11.1
 	github.com/swaggo/swag v1.8.6
@@ -84,7 +84,6 @@ require (
 	github.com/miekg/dns v1.1.63 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
-	github.com/oschwald/maxminddb-golang/v2 v2.1.1 // indirect
 	github.com/paulmach/orb v0.10.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.6 // indirect
 	github.com/pierrec/lz4/v4 v4.1.18 // indirect
@@ -107,7 +106,7 @@ require (
 	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/mod v0.24.0 // indirect
 	golang.org/x/net v0.37.0 // indirect
-	golang.org/x/sys v0.40.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
 	golang.org/x/tools v0.31.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230525234030-28d5490b6b19 // indirect

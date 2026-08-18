@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
+	"net/netip"
 	"net/url"
 	"path/filepath"
 	"time"
@@ -145,16 +145,16 @@ func NewGeoIPRepository(cfg GeoIPRepositoryConfig) *GeoIPRepository {
 	return res
 }
 
-func lookup[T any](ctx context.Context, db maxmind.Database, ip net.IP) (*T, error) {
+func lookup[T any](ctx context.Context, db maxmind.Database, ip netip.Addr) (*T, error) {
 	var obj T
 	return &obj, db.Lookup(ctx, ip, &obj)
 }
 
-func (r *GeoIPRepository) Country(ctx context.Context, ip net.IP) (*entity.Country, error) {
+func (r *GeoIPRepository) Country(ctx context.Context, ip netip.Addr) (*entity.Country, error) {
 	return lookup[entity.Country](ctx, r.dbCity, ip)
 }
 
-func (r *GeoIPRepository) City(ctx context.Context, ip net.IP, includeISP bool) (*entity.City, error) {
+func (r *GeoIPRepository) City(ctx context.Context, ip netip.Addr, includeISP bool) (*entity.City, error) {
 	city, err := lookup[entity.City](ctx, r.dbCity, ip)
 	if err != nil {
 		return nil, err
@@ -171,7 +171,7 @@ func (r *GeoIPRepository) City(ctx context.Context, ip net.IP, includeISP bool) 
 	return city, nil
 }
 
-func (r *GeoIPRepository) CityLite(ctx context.Context, ip net.IP, lang string) (*entity.CityLite, error) {
+func (r *GeoIPRepository) CityLite(ctx context.Context, ip netip.Addr, lang string) (*entity.CityLite, error) {
 	cityLiteDB, err := lookup[entity.CityLiteDb](ctx, r.dbCity, ip)
 	if err != nil {
 		return nil, err
@@ -179,7 +179,7 @@ func (r *GeoIPRepository) CityLite(ctx context.Context, ip net.IP, lang string) 
 	return entity.DbToCityLite(cityLiteDB, lang), nil
 }
 
-func (r *GeoIPRepository) Hosting(ctx context.Context, ip net.IP) (*entity.Hosting, error) {
+func (r *GeoIPRepository) Hosting(ctx context.Context, ip netip.Addr) (*entity.Hosting, error) {
 	if r.dbHosting == nil {
 		return nil, ErrGeoIPCSVDisabled
 	}

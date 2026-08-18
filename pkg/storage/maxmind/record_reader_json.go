@@ -3,7 +3,7 @@ package maxmind
 import (
 	"encoding/json"
 	"io"
-	"net"
+	"net/netip"
 	"sort"
 
 	"github.com/bldsoft/geos/pkg/entity"
@@ -31,23 +31,21 @@ func NewJSONRecordReader(r io.Reader) (recordReader *JSONRecordReader, err error
 		keys = append(keys, key)
 	}
 	sort.Slice(keys, func(i, j int) bool {
-		_, iNetwork, err := net.ParseCIDR(keys[i])
+		iPrefix, err := netip.ParsePrefix(keys[i])
 		if err != nil {
 			return true
 		}
-		_, jNetwork, err := net.ParseCIDR(keys[j])
+		jPrefix, err := netip.ParsePrefix(keys[j])
 		if err != nil {
 			return false
 		}
-		iOnes, _ := iNetwork.Mask.Size()
-		jOnes, _ := jNetwork.Mask.Size()
-		return iOnes < jOnes
+		return iPrefix.Bits() < jPrefix.Bits()
 	})
 
 	for _, key := range keys {
 		value := m[key]
 		var record MMDBRecord
-		_, record.Network, err = net.ParseCIDR(key)
+		record.Network, err = netip.ParsePrefix(key)
 		if err != nil {
 			return nil, err
 		}
