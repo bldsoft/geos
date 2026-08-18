@@ -1,10 +1,11 @@
 module github.com/bldsoft/geos
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/bldsoft/gost v0.0.0-20260212160842-b1b19edb84fe
 	github.com/derekparker/trie v0.0.0-20221221181808-1424fce0c981
+	github.com/gammazero/radixtree v0.4.1
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
