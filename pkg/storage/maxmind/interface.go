@@ -10,7 +10,7 @@ import (
 )
 
 type Database interface {
-	Lookup(ctx context.Context, ip netip.Addr, result interface{}) error
+	Lookup(ctx context.Context, ip netip.Addr, result any) error
 	// LookupNetwork(ip netip.Addr, result interface{}) (network netip.Prefix, ok bool, err error)
 	// LookupOffset(ip netip.Addr) (uintptr, error)
 	Networks(ctx context.Context, options ...maxminddb.NetworksOption) (iter.Seq[maxminddb.Result], error)

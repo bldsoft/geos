@@ -329,13 +329,13 @@ func indirect(result reflect.Value) reflect.Value {
 		// usefully addressable.
 		if result.Kind() == reflect.Interface && !result.IsNil() {
 			e := result.Elem()
-			if e.Kind() == reflect.Ptr && !e.IsNil() {
+			if e.Kind() == reflect.Pointer && !e.IsNil() {
 				result = e
 				continue
 			}
 		}
 
-		if result.Kind() != reflect.Ptr {
+		if result.Kind() != reflect.Pointer {
 			break
 		}
 
@@ -348,7 +348,7 @@ func indirect(result reflect.Value) reflect.Value {
 	return result
 }
 
-var sliceType = reflect.TypeOf([]byte{})
+var sliceType = reflect.TypeFor[[]byte]()
 
 func (d *Decoder) unmarshalBytes(size, offset uint, result reflect.Value) (uint, error) {
 	value, newOffset := d.decodeBytes(size, offset)
@@ -568,7 +568,7 @@ func (d *Decoder) unmarshalUint(
 	return newOffset, fmt.Errorf("cannot unmarshal %v into %v", value, result.Type())
 }
 
-var bigIntType = reflect.TypeOf(big.Int{})
+var bigIntType = reflect.TypeFor[big.Int]()
 
 func (d *Decoder) unmarshalUint128(size, offset uint, result reflect.Value) (uint, error) {
 	if size > 16 {
@@ -640,7 +640,7 @@ func (d *Decoder) decodeMap(
 	keyValue := reflect.New(mapType.Key()).Elem()
 	elemType := mapType.Elem()
 	var elemValue reflect.Value
-	for i := uint(0); i < size; i++ {
+	for range size {
 		var key []byte
 		var err error
 		key, offset, err = d.decodeKey(offset)
@@ -677,7 +677,7 @@ func (d *Decoder) decodeMapToDeserializer(
 	if err != nil {
 		return 0, err
 	}
-	for i := uint(0); i < size; i++ {
+	for range size {
 		// TODO - implement key/value skipping?
 		offset, err = d.decodeToDeserializer(offset, dser, depth, true)
 		if err != nil {
@@ -758,7 +758,7 @@ func (d *Decoder) decodeSliceToDeserializer(
 	if err != nil {
 		return 0, err
 	}
-	for i := uint(0); i < size; i++ {
+	for range size {
 		offset, err = d.decodeToDeserializer(offset, dser, depth, true)
 		if err != nil {
 			return 0, err
@@ -793,7 +793,7 @@ func (d *Decoder) decodeStruct(
 	}
 
 	// This handles named fields
-	for i := uint(0); i < size; i++ {
+	for range size {
 		var (
 			err error
 			key []byte
@@ -837,7 +837,7 @@ func cachedFields(result reflect.Value) *fieldsType {
 	numFields := resultType.NumField()
 	namedFields := make(map[string]int, numFields)
 	var anonymous []int
-	for i := 0; i < numFields; i++ {
+	for i := range numFields {
 		field := resultType.Field(i)
 
 		fieldName := field.Name

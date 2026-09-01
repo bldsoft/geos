@@ -34,7 +34,7 @@ func Open(ctx context.Context, source *source.MMDBSource) (*MaxmindDatabase, err
 	return res, nil
 }
 
-func (db *MaxmindDatabase) Lookup(ctx context.Context, ip netip.Addr, result interface{}) error {
+func (db *MaxmindDatabase) Lookup(ctx context.Context, ip netip.Addr, result any) error {
 	r := db.reader.Load().Lookup(ip.Unmap())
 	if err := r.Err(); err != nil {
 		return err
