@@ -89,6 +89,10 @@ func recvAll[R, T any](stream interface {
 	return res, nil
 }
 
+func (c *Client) ASNs(ctx context.Context, filter entity.ASNFilter) ([]*entity.ASN, error) {
+	return nil, errors.ErrUnsupported
+}
+
 func (c *Client) GeoNameContinents(ctx context.Context) []*entity.GeoNameContinent {
 	return geonames.GeoNameContinents()
 }

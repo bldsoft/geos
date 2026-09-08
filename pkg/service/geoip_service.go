@@ -24,6 +24,7 @@ type GeoRepository interface {
 
 	StartUpdate(ctx context.Context, dbType DBType) error
 	CheckUpdates(ctx context.Context, dbType DBType) (entity.DBUpdate[entity.PatchedMMDBVersion], error)
+	ASNs(ctx context.Context, filter entity.ASNFilter) ([]*entity.ASN, error)
 }
 
 type GeoIpService struct {
@@ -108,4 +109,8 @@ func (r *GeoIpService) CheckUpdates(ctx context.Context, dbType DBType) (entity.
 
 func (r *GeoIpService) StartUpdate(ctx context.Context, dbType DBType) error {
 	return r.rep.StartUpdate(ctx, dbType)
+}
+
+func (s *GeoIpService) ASNs(ctx context.Context, filter entity.ASNFilter) ([]*entity.ASN, error) {
+	return s.rep.ASNs(ctx, filter)
 }

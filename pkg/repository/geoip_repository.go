@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/bldsoft/geos/pkg/entity"
+	"github.com/bldsoft/geos/pkg/storage/asn"
 	"github.com/bldsoft/geos/pkg/storage/maxmind"
 	"github.com/bldsoft/geos/pkg/storage/source"
 	"github.com/bldsoft/geos/pkg/utils"
@@ -107,6 +108,8 @@ type GeoIPRepository struct {
 	checkUpdatesSF singleflight.Group
 
 	cityUpdater, ispUpdater, hostingUpdater *baseUpdateRepository
+
+	asns *asn.ASNStorage
 }
 
 func NewGeoIPRepository(cfg GeoIPRepositoryConfig) *GeoIPRepository {
@@ -129,7 +132,11 @@ func NewGeoIPRepository(cfg GeoIPRepositoryConfig) *GeoIPRepository {
 			if res.dbISP == nil {
 				return utils.ErrDisabled
 			}
-			return res.dbISP.Update(ctx, force)
+			if err := res.dbISP.Update(ctx, force); err != nil {
+				return err
+			}
+			res.asns.Update(ctx)
+			return nil
 		},
 	)
 	res.hostingUpdater = NewBaseUpdateRepository(
@@ -142,7 +149,17 @@ func NewGeoIPRepository(cfg GeoIPRepositoryConfig) *GeoIPRepository {
 			return res.dbHosting.Update(ctx, force)
 		},
 	)
+	if res.dbISP != nil {
+		res.asns = asn.NewASNStorage(context.Background(), res.dbISP)
+	}
 	return res
+}
+
+func (r *GeoIPRepository) ASNs(ctx context.Context, filter entity.ASNFilter) ([]*entity.ASN, error) {
+	if r.asns == nil {
+		return nil, ErrGeoIPCSVDisabled
+	}
+	return r.asns.GetFiltered(ctx, filter)
 }
 
 func lookup[T any](ctx context.Context, db maxmind.Database, ip netip.Addr) (*T, error) {

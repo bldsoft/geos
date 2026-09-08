@@ -132,6 +132,10 @@ func getManyWithBody[T any](ctx context.Context, client *resty.Client, path stri
 	return obj, nil
 }
 
+func (c *Client) ASNs(ctx context.Context, filter entity.ASNFilter) ([]*entity.ASN, error) {
+	return getManyWithBody[entity.ASN](ctx, c.client, "asn", filter)
+}
+
 func (c *Client) GeoNameCountries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error) {
 	return getManyWithBody[entity.GeoNameCountry](ctx, c.client, "geoname/country", filter)
 }

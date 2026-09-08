@@ -201,7 +201,7 @@ type ISP struct {
 	MobileCountryCode            string `maxminddb:"mobile_country_code"`
 	MobileNetworkCode            string `maxminddb:"mobile_network_code"`
 	Organization                 string `maxminddb:"organization"`
-	AutonomousSystemNumber       uint   `maxminddb:"autonomous_system_number"`
+	AutonomousSystemNumber       uint32 `maxminddb:"autonomous_system_number"`
 }
 
 func (record ISP) MarshalCSV() (names, row []string, err error) {

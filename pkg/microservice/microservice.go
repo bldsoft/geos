@@ -155,6 +155,8 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 		r.Get("/city/{addr}", geoIpController.GetCityHandler)
 		r.Get("/city-lite/{addr}", geoIpController.GetCityLiteHandler)
 		r.Get("/hosting/{addr}", geoIpController.GetHostingHandler)
+		r.Get("/asn", geoIpController.GetASNsHandler)
+		r.Post("/asn", geoIpController.GetASNsHandler)
 
 		managementController := rest.NewManagementController(m.geoIpService, m.geoNameService)
 		r.Group(func(r chi.Router) {
