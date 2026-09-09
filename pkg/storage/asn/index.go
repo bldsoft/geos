@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/bldsoft/geos/pkg/entity"
+	"github.com/bldsoft/gost/utils"
 	"github.com/gammazero/radixtree"
 )
 
@@ -54,12 +55,12 @@ func (idx *index) GetFiltered(filter entity.ASNFilter) (res []*entity.ASN) {
 	case filter.NamePrefix == "":
 		return idx.collection
 	default:
-		seen := make(map[int]struct{})
+		seen := utils.NewSet[int]()
 		for _, i := range idx.indexesByNamePrefix(filter.NamePrefix) {
-			if _, ok := seen[i]; ok {
+			if seen.Has(i) {
 				continue
 			}
-			seen[i] = struct{}{}
+			seen.Put(i)
 			res = append(res, idx.collection[i])
 		}
 		return res
