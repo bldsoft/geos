@@ -48,6 +48,19 @@ func (s *PatchedStorage) CheckUpdates(ctx context.Context) (entity.Update[entity
 	return res, nil
 }
 
+func (s *PatchedStorage) CurrentVersion(ctx context.Context) (entity.PatchedGeoNamesVersion, error) {
+	dbVersion, err := s.storage.CurrentVersion(ctx)
+	if err != nil {
+		return entity.PatchedGeoNamesVersion{}, err
+	}
+	res := entity.PatchedGeoNamesVersion{DB: entity.GeoNamesVersion(dbVersion)}
+	if s.custom != nil {
+		patch := entity.ModTimeVersion(s.custom.lastUpdate)
+		res.Patch = &patch
+	}
+	return res, nil
+}
+
 func (s *PatchedStorage) Update(ctx context.Context, force bool) error {
 	if err := s.storage.Update(ctx, force); err != nil {
 		return err

@@ -90,6 +90,10 @@ func (r *GeoNameRepository) CheckUpdates(ctx context.Context) (entity.DBUpdate[e
 	return result.(entity.DBUpdate[entity.PatchedGeoNamesVersion]), err
 }
 
+func (r *GeoNameRepository) CurrentVersion(ctx context.Context) (entity.PatchedGeoNamesVersion, error) {
+	return r.storage.CurrentVersion(ctx)
+}
+
 func (r *GeoNameRepository) Continents(ctx context.Context) []*entity.GeoNameContinent {
 	return r.storage.Continents(ctx)
 }

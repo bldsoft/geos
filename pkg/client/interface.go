@@ -22,8 +22,12 @@ type GeoNameClient interface {
 
 type ManagementClient interface {
 	CheckGeoIPCityUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedMMDBVersion], error)
+	GetGeoIPCityCurrentVersion(ctx context.Context) (entity.PatchedMMDBVersion, error)
 	CheckGeoIPISPUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedMMDBVersion], error)
+	GetGeoIPISPCurrentVersion(ctx context.Context) (entity.PatchedMMDBVersion, error)
+	GetGeoIPHostingCurrentVersion(ctx context.Context) (entity.PatchedMMDBVersion, error)
 	CheckGeonamesUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedGeoNamesVersion], error)
+	GetGeonamesCurrentVersion(ctx context.Context) (entity.PatchedGeoNamesVersion, error)
 	UpdateGeoIPCity(ctx context.Context) error
 	UpdateGeoIPISP(ctx context.Context) error
 	UpdateGeonames(ctx context.Context) error
