@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func RecoveryMiddleware(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (_ interface{}, err error) {
+func RecoveryMiddleware(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (_ any, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.FromContext(ctx).Errorf("Panic %v\n%s", r, debug.Stack())

@@ -1,6 +1,6 @@
 ARG SRC_DIR=github.com/bldsoft/geos
 #build stage
-FROM golang:1.26-alpine AS builder
+FROM golang:1.27-alpine AS builder
 WORKDIR /go/src/${SRC_DIR}
 
 COPY go.mod .

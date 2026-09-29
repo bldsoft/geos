@@ -76,7 +76,7 @@ func (r *GeoNameRepository) StartUpdate(ctx context.Context) error {
 }
 
 func (r *GeoNameRepository) CheckUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedGeoNamesVersion], error) {
-	result, err, _ := r.checkUpdatesSF.Do("check_updates", func() (interface{}, error) {
+	result, err, _ := r.checkUpdatesSF.Do("check_updates", func() (any, error) {
 		updates, err := r.storage.CheckUpdates(ctx)
 		if err != nil {
 			return entity.DBUpdate[entity.PatchedGeoNamesVersion]{}, err
