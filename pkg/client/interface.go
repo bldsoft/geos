@@ -10,6 +10,7 @@ type GeoIPClient interface {
 	Country(ctx context.Context, address string) (*entity.Country, error)
 	City(ctx context.Context, address string, includeISP bool) (*entity.City, error)
 	CityLite(ctx context.Context, address, lang string) (*entity.CityLite, error)
+	ASNs(ctx context.Context, filter entity.ASNFilter) ([]*entity.ASN, error)
 }
 
 type GeoNameClient interface {

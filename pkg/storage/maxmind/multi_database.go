@@ -43,9 +43,11 @@ func (db *MultiMaxMindDB) Lookup(ctx context.Context, ip netip.Addr, result any)
 		if err == nil {
 			return nil
 		}
-		multiErr = errors.Join(multiErr, err)
+		if !errors.Is(err, utils.ErrNotFound) {
+			multiErr = errors.Join(multiErr, err)
+		}
 	}
-	return errors.Join(utils.ErrNotFound, multiErr)
+	return multiErr
 }
 
 func (db *MultiMaxMindDB) dbReader(ctx context.Context, index int) (*maxminddb.Reader, error) {
