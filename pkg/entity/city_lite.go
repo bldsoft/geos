@@ -3,22 +3,22 @@ package entity
 type CityLite struct {
 	City struct {
 		Name string `json:"name,omitempty"`
-	} `json:"city,omitempty"`
+	} `json:"city"`
 	Country struct {
 		ISOCode string `json:"isoCode,omitempty"`
 		Name    string `json:"name,omitempty"`
-	} `json:"country,omitempty"`
-	Location LocationLite `json:"location,omitempty"`
+	} `json:"country"`
+	Location LocationLite `json:"location"`
 }
 type CityLiteDb struct {
 	City struct {
 		Names map[string]string `maxminddb:"names" json:"names,omitempty"`
-	} `maxminddb:"city" json:"city,omitempty"`
+	} `maxminddb:"city" json:"city"`
 	Country struct {
 		ISOCode string            `maxminddb:"iso_code" json:"isoCode,omitempty"`
 		Names   map[string]string `maxminddb:"names" json:"names,omitempty"`
-	} `maxminddb:"country" json:"country,omitempty"`
-	Location LocationLite `maxminddb:"location" json:"location,omitempty"`
+	} `maxminddb:"country" json:"country"`
+	Location LocationLite `maxminddb:"location" json:"location"`
 }
 
 type LocationLite struct {

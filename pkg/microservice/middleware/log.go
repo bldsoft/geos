@@ -13,7 +13,7 @@ func LoggerMiddleware() grpc.UnaryServerInterceptor {
 	return grpc_middleware.ChainUnaryServer(injectLoggerMiddleware, logRequest)
 }
 
-func injectLoggerMiddleware(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (_ interface{}, err error) {
+func injectLoggerMiddleware(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (_ any, err error) {
 	reqID := middleware.GetReqID(ctx)
 
 	logFields := log.Fields{log.ReqIdFieldName: reqID}
@@ -23,7 +23,7 @@ func injectLoggerMiddleware(ctx context.Context, req interface{}, info *grpc.Una
 	return handler(ctx, req)
 }
 
-func logRequest(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (_ interface{}, err error) {
+func logRequest(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (_ any, err error) {
 	log.FromContext(ctx).InfoWithFields(log.Fields{"msg": req}, "REQUEST")
 	resp, err := handler(ctx, req)
 	log.FromContext(ctx).InfoOrErrorWithFields(err, log.Fields{"msg": resp}, "RESPONSE")

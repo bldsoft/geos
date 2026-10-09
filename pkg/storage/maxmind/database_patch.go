@@ -149,7 +149,7 @@ func (db *DatabasePatch) Available() bool {
 	return true
 }
 
-func (db *DatabasePatch) Lookup(ctx context.Context, ip netip.Addr, result interface{}) error {
+func (db *DatabasePatch) Lookup(ctx context.Context, ip netip.Addr, result any) error {
 	res := db.db.Lookup(ip.Unmap())
 	if err := res.Err(); err != nil {
 		return err

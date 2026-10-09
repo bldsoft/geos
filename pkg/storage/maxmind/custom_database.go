@@ -38,7 +38,7 @@ func (db *CustomDatabase) db() *MultiMaxMindDB {
 	return db.base.Load()
 }
 
-func (db *CustomDatabase) Lookup(ctx context.Context, ip netip.Addr, result interface{}) error {
+func (db *CustomDatabase) Lookup(ctx context.Context, ip netip.Addr, result any) error {
 	return db.db().Lookup(ctx, ip, result)
 }
 

@@ -138,7 +138,6 @@ func BenchmarkNameIndexPrefixSearch(b *testing.B) {
 	rwayIdx := buildRWay(names)
 
 	for _, prefix := range benchPrefixes {
-		prefix := prefix
 		b.Run("Radix/"+prefix, func(b *testing.B) {
 			b.ReportAllocs()
 			var n int

@@ -8,6 +8,7 @@ import (
 	"iter"
 	"maps"
 	"net/netip"
+	"slices"
 
 	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
@@ -34,11 +35,11 @@ func (db *MultiMaxMindDB) Add(dbs ...Database) *MultiMaxMindDB {
 	return db
 }
 
-func (db *MultiMaxMindDB) Lookup(ctx context.Context, ip netip.Addr, result interface{}) error {
+func (db *MultiMaxMindDB) Lookup(ctx context.Context, ip netip.Addr, result any) error {
 	ip = ip.Unmap()
 	var multiErr error
-	for i := len(db.dbs) - 1; i >= 0; i-- {
-		err := db.dbs[i].Lookup(ctx, ip, result)
+	for _, v := range slices.Backward(db.dbs) {
+		err := v.Lookup(ctx, ip, result)
 		if err == nil {
 			return nil
 		}
@@ -115,7 +116,7 @@ func (db *MultiMaxMindDB) RawData(ctx context.Context) (io.Reader, error) {
 
 	type networkNode struct {
 		network netip.Prefix
-		data    map[string]interface{}
+		data    map[string]any
 	}
 	const bufSize = 1000
 	readedNodeC := make(chan networkNode, bufSize)
@@ -137,7 +138,7 @@ func (db *MultiMaxMindDB) RawData(ctx context.Context) (io.Reader, error) {
 				}
 
 				var node networkNode
-				node.data = make(map[string]interface{})
+				node.data = make(map[string]any)
 				err := network.Decode(&node.data)
 				if err != nil {
 					return err
