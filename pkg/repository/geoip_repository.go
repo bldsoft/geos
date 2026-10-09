@@ -300,7 +300,7 @@ func (r *GeoIPRepository) StartUpdate(ctx context.Context, dbType MaxmindDBType)
 }
 
 func (r *GeoIPRepository) CheckUpdates(ctx context.Context, dbType MaxmindDBType) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
-	result, err, _ := r.checkUpdatesSF.Do("check_updates_"+string(dbType), func() (interface{}, error) {
+	result, err, _ := r.checkUpdatesSF.Do("check_updates_"+string(dbType), func() (any, error) {
 		switch dbType {
 		case MaxmindDBTypeCity:
 			return r.checkCityUpdates(ctx)

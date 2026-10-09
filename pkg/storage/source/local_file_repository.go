@@ -39,10 +39,7 @@ func (r *LocalFileRepository) TailReader(ctx context.Context, path string, offse
 	}
 
 	fileSize := fileInfo.Size()
-	startOffset := fileSize - offset
-	if startOffset < 0 {
-		startOffset = 0
-	}
+	startOffset := max(fileSize-offset, 0)
 
 	_, err = file.Seek(startOffset, io.SeekStart)
 	if err != nil {

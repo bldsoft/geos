@@ -100,7 +100,7 @@ func commonGeoNamesFlags() []cli.Flag {
 	}
 }
 
-func print(obj interface{}) error {
+func print(obj any) error {
 	data, err := json.MarshalIndent(obj, "", "	")
 	if err != nil {
 		return err

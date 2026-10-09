@@ -6,7 +6,7 @@ import (
 	"github.com/maxmind/mmdbwriter/mmdbtype"
 )
 
-func toMMDBType(val interface{}) mmdbtype.DataType {
+func toMMDBType(val any) mmdbtype.DataType {
 	switch v := val.(type) {
 	case string:
 		return mmdbtype.String(v)
