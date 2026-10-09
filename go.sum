@@ -171,8 +171,8 @@ github.com/bits-and-blooms/bitset v1.2.0/go.mod h1:gIdJ4wp64HaoK2YrL1Q5/N7Y16edY
 github.com/bkaradzic/go-lz4 v1.0.0/go.mod h1:0YdlkowM3VswSROI7qDxhRvJ3sLhlFrRRwjwegp5jy4=
 github.com/blang/semver v3.1.0+incompatible/go.mod h1:kRBLl5iJ+tD4TcOOxsy/0fnwebNt5EWlYSAyrTnjyyk=
 github.com/blang/semver v3.5.1+incompatible/go.mod h1:kRBLl5iJ+tD4TcOOxsy/0fnwebNt5EWlYSAyrTnjyyk=
-github.com/bldsoft/gost v0.0.0-20261005100143-04d1e6cbb0a9 h1:FafhNoAQZO/BGbOftsZGeXR1dilKjd/uEFveNsGrJpA=
-github.com/bldsoft/gost v0.0.0-20261005100143-04d1e6cbb0a9/go.mod h1:F2Ilw/D8TYs5DYosGDeT5AwGGiK7gQKuv2iH6wt9mig=
+github.com/bldsoft/gost v0.0.0-20261009073141-7917f955182f h1:uNo2EiQjAnARs8/4y0TnNsmnuPztAoTy6mfTrUe1LYk=
+github.com/bldsoft/gost v0.0.0-20261009073141-7917f955182f/go.mod h1:F2Ilw/D8TYs5DYosGDeT5AwGGiK7gQKuv2iH6wt9mig=
 github.com/bldsoft/memberlist v0.0.0-20250318063233-36c35bf6fda4 h1:ZjtI/cNbQ2Y8hynq5YaRyHXn70nG9l1xGkk/KXMcXMc=
 github.com/bldsoft/memberlist v0.0.0-20250318063233-36c35bf6fda4/go.mod h1:5hXa2dAqctVumW+MMzPWJ4ZOKXXmpB7fIDQXeL6bqKA=
 github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869/go.mod h1:Ekp36dRnpXw/yCqJaO+ZrUyxD+3VXMFFr56k5XYrpB4=
