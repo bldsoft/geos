@@ -55,7 +55,7 @@ func (s *PatchedStorage) CurrentVersion(ctx context.Context) (entity.PatchedGeoN
 	}
 	res := entity.PatchedGeoNamesVersion{DB: entity.GeoNamesVersion(dbVersion)}
 	if s.custom != nil {
-		patch := entity.ModTimeVersion(s.custom.lastUpdate)
+		patch := entity.ModTimeVersion(s.custom.CurrentVersion())
 		res.Patch = &patch
 	}
 	return res, nil

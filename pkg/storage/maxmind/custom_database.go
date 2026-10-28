@@ -100,6 +100,10 @@ func (db *CustomDatabase) update(ctx context.Context) error {
 	return nil
 }
 
+func (db *CustomDatabase) CurrentVersion() source.ModTimeVersion {
+	return db.lastUpdate
+}
+
 func (db *CustomDatabase) CheckUpdates(ctx context.Context) (source.Update[source.ModTimeVersion], error) {
 	update, err := db.source.CheckUpdates(ctx)
 	if err != nil {

@@ -36,9 +36,9 @@ func (db *PatchedDatabase) Update(ctx context.Context, force bool) error {
 }
 
 func (db *PatchedDatabase) CurrentVersion() entity.PatchedMMDBVersion {
-	res := entity.PatchedMMDBVersion{DB: db.db.lastUpdate}
+	res := entity.PatchedMMDBVersion{DB: db.db.CurrentVersion()}
 	if db.custom != nil {
-		patch := entity.ModTimeVersion(db.custom.lastUpdate)
+		patch := entity.ModTimeVersion(db.custom.CurrentVersion())
 		res.Patch = &patch
 	}
 	return res
