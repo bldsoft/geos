@@ -18,6 +18,7 @@ type GeoIpService interface {
 	StartUpdate(ctx context.Context, dbType service.DBType) error
 	CheckUpdates(ctx context.Context, dbType service.DBType) (entity.DBUpdate[entity.PatchedMMDBVersion], error)
 	CurrentVersion(ctx context.Context, dbType service.DBType) (entity.PatchedMMDBVersion, error)
+	ASNs(ctx context.Context, filter entity.ASNFilter) ([]*entity.ASN, error)
 }
 
 type GeoNameService interface {

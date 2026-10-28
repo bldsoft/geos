@@ -15,7 +15,7 @@ func GetRealIP(ctx context.Context) string {
 	return middleware.GetRealIP(ctx)
 }
 
-func RealIPMiddleware(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (_ interface{}, err error) {
+func RealIPMiddleware(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (_ any, err error) {
 	ip := realIP(ctx)
 	return handler(middleware.WithRealIP(ctx, ip), req)
 }

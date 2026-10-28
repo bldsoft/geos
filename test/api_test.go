@@ -37,19 +37,19 @@ func clients(b *testing.B) []Client {
 
 type ClientRequest struct {
 	name   string
-	method func(client client.GeoIPClient, address string) (interface{}, error)
+	method func(client client.GeoIPClient, address string) (any, error)
 }
 
 func requests() []ClientRequest {
 	var requests []ClientRequest
 
-	requests = append(requests, ClientRequest{"city", func(client client.GeoIPClient, address string) (interface{}, error) {
+	requests = append(requests, ClientRequest{"city", func(client client.GeoIPClient, address string) (any, error) {
 		return client.City(context.Background(), address, false)
 	}})
-	requests = append(requests, ClientRequest{"country", func(client client.GeoIPClient, address string) (interface{}, error) {
+	requests = append(requests, ClientRequest{"country", func(client client.GeoIPClient, address string) (any, error) {
 		return client.Country(context.Background(), address)
 	}})
-	requests = append(requests, ClientRequest{"city-lite", func(client client.GeoIPClient, address string) (interface{}, error) {
+	requests = append(requests, ClientRequest{"city-lite", func(client client.GeoIPClient, address string) (any, error) {
 		return client.CityLite(context.Background(), address, "")
 
 	}})

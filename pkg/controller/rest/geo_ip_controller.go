@@ -1,18 +1,20 @@
 package rest
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 	"strings"
 
 	"github.com/bldsoft/geos/pkg/controller"
-	_ "github.com/bldsoft/geos/pkg/entity"
+	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/repository"
 	"github.com/bldsoft/geos/pkg/service"
 	"github.com/bldsoft/geos/pkg/utils"
 	gost "github.com/bldsoft/gost/controller"
 	"github.com/bldsoft/gost/log"
+	gostUtils "github.com/bldsoft/gost/utils"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -27,6 +29,38 @@ func NewGeoIpController(geoIpService controller.GeoIpService) (c *GeoIpControlle
 
 func (c *GeoIpController) address(r *http.Request) string {
 	return chi.URLParam(r, "addr")
+}
+
+// @Summary ASN catalog
+// @Produce json
+// @Tags geo IP
+// @Param name-prefix query string false "name or ASN prefix"
+// @Param limit query integer false "max results"
+// @Param asns query []integer false "comma separated list of ASN numbers"
+// @Success 200 {object} []entity.ASN
+// @Failure 400 {string} string "error"
+// @Failure 500 {string} string "error"
+// @Failure 503 {string} string "error"
+// @Router /asn [get]
+func (c *GeoIpController) GetASNsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	filter := &entity.ASNFilter{}
+	var err error
+	if r.Method == http.MethodPost {
+		err = json.NewDecoder(r.Body).Decode(filter)
+	} else {
+		filter, err = gostUtils.FromRequest[entity.ASNFilter](r)
+	}
+	if err != nil {
+		c.responseError(w, r, err)
+		return
+	}
+	asns, err := c.geoIpService.ASNs(ctx, *filter)
+	if err != nil {
+		c.responseError(w, r, err)
+		return
+	}
+	c.ResponseJson(w, r, asns)
 }
 
 // @Summary city

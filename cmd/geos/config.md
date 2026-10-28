@@ -9,6 +9,8 @@
 |TLS_SERVICE_BIND_ADDRESS||Service configuration related to what address bind to and port to listen on for HTTPS|
 |TLS_CERTIFICATE_PATH||Path to TLS certificate file|
 |TLS_KEY_PATH||Path to TLS key file|
+|READ_TIMEOUT_MS|0|Maximum duration for reading the entire request, including the body (in milliseconds)|
+|WRITE_TIMEOUT_MS|0|Maximum duration before timing out writes of the response (in milliseconds)|
 |LOG_LEVEL|info|Log level|
 |LOG_COLOR_ENABLED|false|Enable the colorized output|
 |CLICKHOUSE_DSN||Clickhouse DSN|

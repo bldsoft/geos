@@ -75,7 +75,7 @@ type PatchVersion = ModTimeVersion
 type GeoNamesVersion = ModTimeVersion
 
 type PatchedMMDBVersion struct {
-	DB    MMDBVersion     `json:"db,omitempty"`
+	DB    MMDBVersion     `json:"db"`
 	Patch *ModTimeVersion `json:"patch,omitempty"`
 }
 
@@ -96,7 +96,7 @@ func (v PatchedMMDBVersion) String() string {
 }
 
 type PatchedGeoNamesVersion struct {
-	DB    GeoNamesVersion `json:"db,omitempty"`
+	DB    GeoNamesVersion `json:"db"`
 	Patch *ModTimeVersion `json:"patch,omitempty"`
 }
 

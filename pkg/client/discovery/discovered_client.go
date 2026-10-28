@@ -68,6 +68,13 @@ func (c *discoveredClient) CityLite(ctx context.Context, address, lang string) (
 		})
 }
 
+func (c *discoveredClient) ASNs(ctx context.Context, filter entity.ASNFilter) ([]*entity.ASN, error) {
+	return doWithClientLoader[client.Client, []*entity.ASN](c.clientLoader, true,
+		func(client client.Client) (res []*entity.ASN, err error) {
+			return client.ASNs(ctx, filter)
+		})
+}
+
 func (c *discoveredClient) GeoNameCountries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error) {
 	return doWithClientLoader[client.Client, []*entity.GeoNameCountry](c.clientLoader, true,
 		func(client client.Client) (res []*entity.GeoNameCountry, err error) {

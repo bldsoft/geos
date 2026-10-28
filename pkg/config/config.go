@@ -70,8 +70,18 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("GEOIP_DB_PATH %s: %w", c.GeoDbPath, err)
 	}
 
-	if _, err := os.Stat(c.GeoDbISPPath); err != nil && len(c.GeoDbISPSource) == 0 {
-		return fmt.Errorf("GEOIP_DB_ISP_PATH %s: %w", c.GeoDbISPPath, err)
+	if err := c.validateOptionalDB(c.GeoDbISPPath, c.GeoDbISPSource, "GEOIP_DB_ISP_PATH"); err != nil {
+		return err
+	}
+	return c.validateOptionalDB(c.GeoDbHostingPath, c.GeoDbHostingSource, "GEOIP_DB_HOSTING_PATH")
+}
+
+func (c *Config) validateOptionalDB(path, source, name string) error {
+	if path == "" && source == "" {
+		return nil
+	}
+	if _, err := os.Stat(path); err != nil && source == "" {
+		return fmt.Errorf("%s %s: %w", name, path, err)
 	}
 	return nil
 }

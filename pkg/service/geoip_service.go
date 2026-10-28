@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"net"
+	"net/netip"
 
 	"github.com/bldsoft/geos/pkg/entity"
 	"github.com/bldsoft/geos/pkg/microservice/middleware"
@@ -13,16 +15,17 @@ type DumpFormat = repository.DumpFormat
 type DBType = repository.MaxmindDBType
 
 type GeoRepository interface {
-	Country(ctx context.Context, ip net.IP) (*entity.Country, error)
-	City(ctx context.Context, ip net.IP, includeISP bool) (*entity.City, error)
-	CityLite(ctx context.Context, ip net.IP, lang string) (*entity.CityLite, error)
-	Hosting(ctx context.Context, ip net.IP) (*entity.Hosting, error)
+	Country(ctx context.Context, ip netip.Addr) (*entity.Country, error)
+	City(ctx context.Context, ip netip.Addr, includeISP bool) (*entity.City, error)
+	CityLite(ctx context.Context, ip netip.Addr, lang string) (*entity.CityLite, error)
+	Hosting(ctx context.Context, ip netip.Addr) (*entity.Hosting, error)
 	MetaData(ctx context.Context, dbType DBType) (*entity.MetaData, error)
 	Database(ctx context.Context, dbType DBType, format DumpFormat) (*entity.Database, error)
 
 	StartUpdate(ctx context.Context, dbType DBType) error
 	CheckUpdates(ctx context.Context, dbType DBType) (entity.DBUpdate[entity.PatchedMMDBVersion], error)
 	CurrentVersion(ctx context.Context, dbType DBType) (entity.PatchedMMDBVersion, error)
+	ASNs(ctx context.Context, filter entity.ASNFilter) ([]*entity.ASN, error)
 }
 
 type GeoIpService struct {
@@ -33,7 +36,7 @@ func NewGeoIpService(rep GeoRepository) *GeoIpService {
 	return &GeoIpService{rep: rep}
 }
 
-func (s *GeoIpService) ip(ctx context.Context, address string) (net.IP, error) {
+func (s *GeoIpService) ip(ctx context.Context, address string) (netip.Addr, error) {
 	if address == "me" {
 		address = middleware.GetRealIP(ctx)
 	}
@@ -43,14 +46,17 @@ func (s *GeoIpService) ip(ctx context.Context, address string) (net.IP, error) {
 		address = host
 	}
 
-	if ip := net.ParseIP(address); ip != nil {
-		return ip, nil
+	if ip, err := netip.ParseAddr(address); err == nil {
+		return ip.Unmap(), nil
 	}
-	ips, err := net.LookupIP(address)
+	ips, err := net.DefaultResolver.LookupNetIP(ctx, "ip", address)
 	if err != nil {
-		return nil, err
+		return netip.Addr{}, err
 	}
-	return ips[0], nil
+	if len(ips) == 0 {
+		return netip.Addr{}, fmt.Errorf("no IP addresses found for %q", address)
+	}
+	return ips[0].Unmap(), nil
 }
 
 func (s *GeoIpService) Country(ctx context.Context, address string) (*entity.Country, error) {
@@ -108,4 +114,8 @@ func (r *GeoIpService) CurrentVersion(ctx context.Context, dbType DBType) (entit
 
 func (r *GeoIpService) StartUpdate(ctx context.Context, dbType DBType) error {
 	return r.rep.StartUpdate(ctx, dbType)
+}
+
+func (s *GeoIpService) ASNs(ctx context.Context, filter entity.ASNFilter) ([]*entity.ASN, error) {
+	return s.rep.ASNs(ctx, filter)
 }

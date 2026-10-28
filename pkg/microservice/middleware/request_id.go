@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-var id uint64
+var id atomic.Uint64
 var RequestIDHeader = "x-request-id"
 
 func GetReqID(ctx context.Context) string {
@@ -21,7 +21,7 @@ func WithReqID(ctx context.Context, reqID string) context.Context {
 	return context.WithValue(ctx, middleware.RequestIDKey, reqID)
 }
 
-func RequestIDMiddleware(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (_ interface{}, err error) {
+func RequestIDMiddleware(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (_ any, err error) {
 	reqID := requestID(ctx)
 	return handler(WithReqID(ctx, reqID), req)
 }
@@ -46,6 +46,6 @@ func requestID(ctx context.Context) string {
 }
 
 func newRequestID() string {
-	myid := atomic.AddUint64(&id, 1)
+	myid := id.Add(1)
 	return fmt.Sprintf("gRPC-%06d", myid)
 }

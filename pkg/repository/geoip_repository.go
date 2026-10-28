@@ -5,12 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
+	"net/netip"
 	"net/url"
 	"path/filepath"
 	"time"
 
 	"github.com/bldsoft/geos/pkg/entity"
+	"github.com/bldsoft/geos/pkg/storage/asn"
 	"github.com/bldsoft/geos/pkg/storage/maxmind"
 	"github.com/bldsoft/geos/pkg/storage/source"
 	"github.com/bldsoft/geos/pkg/utils"
@@ -107,6 +108,8 @@ type GeoIPRepository struct {
 	checkUpdatesSF singleflight.Group
 
 	cityUpdater, ispUpdater, hostingUpdater *baseUpdateRepository
+
+	asns *asn.ASNStorage
 }
 
 func NewGeoIPRepository(cfg GeoIPRepositoryConfig) *GeoIPRepository {
@@ -129,7 +132,11 @@ func NewGeoIPRepository(cfg GeoIPRepositoryConfig) *GeoIPRepository {
 			if res.dbISP == nil {
 				return utils.ErrDisabled
 			}
-			return res.dbISP.Update(ctx, force)
+			if err := res.dbISP.Update(ctx, force); err != nil {
+				return err
+			}
+			res.asns.Update(ctx)
+			return nil
 		},
 	)
 	res.hostingUpdater = NewBaseUpdateRepository(
@@ -142,24 +149,34 @@ func NewGeoIPRepository(cfg GeoIPRepositoryConfig) *GeoIPRepository {
 			return res.dbHosting.Update(ctx, force)
 		},
 	)
+	if res.dbISP != nil {
+		res.asns = asn.NewASNStorage(context.Background(), res.dbISP)
+	}
 	return res
 }
 
-func lookup[T any](ctx context.Context, db maxmind.Database, ip net.IP) (*T, error) {
+func (r *GeoIPRepository) ASNs(ctx context.Context, filter entity.ASNFilter) ([]*entity.ASN, error) {
+	if r.asns == nil {
+		return nil, ErrGeoIPCSVDisabled
+	}
+	return r.asns.GetFiltered(ctx, filter)
+}
+
+func lookup[T any](ctx context.Context, db maxmind.Database, ip netip.Addr) (*T, error) {
 	var obj T
 	return &obj, db.Lookup(ctx, ip, &obj)
 }
 
-func (r *GeoIPRepository) Country(ctx context.Context, ip net.IP) (*entity.Country, error) {
+func (r *GeoIPRepository) Country(ctx context.Context, ip netip.Addr) (*entity.Country, error) {
 	return lookup[entity.Country](ctx, r.dbCity, ip)
 }
 
-func (r *GeoIPRepository) City(ctx context.Context, ip net.IP, includeISP bool) (*entity.City, error) {
+func (r *GeoIPRepository) City(ctx context.Context, ip netip.Addr, includeISP bool) (*entity.City, error) {
 	city, err := lookup[entity.City](ctx, r.dbCity, ip)
 	if err != nil {
 		return nil, err
 	}
-	if includeISP {
+	if includeISP && r.dbISP != nil {
 		var isp entity.ISP
 		err := r.dbISP.Lookup(ctx, ip, &isp)
 		if err != nil {
@@ -171,7 +188,7 @@ func (r *GeoIPRepository) City(ctx context.Context, ip net.IP, includeISP bool) 
 	return city, nil
 }
 
-func (r *GeoIPRepository) CityLite(ctx context.Context, ip net.IP, lang string) (*entity.CityLite, error) {
+func (r *GeoIPRepository) CityLite(ctx context.Context, ip netip.Addr, lang string) (*entity.CityLite, error) {
 	cityLiteDB, err := lookup[entity.CityLiteDb](ctx, r.dbCity, ip)
 	if err != nil {
 		return nil, err
@@ -179,7 +196,10 @@ func (r *GeoIPRepository) CityLite(ctx context.Context, ip net.IP, lang string) 
 	return entity.DbToCityLite(cityLiteDB, lang), nil
 }
 
-func (r *GeoIPRepository) Hosting(ctx context.Context, ip net.IP) (*entity.Hosting, error) {
+func (r *GeoIPRepository) Hosting(ctx context.Context, ip netip.Addr) (*entity.Hosting, error) {
+	if r.dbHosting == nil {
+		return nil, ErrGeoIPCSVDisabled
+	}
 	return lookup[entity.Hosting](ctx, r.dbHosting, ip)
 }
 
@@ -280,7 +300,7 @@ func (r *GeoIPRepository) StartUpdate(ctx context.Context, dbType MaxmindDBType)
 }
 
 func (r *GeoIPRepository) CheckUpdates(ctx context.Context, dbType MaxmindDBType) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
-	result, err, _ := r.checkUpdatesSF.Do("check_updates_"+string(dbType), func() (interface{}, error) {
+	result, err, _ := r.checkUpdatesSF.Do("check_updates_"+string(dbType), func() (any, error) {
 		switch dbType {
 		case MaxmindDBTypeCity:
 			return r.checkCityUpdates(ctx)
@@ -327,6 +347,9 @@ func (r *GeoIPRepository) checkCityUpdates(ctx context.Context) (entity.DBUpdate
 }
 
 func (r *GeoIPRepository) checkISPUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
+	if r.dbISP == nil {
+		return entity.DBUpdate[entity.PatchedMMDBVersion]{}, ErrGeoIPCSVDisabled
+	}
 	update, err := r.dbISP.CheckUpdates(ctx)
 	if err != nil {
 		return entity.DBUpdate[entity.PatchedMMDBVersion]{}, err
@@ -339,6 +362,9 @@ func (r *GeoIPRepository) checkISPUpdates(ctx context.Context) (entity.DBUpdate[
 }
 
 func (r *GeoIPRepository) checkHostingUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
+	if r.dbHosting == nil {
+		return entity.DBUpdate[entity.PatchedMMDBVersion]{}, ErrGeoIPCSVDisabled
+	}
 	update, err := r.dbHosting.CheckUpdates(ctx)
 	if err != nil {
 		return entity.DBUpdate[entity.PatchedMMDBVersion]{}, err

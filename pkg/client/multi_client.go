@@ -59,6 +59,12 @@ func getManyFromAny[T any](ctx context.Context, clients []Client, f func(ctx con
 	return nil, multiErr
 }
 
+func (c *MultiClient) ASNs(ctx context.Context, filter entity.ASNFilter) ([]*entity.ASN, error) {
+	return getManyFromAny(ctx, c.Clients, func(ctx context.Context, client Client) ([]*entity.ASN, error) {
+		return client.ASNs(ctx, filter)
+	})
+}
+
 func (c *MultiClient) GeoNameContinents(ctx context.Context) []*entity.GeoNameContinent {
 	continents, _ := getManyFromAny(ctx, c.Clients, func(ctx context.Context, client Client) ([]*entity.GeoNameContinent, error) {
 		return client.GeoNameContinents(ctx), nil

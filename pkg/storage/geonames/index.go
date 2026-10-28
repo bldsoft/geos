@@ -1,11 +1,10 @@
 package geonames
 
 import (
-	"sort"
 	"strings"
 
 	"github.com/bldsoft/geos/pkg/entity"
-	"github.com/derekparker/trie"
+	"github.com/gammazero/radixtree"
 )
 
 type indexRange struct {
@@ -21,21 +20,24 @@ type index[T entity.GeoNameEntity] struct {
 	collection []T
 
 	geoNameIDToCollectionIndex map[uint32]int
-	trie                       *trie.Trie
+	names                      *radixtree.Tree[[]int]
 	countryCodeToRange         map[string]*indexRange
 }
 
 func (idx *index[T]) Init(collection []T) {
 	idx.collection = collection
 
-	idx.trie = trie.New()
+	idx.names = radixtree.New[[]int]()
 
 	idx.countryCodeToRange = make(map[string]*indexRange)
 	idx.geoNameIDToCollectionIndex = make(map[uint32]int)
 
 	for i, item := range collection {
 		// search by name prefix
-		idx.trie.Add(strings.ToLower(item.GetName()), i)
+		key := strings.ToLower(item.GetName())
+		indexes, _ := idx.names.Get(key)
+		indexes = append(indexes, i)
+		idx.names.Put(key, indexes)
 
 		// search by geoNameID
 		idx.geoNameIDToCollectionIndex[uint32(item.GetGeoNameID())] = i
@@ -87,12 +89,9 @@ func (idx *index[T]) GetFiltered(filter entity.GeoNameFilter) (res []T) {
 
 func (idx *index[T]) indexesByNamePrefix(namePrefix string) []int {
 	namePrefix = strings.ToLower(namePrefix)
-	keys := idx.trie.PrefixSearch(namePrefix)
-	sort.Strings(keys)
-	res := make([]int, 0, len(keys))
-	for _, key := range keys {
-		node, _ := idx.trie.Find(key)
-		res = append(res, node.Meta().(int))
+	var res []int
+	for _, indexes := range idx.names.IterAt(namePrefix) {
+		res = append(res, indexes...)
 	}
 	return res
 }

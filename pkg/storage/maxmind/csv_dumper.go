@@ -8,7 +8,6 @@ import (
 	"io"
 
 	"github.com/bldsoft/gost/log"
-	"github.com/oschwald/maxminddb-golang"
 )
 
 type MaxmindCSVDumper[T CSVEntity] struct {
@@ -18,8 +17,9 @@ type MaxmindCSVDumper[T CSVEntity] struct {
 func NewCSVDumper[T CSVEntity](db Database) *MaxmindCSVDumper[T] {
 	return &MaxmindCSVDumper[T]{db}
 }
+
 func (db MaxmindCSVDumper[T]) WriteCSVTo(ctx context.Context, w io.Writer) error {
-	networks, err := db.Networks(ctx, maxminddb.SkipAliasedNetworks)
+	networks, err := db.Networks(ctx)
 	if err != nil {
 		return err
 	}
@@ -42,48 +42,34 @@ func (db MaxmindCSVDumper[T]) WriteCSVTo(ctx context.Context, w io.Writer) error
 		return err
 	}
 
-	if !networks.Next() {
-		return nil
-	}
-	var record T
-	subnet, err := networks.Network(&record)
-	if err != nil {
-		return err
-	}
-
-	names, row, err := record.MarshalCSV()
-	if err != nil {
-		return err
-	}
-
-	header := make([]string, 0, len(names)+1)
-	header = append(header, "network")
-	header = append(header, names...)
-	if err := csvWriter.Write(header); err != nil {
-		return err
-	}
-	csvRow := header
-	csvRow[0] = subnet.String()
-	copy(csvRow[1:], row)
-	if err := writeRow(csvRow); err != nil {
-		return err
-	}
-
-	for networks.Next() {
+	var csvRow []string
+	first := true
+	for result := range networks {
+		if err := result.Err(); err != nil {
+			return err
+		}
+		subnet := result.Prefix()
 		var record T
-		subnet, err := networks.Network(&record)
+		if err := result.Decode(&record); err != nil {
+			return err
+		}
+		names, row, err := record.MarshalCSV()
 		if err != nil {
 			return err
 		}
-		_, row, err := record.MarshalCSV()
-		if err != nil {
-			return err
+		if first {
+			header := make([]string, 0, len(names)+1)
+			header = append(header, "network")
+			header = append(header, names...)
+			if err := csvWriter.Write(header); err != nil {
+				return err
+			}
+			csvRow = make([]string, len(header))
+			first = false
 		}
 		csvRow[0] = subnet.String()
 		copy(csvRow[1:], row)
-
-		err = writeRow(csvRow)
-		if err != nil {
+		if err := writeRow(csvRow); err != nil {
 			return err
 		}
 	}
@@ -96,10 +82,18 @@ func (db MaxmindCSVDumper[T]) WriteCSVTo(ctx context.Context, w io.Writer) error
 
 func (db MaxmindCSVDumper[T]) CSV(ctx context.Context, gzipCompress bool) (io.Reader, error) {
 	var buf bytes.Buffer
-	var w io.Writer = &buf
 	if gzipCompress {
-		w = gzip.NewWriter(w)
+		gz := gzip.NewWriter(&buf)
+		if err := db.WriteCSVTo(ctx, gz); err != nil {
+			return nil, err
+		}
+		if err := gz.Close(); err != nil {
+			return nil, err
+		}
+		return &buf, nil
 	}
-	db.WriteCSVTo(ctx, w)
+	if err := db.WriteCSVTo(ctx, &buf); err != nil {
+		return nil, err
+	}
 	return &buf, nil
 }

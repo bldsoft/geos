@@ -217,7 +217,7 @@ func ISPToPb(isp *entity.ISP) *pb.ISP {
 		MobileCountryCode:            isp.MobileCountryCode,
 		MobileNetworkCode:            isp.MobileNetworkCode,
 		Organization:                 isp.Organization,
-		AutonomousSystemNumber:       uint32(isp.AutonomousSystemNumber),
+		AutonomousSystemNumber:       isp.AutonomousSystemNumber,
 	}
 }
 
@@ -231,6 +231,6 @@ func PbToISP(isp *pb.ISP) *entity.ISP {
 		MobileCountryCode:            isp.MobileCountryCode,
 		MobileNetworkCode:            isp.MobileNetworkCode,
 		Organization:                 isp.Organization,
-		AutonomousSystemNumber:       uint(isp.AutonomousSystemNumber),
+		AutonomousSystemNumber:       isp.AutonomousSystemNumber,
 	}
 }

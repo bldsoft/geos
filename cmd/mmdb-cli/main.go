@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net"
+	"net/netip"
 	"os"
 	"time"
 
@@ -84,16 +84,17 @@ func main() {
 				Name: "lookup",
 				Action: func(ctx *cli.Context) error {
 					dbPath := ctx.Args().Get(0)
-					ip := ctx.Args().Get(1)
-					if ip == "" {
-						return fmt.Errorf("ip is required")
+					ip, err := netip.ParseAddr(ctx.Args().Get(1))
+					if err != nil {
+						return fmt.Errorf("invalid ip: %w", err)
 					}
+					ip = ip.Unmap()
 					db, err := openDatabase(ctx.Context, dbPath)
 					if err != nil {
 						return err
 					}
-					var res map[string]interface{}
-					err = db.Lookup(ctx.Context, net.ParseIP(ip), &res)
+					var res map[string]any
+					err = db.Lookup(ctx.Context, ip, &res)
 					if err != nil {
 						return err
 					}
