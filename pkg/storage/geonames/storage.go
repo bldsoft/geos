@@ -191,6 +191,10 @@ func (s *GeoNameStorage) CheckUpdates(ctx context.Context) (entity.Update[source
 	return s.source.CheckUpdates(ctx)
 }
 
+func (s *GeoNameStorage) CurrentVersion(ctx context.Context) (source.ModTimeVersion, error) {
+	return s.source.CurrentVersion(ctx)
+}
+
 func (s *GeoNameStorage) Update(ctx context.Context, force bool) error {
 	update, err := s.CheckUpdates(ctx)
 	if err != nil {

@@ -39,6 +39,10 @@ func (s *CustomStorage) CheckUpdates(ctx context.Context) (entity.Update[source.
 	return update, nil
 }
 
+func (s *CustomStorage) CurrentVersion() source.ModTimeVersion {
+	return s.lastUpdate
+}
+
 func (s *CustomStorage) Update(ctx context.Context, force bool) error {
 	update, err := s.source.CheckUpdates(ctx)
 	if err != nil {

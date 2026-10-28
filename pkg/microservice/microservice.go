@@ -171,6 +171,7 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 			r.Get("/metadata", geoIpController.GetDatabaseMetaHandler)
 			r.Get("/update", managementController.CheckGeoIPUpdatesHandler)
 			r.Put("/update", managementController.UpdateGeoIPHandler)
+			r.Get("/current", managementController.GetGeoIPCurrentVersionHandler)
 		})
 
 		geoNameController := rest.NewGeoNameController(m.geoNameService)
@@ -187,6 +188,7 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 				r.Get("/dump", geoNameController.GetDumpHandler)
 				r.Get("/update", managementController.CheckGeonamesUpdatesHandler)
 				r.Put("/update", managementController.UpdateGeonamesHandler)
+				r.Get("/current", managementController.GetGeonamesCurrentVersionHandler)
 			})
 		})
 	})

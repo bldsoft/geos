@@ -315,6 +315,14 @@ func (r *GeoIPRepository) CheckUpdates(ctx context.Context, dbType MaxmindDBType
 	return result.(entity.DBUpdate[entity.PatchedMMDBVersion]), err
 }
 
+func (r *GeoIPRepository) CurrentVersion(ctx context.Context, dbType MaxmindDBType) (entity.PatchedMMDBVersion, error) {
+	db, err := r.database(ctx, dbType)
+	if err != nil {
+		return entity.PatchedMMDBVersion{}, err
+	}
+	return db.(*maxmindDBWithCachedCSVDump).currentVersion(ctx)
+}
+
 func (r *GeoIPRepository) checkCityUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedMMDBVersion], error) {
 	update, err := r.dbCity.CheckUpdates(ctx)
 	if err != nil {
