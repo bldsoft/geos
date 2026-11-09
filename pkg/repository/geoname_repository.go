@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/csv"
-	"net/url"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -20,7 +19,7 @@ const GeonamesDBType = "geonames"
 
 type StorageConfig struct {
 	LocalDir         string
-	PatchesRemoteURL string
+	PatchesLocation string
 	AutoUpdatePeriod time.Duration
 }
 type GeoNameRepository struct {
@@ -41,15 +40,11 @@ func NewGeoNamesRepository(config StorageConfig) *GeoNameRepository {
 	original := geonames.NewStorage(ctx, origSource)
 	storage := geonames.NewPatchedStorage(original)
 
-	if config.PatchesRemoteURL != "" {
-		patchesURL, err := url.Parse(config.PatchesRemoteURL)
+	if config.PatchesLocation != "" {
+		patchSource, err := source.OpenPatchFile(config.PatchesLocation, filepath.Dir(config.LocalDir), GeonamesDBType)
 		if err != nil {
-			log.FromContext(ctx).Fatalf("Failed to parse patches remote url: %s", err)
+			log.FromContext(ctx).Fatalf("Failed to open patch source: %s", err)
 		}
-		patchSource := source.NewTSUpdatableFile(
-			filepath.Join(filepath.Dir(config.LocalDir), GeonamesDBType+"_patch"+filepath.Ext(patchesURL.Path)),
-			config.PatchesRemoteURL,
-		)
 		custom := geonames.NewCustomStorage(ctx, patchSource)
 		storage = storage.Add(custom)
 	}

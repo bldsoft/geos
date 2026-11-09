@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/netip"
-	"net/url"
 	"path/filepath"
 	"time"
 
@@ -67,19 +66,15 @@ func openPatchedDB[T maxmind.CSVEntity](
 
 	patchedDB := maxmind.NewPatchedDatabase(originalDB)
 
-	if conf.PatchesRemoteURL != "" {
-		patchesURL, err := url.Parse(conf.PatchesRemoteURL)
+	if conf.PatchesLocation != "" {
+		patchesSource, err := source.OpenPatchFile(conf.PatchesLocation, filepath.Dir(conf.LocalPath), customPrefix)
 		if err != nil {
 			if required {
-				logger.Fatalf("Failed to parse patches remote url: %s", err)
+				logger.Fatalf("Failed to open patch source: %s", err)
 			}
-			logger.Warnf("Failed to parse patches remote url: %s", err)
+			logger.Warnf("Failed to open patch source: %s", err)
 			return nil
 		}
-		patchesSource := source.NewTSUpdatableFile(
-			filepath.Join(filepath.Dir(conf.LocalPath), customPrefix+"_patch"+filepath.Ext(patchesURL.Path)),
-			patchesURL.String(),
-		)
 		customDB := maxmind.NewCustomDatabase(ctx, patchesSource)
 		patchedDB = patchedDB.SetCustom(customDB)
 	}
@@ -90,7 +85,7 @@ func openPatchedDB[T maxmind.CSVEntity](
 type DBConfig struct {
 	LocalPath        string
 	RemoteURL        string
-	PatchesRemoteURL string
+	PatchesLocation string
 }
 
 type GeoIPRepositoryConfig struct {
