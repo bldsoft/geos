@@ -26,11 +26,11 @@ type Config struct {
 	GRPCServiceAddress     config.Address `mapstructure:"GRPC_SERVICE_ADDRESS" description:"GRPC public address"`
 
 	GeoDbSource               string `mapstructure:"GEOIP_DB_SOURCE" description:"Source to download GeoLite2 or GeoIP2 city database from"`
-	GeoDbPatchesSource        string `mapstructure:"GEOIP_DB_PATCHES_SOURCE" description:"Source for downloading patches for city database (in .tar.gz)"`
+	GeoDbPatchesSource        string `mapstructure:"GEOIP_DB_PATCHES_SOURCE" description:"HTTP(S) URL or local path of the city database patch (.json or .tar.gz)"`
 	GeoDbISPSource            string `mapstructure:"GEOIP_DB_ISP_SOURCE" description:"Source to download GeoIP2 ISP database from"`
-	GeoDbISPPatchesSource     string `mapstructure:"GEOIP_DB_ISP_PATCHES_SOURCE" description:"Source for downloading custom ISP database patches (in .tar.gz)"`
+	GeoDbISPPatchesSource     string `mapstructure:"GEOIP_DB_ISP_PATCHES_SOURCE" description:"HTTP(S) URL or local path of the ISP database patch (.json or .tar.gz)"`
 	GeoDbHostingSource        string `mapstructure:"GEOIP_DB_HOSTING_SOURCE" description:"Source to download hosting database from"`
-	GeoDbHostingPatchesSource string `mapstructure:"GEOIP_DB_HOSTING_PATCHES_SOURCE" description:"Source for downloading custom hosting database patches (in .tar.gz)"`
+	GeoDbHostingPatchesSource string `mapstructure:"GEOIP_DB_HOSTING_PATCHES_SOURCE" description:"HTTP(S) URL or local path of the hosting database patch (.json or .tar.gz)"`
 	AutoUpdatePeriodSec       int    `mapstructure:"AUTO_UPDATE_PERIOD_SEC" description:"Amount of seconds to wait before trying to automatically update from the source"`
 
 	GeoDbPath        string `mapstructure:"GEOIP_DB_PATH" description:"Path to GeoLite2 or GeoIP2 city database"`
@@ -40,7 +40,7 @@ type Config struct {
 	Discovery common.Config `mapstructure:"DISCOVERY"`
 
 	GeoNameDumpDirPath   string `mapstructure:"GEONAME_DUMP_DIR" description:"The path to the directory where the GeoNames dumps are located (countryInfo.txt, admin1CodesASKII.txt, cities5000.zip). If variable isn't set, GeoNames api will be disabled. The dumps will be loaded when service starts, if something is missing"`
-	GeoNamePatchesSource string `mapstructure:"GEONAME_PATCHES_SOURCE" description:"Source for downloading custom GeoNames patches (in .tar.gz)"`
+	GeoNamePatchesSource string `mapstructure:"GEONAME_PATCHES_SOURCE" description:"HTTP(S) URL or local path of the GeoNames patch (.json or .tar.gz)"`
 	GeoIPCsvDumpDirPath  string `mapstructure:"GEOIP_DUMP_DIR" description:"The path to the directory where the csv ip database is located. If the variable is set and the csv file is missing, the service will generate it from the mmdb when it starts."`
 	ApiKey               string `mapstructure:"API_KEY" description:"API key for dumps used for importing into other databases"`
 }
