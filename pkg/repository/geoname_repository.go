@@ -19,7 +19,7 @@ const GeonamesDBType = "geonames"
 
 type StorageConfig struct {
 	LocalDir         string
-	PatchesLocation string
+	PatchesLocation  string
 	AutoUpdatePeriod time.Duration
 }
 type GeoNameRepository struct {

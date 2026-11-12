@@ -83,8 +83,8 @@ func openPatchedDB[T maxmind.CSVEntity](
 }
 
 type DBConfig struct {
-	LocalPath        string
-	RemoteURL        string
+	LocalPath       string
+	RemoteURL       string
 	PatchesLocation string
 }
 

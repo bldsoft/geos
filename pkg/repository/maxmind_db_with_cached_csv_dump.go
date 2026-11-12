@@ -83,15 +83,8 @@ func (db *maxmindDBWithCachedCSVDump) WriteCSVTo(ctx context.Context, w io.Write
 }
 
 func (db *maxmindDBWithCachedCSVDump) Update(ctx context.Context, force bool) error {
-	updates, err := db.PatchedDatabase.CheckUpdates(ctx)
-	if err != nil {
+	if err := db.PatchedDatabase.Update(ctx, force); err != nil {
 		return err
-	}
-
-	if updates.RemoteVersion.Compare(updates.CurrentVersion) > 0 {
-		if err := db.PatchedDatabase.Update(ctx, force); err != nil {
-			return err
-		}
 	}
 
 	return db.updateDumpIfNeeded(ctx, force)

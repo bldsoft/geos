@@ -3,6 +3,7 @@ package source
 import (
 	"fmt"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -14,25 +15,43 @@ func OpenPatchFile(spec, cacheDir, namePrefix string) (*TSUpdatableFile, error) 
 		return nil, fmt.Errorf("patch source is empty")
 	}
 
-	parsed, err := url.Parse(spec)
-	if err != nil {
-		return nil, fmt.Errorf("parse patch source: %w", err)
-	}
-
-	switch strings.ToLower(parsed.Scheme) {
-	case "http", "https":
+	lower := strings.ToLower(spec)
+	switch {
+	case strings.HasPrefix(lower, "https://"), strings.HasPrefix(lower, "http://"):
+		parsed, err := url.Parse(spec)
+		if err != nil {
+			return nil, fmt.Errorf("parse patch source: %w", err)
+		}
 		return NewTSUpdatableFile(
 			filepath.Join(cacheDir, namePrefix+"_patch"+filepath.Ext(parsed.Path)),
 			spec,
 		), nil
-	case "file":
+	case strings.HasPrefix(lower, "file://"):
+		parsed, err := url.Parse(spec)
+		if err != nil {
+			return nil, fmt.Errorf("parse patch source: %w", err)
+		}
+		if parsed.Host != "" && !strings.EqualFold(parsed.Host, "localhost") {
+			return nil, fmt.Errorf("file URL %q has unsupported host %q", spec, parsed.Host)
+		}
 		if parsed.Path == "" {
 			return nil, fmt.Errorf("file URL %q has an empty path", spec)
 		}
+		if err := requireLocalPatch(parsed.Path); err != nil {
+			return nil, err
+		}
 		return NewTSUpdatableFile(parsed.Path, ""), nil
-	case "":
-		return NewTSUpdatableFile(spec, ""), nil
 	default:
-		return nil, fmt.Errorf("unsupported patch source %q", spec)
+		if err := requireLocalPatch(spec); err != nil {
+			return nil, err
+		}
+		return NewTSUpdatableFile(spec, ""), nil
 	}
+}
+
+func requireLocalPatch(path string) error {
+	if _, err := os.Stat(path); err != nil {
+		return fmt.Errorf("patch file %q: %w", path, err)
+	}
+	return nil
 }

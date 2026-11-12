@@ -21,6 +21,9 @@ func NewPatchedStorage(storage *GeoNameStorage) *PatchedStorage {
 
 func (s *PatchedStorage) Add(custom *CustomStorage) *PatchedStorage {
 	s.custom = custom
+	if custom != nil {
+		s.MultiStorage.Add(custom)
+	}
 	return s
 }
 

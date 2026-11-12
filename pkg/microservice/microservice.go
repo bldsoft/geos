@@ -96,18 +96,18 @@ func (m *Microservice) initServices() {
 
 	rep := repository.NewGeoIPRepository(repository.GeoIPRepositoryConfig{
 		City: repository.DBConfig{
-			LocalPath:        m.config.GeoDbPath,
-			RemoteURL:        m.config.GeoDbSource,
+			LocalPath:       m.config.GeoDbPath,
+			RemoteURL:       m.config.GeoDbSource,
 			PatchesLocation: m.config.GeoDbPatchesSource,
 		},
 		ISP: repository.DBConfig{
-			LocalPath:        m.config.GeoDbISPPath,
-			RemoteURL:        m.config.GeoDbISPSource,
+			LocalPath:       m.config.GeoDbISPPath,
+			RemoteURL:       m.config.GeoDbISPSource,
 			PatchesLocation: m.config.GeoDbISPPatchesSource,
 		},
 		Hosting: repository.DBConfig{
-			LocalPath:        m.config.GeoDbHostingPath,
-			RemoteURL:        m.config.GeoDbHostingSource,
+			LocalPath:       m.config.GeoDbHostingPath,
+			RemoteURL:       m.config.GeoDbHostingSource,
 			PatchesLocation: m.config.GeoDbHostingPatchesSource,
 		},
 		CSVDirPath:       m.config.GeoIPCsvDumpDirPath,
@@ -117,7 +117,7 @@ func (m *Microservice) initServices() {
 
 	geonameStorageConfig := repository.StorageConfig{
 		LocalDir:         m.config.GeoNameDumpDirPath,
-		PatchesLocation: m.config.GeoNamePatchesSource,
+		PatchesLocation:  m.config.GeoNamePatchesSource,
 		AutoUpdatePeriod: time.Duration(m.config.AutoUpdatePeriodSec) * time.Second,
 	}
 

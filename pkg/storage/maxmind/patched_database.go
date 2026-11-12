@@ -2,11 +2,9 @@ package maxmind
 
 import (
 	"context"
-	"errors"
 	"net/netip"
 
 	"github.com/bldsoft/geos/pkg/entity"
-	"github.com/bldsoft/geos/pkg/utils"
 )
 
 type PatchedDatabase struct {
@@ -31,14 +29,12 @@ func (db *PatchedDatabase) SetCustom(custom *CustomDatabase) *PatchedDatabase {
 }
 
 func (db *PatchedDatabase) Lookup(ctx context.Context, ip netip.Addr, result any) error {
-	err := db.MultiMaxMindDB.Lookup(ctx, ip, result)
-	if errors.Is(err, utils.ErrNotFound) {
-		return nil
-	}
-	return err
+	return db.MultiMaxMindDB.Lookup(ctx, ip, result)
 }
 
 func (db *PatchedDatabase) Update(ctx context.Context, force bool) error {
+	defer db.invalidateMerged()
+
 	if err := db.db.Update(ctx, force); err != nil {
 		return err
 	}

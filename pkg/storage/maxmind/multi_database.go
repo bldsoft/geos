@@ -4,11 +4,15 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"iter"
 	"maps"
 	"net/netip"
 	"slices"
+	"strings"
+	"sync"
+	"sync/atomic"
 
 	"github.com/bldsoft/geos/pkg/utils"
 	"github.com/bldsoft/gost/log"
@@ -21,8 +25,16 @@ import (
 
 var ErrNoDatabases = errors.New("no databases")
 
+type mergedMMDB struct {
+	key  string
+	data []byte
+}
+
 type MultiMaxMindDB struct {
-	dbs []Database
+	dbs        []Database
+	mu         sync.Mutex
+	merged     *mergedMMDB
+	mergeCount atomic.Uint32
 }
 
 func NewMultiMaxMindDB(dbs ...Database) *MultiMaxMindDB {
@@ -31,8 +43,17 @@ func NewMultiMaxMindDB(dbs ...Database) *MultiMaxMindDB {
 }
 
 func (db *MultiMaxMindDB) Add(dbs ...Database) *MultiMaxMindDB {
+	db.mu.Lock()
 	db.dbs = append(db.dbs, dbs...)
+	db.merged = nil
+	db.mu.Unlock()
 	return db
+}
+
+func (db *MultiMaxMindDB) invalidateMerged() {
+	db.mu.Lock()
+	db.merged = nil
+	db.mu.Unlock()
 }
 
 func (db *MultiMaxMindDB) Lookup(ctx context.Context, ip netip.Addr, result any) error {
@@ -99,6 +120,33 @@ func (db *MultiMaxMindDB) isEmptyDatabase(ctx context.Context, database Database
 	return meta.NodeCount == 0
 }
 
+func (db *MultiMaxMindDB) mergedCacheKey(ctx context.Context, dbs []Database) (string, bool) {
+	var b strings.Builder
+	for _, database := range dbs {
+		meta, err := database.MetaData(ctx)
+		if err != nil || meta == nil {
+			return "", false
+		}
+		fmt.Fprintf(&b, "%s|%d|%d\n", meta.DatabaseType, meta.BuildEpoch, meta.NodeCount)
+	}
+	return b.String(), true
+}
+
+func (db *MultiMaxMindDB) cachedMerged(key string) []byte {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+	if db.merged == nil || db.merged.key != key {
+		return nil
+	}
+	return append([]byte(nil), db.merged.data...)
+}
+
+func (db *MultiMaxMindDB) storeMerged(key string, data []byte) {
+	db.mu.Lock()
+	db.merged = &mergedMMDB{key: key, data: append([]byte(nil), data...)}
+	db.mu.Unlock()
+}
+
 func (db *MultiMaxMindDB) RawData(ctx context.Context) (io.Reader, error) {
 	nonEmtpyDbs := db.nonEmptyDatabases(ctx)
 	if len(nonEmtpyDbs) == 0 {
@@ -108,8 +156,67 @@ func (db *MultiMaxMindDB) RawData(ctx context.Context) (io.Reader, error) {
 		return nonEmtpyDbs[0].RawData(ctx)
 	}
 
-	opts := mmdbwriter.Options{IncludeReservedNetworks: true, DisableIPv4Aliasing: true}
-	tree, err := mmdbwriter.New(opts)
+	key, ok := db.mergedCacheKey(ctx, db.dbs)
+	if ok {
+		if cached := db.cachedMerged(key); cached != nil {
+			return bytes.NewBuffer(cached), nil
+		}
+	}
+
+	data, err := db.merge(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if ok {
+		db.storeMerged(key, data)
+	}
+	return bytes.NewBuffer(data), nil
+}
+
+func (db *MultiMaxMindDB) mergedBuildEpoch(base uint, patches ...uint) uint {
+	epoch := base
+	hasOlder := false
+	for _, patch := range patches {
+		if patch > epoch {
+			epoch = patch
+		} else if patch < base {
+			hasOlder = true
+		}
+	}
+	if hasOlder && epoch == base {
+		epoch++
+	}
+	return epoch
+}
+
+func (db *MultiMaxMindDB) writerOptions(meta *maxminddb.Metadata) mmdbwriter.Options {
+	desc := make(map[string]string, len(meta.Description))
+	maps.Copy(desc, meta.Description)
+	opts := mmdbwriter.Options{
+		BuildEpoch:              int64(meta.BuildEpoch),
+		DatabaseType:            meta.DatabaseType,
+		Description:             desc,
+		Languages:               append([]string(nil), meta.Languages...),
+		IncludeReservedNetworks: true,
+		DisableIPv4Aliasing:     true,
+	}
+	if meta.IPVersion != 0 {
+		opts.IPVersion = int(meta.IPVersion)
+	}
+	if meta.RecordSize != 0 {
+		opts.RecordSize = int(meta.RecordSize)
+	}
+	return opts
+}
+
+func (db *MultiMaxMindDB) merge(ctx context.Context) ([]byte, error) {
+	db.mergeCount.Add(1)
+
+	meta, err := db.MetaData(ctx)
+	if err != nil {
+		return nil, err
+	}
+	tree, err := mmdbwriter.New(db.writerOptions(meta))
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +297,7 @@ func (db *MultiMaxMindDB) RawData(ctx context.Context) (io.Reader, error) {
 	if _, err := tree.WriteTo(&buf); err != nil {
 		return nil, err
 	}
-	return &buf, nil
+	return buf.Bytes(), nil
 }
 
 func (db *MultiMaxMindDB) Reader(ctx context.Context) (*maxminddb.Reader, error) {
@@ -227,14 +334,16 @@ func (db *MultiMaxMindDB) MetaData(ctx context.Context) (*maxminddb.Metadata, er
 	maps.Copy(res.Description, mainMeta.Description)
 	res.Description["en"] += " patched by GEOS service."
 
-	for _, db := range db.dbs {
-		meta, err := db.MetaData(ctx)
+	var patchEpochs []uint
+	for _, child := range db.dbs[1:] {
+		meta, err := child.MetaData(ctx)
 		if err != nil {
 			log.FromContext(ctx).WarnWithFields(log.Fields{"err": err}, "failed to get db metadata")
 			continue
 		}
-		res.BuildEpoch = max(res.BuildEpoch, meta.BuildEpoch)
+		patchEpochs = append(patchEpochs, meta.BuildEpoch)
 	}
+	res.BuildEpoch = db.mergedBuildEpoch(mainMeta.BuildEpoch, patchEpochs...)
 
 	return &res, nil
 }

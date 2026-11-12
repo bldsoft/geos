@@ -60,6 +60,13 @@ func (db *CustomDatabase) Update(ctx context.Context, force bool) error {
 		return err
 	}
 
+	if db.source.RemoteURL == "" {
+		if update.CurrentVersion.Compare(db.lastUpdate) > 0 {
+			return db.update(ctx)
+		}
+		return nil
+	}
+
 	if update.RemoteVersion.Compare(update.CurrentVersion) > 0 {
 		if err := db.source.Update(ctx, force); err != nil {
 			return err
@@ -104,6 +111,9 @@ func (db *CustomDatabase) CheckUpdates(ctx context.Context) (source.Update[sourc
 	update, err := db.source.CheckUpdates(ctx)
 	if err != nil {
 		return source.Update[source.ModTimeVersion]{}, err
+	}
+	if db.source.RemoteURL == "" {
+		update.RemoteVersion = update.CurrentVersion
 	}
 	update.CurrentVersion = db.lastUpdate
 	return update, nil
