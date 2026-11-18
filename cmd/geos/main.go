@@ -30,6 +30,7 @@ func main() {
 	log.Infof("Geos v%s", version.Version)
 	log.Logf("ENVIRONMENT:\n***\n%s***", gost.FormatEnv(&cfg))
 
+	server.DefaultLogger = log.NewRequestLogger(&log.DefaultFormatter{LogResponseHeaders: true, HiddenHeaders: []string{microservice.APIKey}})
 	server.NewServer(cfg.Server, microservice.NewMicroservice(cfg)).
 		UseDefaultMiddlewares().
 		Start()

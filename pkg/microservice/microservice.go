@@ -77,7 +77,7 @@ func (m *Microservice) setDiscoveryMeta() {
 		log.Logger.ErrorWithFields(log.Fields{"err": err}, "failed to get cities database metadata")
 	}
 
-	m.discovery.SetMetadata(APIKeyMetaKey, m.config.ApiKey)
+	m.discovery.SetMetadata(APIKeyMetaKey, m.config.ApiKey.String())
 }
 
 func (m *Microservice) initServices() {
@@ -195,7 +195,7 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 }
 
 func (m *Microservice) ApiKeyMiddleware() func(next http.Handler) http.Handler {
-	return auth.ApiKeyMiddleware(APIKey, m.config.ApiKey)
+	return auth.ApiKeyMiddleware(APIKey, m.config.ApiKey.String())
 }
 
 func (m *Microservice) GetAsyncRunners() []server.AsyncRunner {
