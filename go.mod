@@ -3,7 +3,7 @@ module github.com/bldsoft/geos
 go 1.27.3
 
 require (
-	github.com/bldsoft/gost v0.0.0-20261021145803-7d116a66ad42
+	github.com/bldsoft/gost v0.0.0-20261118155550-2b384762c93c
 	github.com/derekparker/trie v0.0.0-20221221181808-1424fce0c981
 	github.com/gammazero/radixtree v0.4.1
 	github.com/go-chi/chi/v5 v5.3.2
@@ -111,5 +111,3 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
-
-replace github.com/bldsoft/gost => ../gost
