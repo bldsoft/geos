@@ -39,10 +39,10 @@ type Config struct {
 
 	Discovery common.Config `mapstructure:"DISCOVERY"`
 
-	GeoNameDumpDirPath   string `mapstructure:"GEONAME_DUMP_DIR" description:"The path to the directory where the GeoNames dumps are located (countryInfo.txt, admin1CodesASKII.txt, cities5000.zip). If variable isn't set, GeoNames api will be disabled. The dumps will be loaded when service starts, if something is missing"`
-	GeoNamePatchesSource string `mapstructure:"GEONAME_PATCHES_SOURCE" description:"Source for downloading custom GeoNames patches (in .tar.gz)"`
-	GeoIPCsvDumpDirPath  string `mapstructure:"GEOIP_DUMP_DIR" description:"The path to the directory where the csv ip database is located. If the variable is set and the csv file is missing, the service will generate it from the mmdb when it starts."`
-	ApiKey               string `mapstructure:"API_KEY" description:"API key for dumps used for importing into other databases"`
+	GeoNameDumpDirPath   string              `mapstructure:"GEONAME_DUMP_DIR" description:"The path to the directory where the GeoNames dumps are located (countryInfo.txt, admin1CodesASKII.txt, cities5000.zip). If variable isn't set, GeoNames api will be disabled. The dumps will be loaded when service starts, if something is missing"`
+	GeoNamePatchesSource string              `mapstructure:"GEONAME_PATCHES_SOURCE" description:"Source for downloading custom GeoNames patches (in .tar.gz)"`
+	GeoIPCsvDumpDirPath  string              `mapstructure:"GEOIP_DUMP_DIR" description:"The path to the directory where the csv ip database is located. If the variable is set and the csv file is missing, the service will generate it from the mmdb when it starts."`
+	ApiKey               config.HiddenString `mapstructure:"API_KEY" description:"API key for dumps used for importing into other databases"`
 }
 
 func (c *Config) NeedGrpc() bool {
