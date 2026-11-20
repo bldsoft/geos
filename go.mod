@@ -3,7 +3,7 @@ module github.com/bldsoft/geos
 go 1.27.3
 
 require (
-	github.com/bldsoft/gost v0.0.0-20261118155550-2b384762c93c
+	github.com/bldsoft/gost v0.0.0-20261120111724-48afd4300ecd
 	github.com/derekparker/trie v0.0.0-20221221181808-1424fce0c981
 	github.com/gammazero/radixtree v0.4.1
 	github.com/go-chi/chi/v5 v5.3.2

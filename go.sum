@@ -34,8 +34,8 @@ github.com/asaskevich/govalidator v0.0.0-20180720115003-f9ffefc3facf/go.mod h1:l
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
-github.com/bldsoft/gost v0.0.0-20261118155550-2b384762c93c h1:9P3mNq17qGRUKwbKKesdgUwCT72JDlRMJS86b2mBKWA=
-github.com/bldsoft/gost v0.0.0-20261118155550-2b384762c93c/go.mod h1:Ct/GHRQr313s+175103Ve5QP/l43XdQ/FwEgBgLSmw0=
+github.com/bldsoft/gost v0.0.0-20261120111724-48afd4300ecd h1:MWgp3zh5xR49Vca3yi8TOJX2aAg1hwgDTWEqlGtp2nQ=
+github.com/bldsoft/gost v0.0.0-20261120111724-48afd4300ecd/go.mod h1:Ct/GHRQr313s+175103Ve5QP/l43XdQ/FwEgBgLSmw0=
 github.com/bldsoft/memberlist v0.0.0-20250318063233-36c35bf6fda4 h1:ZjtI/cNbQ2Y8hynq5YaRyHXn70nG9l1xGkk/KXMcXMc=
 github.com/bldsoft/memberlist v0.0.0-20250318063233-36c35bf6fda4/go.mod h1:5hXa2dAqctVumW+MMzPWJ4ZOKXXmpB7fIDQXeL6bqKA=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
