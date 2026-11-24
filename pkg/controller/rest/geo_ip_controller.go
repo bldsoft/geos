@@ -47,7 +47,11 @@ func (c *GeoIpController) GetASNsHandler(w http.ResponseWriter, r *http.Request)
 	filter := &entity.ASNFilter{}
 	var err error
 	if r.Method == http.MethodPost {
+		r.Body = http.MaxBytesReader(w, r.Body, maxSearchBodyBytes)
 		err = json.NewDecoder(r.Body).Decode(filter)
+		if err == nil && len(filter.Numbers) > maxSearchIDs {
+			err = errTooManyIDs
+		}
 	} else {
 		filter, err = gostUtils.FromRequest[entity.ASNFilter](r)
 	}

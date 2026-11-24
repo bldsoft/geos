@@ -14,6 +14,13 @@ import (
 	gostUtils "github.com/bldsoft/gost/utils"
 )
 
+const (
+	maxSearchBodyBytes = 4 * 1024 * 1024
+	maxSearchIDs       = 10000
+)
+
+var errTooManyIDs = errors.New("too many identifiers")
+
 type GeoNameController struct {
 	gost.BaseController
 	geoNameService controller.GeoNameService
@@ -23,10 +30,14 @@ func NewGeoNameController(geoNameService controller.GeoNameService) *GeoNameCont
 	return &GeoNameController{geoNameService: geoNameService}
 }
 
-func (c *GeoNameController) getGeoNameFilter(r *http.Request) (filter *entity.GeoNameFilter, err error) {
+func (c *GeoNameController) getGeoNameFilter(w http.ResponseWriter, r *http.Request) (filter *entity.GeoNameFilter, err error) {
 	filter = &entity.GeoNameFilter{}
 	if r.Method == http.MethodPost {
+		r.Body = http.MaxBytesReader(w, r.Body, maxSearchBodyBytes)
 		err = json.NewDecoder(r.Body).Decode(filter)
+		if err == nil && (len(filter.GeoNameIDs) > maxSearchIDs || len(filter.CountryCodes) > maxSearchIDs) {
+			err = errTooManyIDs
+		}
 		return
 	}
 
@@ -58,7 +69,7 @@ func (c *GeoNameController) GetGeoNameContinentsHandler(w http.ResponseWriter, r
 // @Router /geoname/country [get]
 func (c *GeoNameController) GetGeoNameCountriesHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	filter, err := c.getGeoNameFilter(r)
+	filter, err := c.getGeoNameFilter(w, r)
 	if err != nil {
 		c.responseError(w, r, err)
 		return
@@ -85,7 +96,7 @@ func (c *GeoNameController) GetGeoNameCountriesHandler(w http.ResponseWriter, r 
 // @Router /geoname/subdivision [get]
 func (c *GeoNameController) GetGeoNameSubdivisionsHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	filter, err := c.getGeoNameFilter(r)
+	filter, err := c.getGeoNameFilter(w, r)
 	if err != nil {
 		c.responseError(w, r, err)
 		return
@@ -112,7 +123,7 @@ func (c *GeoNameController) GetGeoNameSubdivisionsHandler(w http.ResponseWriter,
 // @Router /geoname/city [get]
 func (c *GeoNameController) GetGeoNameCitiesHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	filter, err := c.getGeoNameFilter(r)
+	filter, err := c.getGeoNameFilter(w, r)
 	if err != nil {
 		c.responseError(w, r, err)
 		return
