@@ -6,7 +6,7 @@ import (
 	"github.com/bldsoft/geos/pkg/entity"
 )
 
-const defaultGeoNameLimit = 100
+const maxSearchLimit = 100
 
 type GeoNameRepository interface {
 	Continents(ctx context.Context) []*entity.GeoNameContinent
@@ -45,20 +45,20 @@ func (s *GeoNameService) Continents(ctx context.Context) []*entity.GeoNameContin
 }
 
 func (s *GeoNameService) Countries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error) {
-	return s.GeoNameRepository.Countries(ctx, withDefaultGeoNameLimit(filter))
+	return s.GeoNameRepository.Countries(ctx, filter)
 }
 
 func (s *GeoNameService) Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameAdminSubdivision, error) {
-	return s.GeoNameRepository.Subdivisions(ctx, withDefaultGeoNameLimit(filter))
+	return s.GeoNameRepository.Subdivisions(ctx, s.limited(filter))
 }
 
 func (s *GeoNameService) Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error) {
-	return s.GeoNameRepository.Cities(ctx, withDefaultGeoNameLimit(filter))
+	return s.GeoNameRepository.Cities(ctx, s.limited(filter))
 }
 
-func withDefaultGeoNameLimit(filter entity.GeoNameFilter) entity.GeoNameFilter {
-	if filter.Limit == 0 {
-		filter.Limit = defaultGeoNameLimit
+func (s *GeoNameService) limited(filter entity.GeoNameFilter) entity.GeoNameFilter {
+	if len(filter.GeoNameIDs) == 0 && (filter.Limit == 0 || filter.Limit > maxSearchLimit) {
+		filter.Limit = maxSearchLimit
 	}
 	return filter
 }

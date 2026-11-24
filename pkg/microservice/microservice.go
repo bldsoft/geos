@@ -24,6 +24,7 @@ import (
 	"github.com/bldsoft/gost/server"
 	gost_storage "github.com/bldsoft/gost/storage"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 const (
@@ -146,6 +147,7 @@ func (m *Microservice) BuildRoutes(router chi.Router) {
 		d.Mount(router)
 	}
 	router.Route(BaseApiPath, func(r chi.Router) {
+		r.Use(middleware.RequestSize(4 << 20))
 		r.Get("/ping", gost.GetPingHandler)
 		r.With(m.ApiKeyMiddleware()).Get("/env", gost.GetEnvHandler(m.config, nil))
 		r.Get("/version", gost.GetVersionHandler)

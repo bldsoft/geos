@@ -117,5 +117,8 @@ func (r *GeoIpService) StartUpdate(ctx context.Context, dbType DBType) error {
 }
 
 func (s *GeoIpService) ASNs(ctx context.Context, filter entity.ASNFilter) ([]*entity.ASN, error) {
+	if len(filter.Numbers) == 0 && (filter.Limit == 0 || filter.Limit > maxSearchLimit) {
+		filter.Limit = maxSearchLimit
+	}
 	return s.rep.ASNs(ctx, filter)
 }
