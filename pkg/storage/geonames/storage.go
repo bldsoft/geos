@@ -124,6 +124,9 @@ func (r *GeoNameStorage) fillAdditionalFields(
 				break
 			}
 		}
+		if continent == nil {
+			continue
+		}
 
 		country.ContinentName = continent.GetContinentName()
 

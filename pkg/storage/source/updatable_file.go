@@ -18,6 +18,7 @@ var ErrRemoteURLNotSet = errors.New("remote URL is not set")
 type UpdatableFile[V Comparable[V]] struct {
 	LocalPath string
 	RemoteURL string
+	maxBytes  int64
 
 	LocalFileRepository  FileRepository
 	RemoteFileRepository ReadFileRepository
@@ -118,9 +119,18 @@ func (u *UpdatableFile[V]) downloadTempFile(ctx context.Context, force bool) err
 	}
 	defer reader.Close()
 
-	if _, err := io.Copy(tmpFile, reader); err != nil {
+	src := io.Reader(reader)
+	if u.maxBytes > 0 {
+		src = io.LimitReader(reader, u.maxBytes+1)
+	}
+	n, err := io.Copy(tmpFile, src)
+	if err != nil {
 		os.Remove(u.tmpFilePath())
 		return fmt.Errorf("failed to download file: %w", err)
+	}
+	if u.maxBytes > 0 && n > u.maxBytes {
+		os.Remove(u.tmpFilePath())
+		return fmt.Errorf("remote file exceeds %d bytes", u.maxBytes)
 	}
 
 	return nil

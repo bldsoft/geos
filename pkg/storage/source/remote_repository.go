@@ -2,17 +2,31 @@ package source
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
 )
 
+var sameHostHTTPClient = &http.Client{
+	CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		if len(via) >= 10 {
+			return errors.New("stopped after 10 redirects")
+		}
+		if req.URL.Hostname() != via[0].URL.Hostname() {
+			return fmt.Errorf("refusing redirect to %s", req.URL.Host)
+		}
+		return nil
+	},
+}
+
 type RemoteFileRepository struct {
+	client *http.Client
 }
 
 func NewRemoteFileRepository() *RemoteFileRepository {
-	return &RemoteFileRepository{}
+	return &RemoteFileRepository{client: http.DefaultClient}
 }
 
 func (r *RemoteFileRepository) Reader(ctx context.Context, path string) (io.ReadCloser, error) {
@@ -21,9 +35,14 @@ func (r *RemoteFileRepository) Reader(ctx context.Context, path string) (io.Read
 		return nil, err
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := r.client.Do(req)
 	if err != nil {
 		return nil, err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
+		return nil, fmt.Errorf("server did not return OK: %s", resp.Status)
 	}
 
 	return resp.Body, nil
@@ -36,7 +55,7 @@ func (r *RemoteFileRepository) TailReader(ctx context.Context, path string, offs
 	}
 	req.Header.Add("Range", fmt.Sprintf("bytes=-%d", offset))
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := r.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +74,7 @@ func (r *RemoteFileRepository) LastModified(ctx context.Context, path string) (t
 		return time.Time{}, err
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := r.client.Do(req)
 	if err != nil {
 		return time.Time{}, err
 	}

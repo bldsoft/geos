@@ -11,7 +11,8 @@ import (
 )
 
 const (
-	geonamesBaseURL = "http://download.geonames.org/export/dump"
+	geonamesBaseURL          = "https://download.geonames.org/export/dump"
+	maxGeoNamesDownloadBytes = 64 << 20
 )
 
 type GeoNamesSource struct {
@@ -42,6 +43,15 @@ func NewGeoNamesSource(dirPath string) *GeoNamesSource {
 		filepath.Join(dirPath, string(geonames.Cities500)),
 		join(geonamesBaseURL, string(geonames.Cities500)),
 	)
+
+	for _, file := range []*UpdatableFile[ModTimeVersion]{
+		res.CountriesFile,
+		res.AdminDivisionsFile,
+		res.Cities500File,
+	} {
+		file.maxBytes = maxGeoNamesDownloadBytes
+		file.RemoteFileRepository.(*RemoteFileRepository).client = sameHostHTTPClient
+	}
 
 	return res
 }

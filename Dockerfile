@@ -21,6 +21,7 @@ FROM alpine:latest
 RUN apk --no-cache add ca-certificates wget
 
 ARG GEONAME_DUMP_DIR=/etc/geos/geonames
+ENV GEONAME_DUMP_DIR=${GEONAME_DUMP_DIR}
 RUN mkdir -p ${GEONAME_DUMP_DIR}
 RUN wget -P ${GEONAME_DUMP_DIR} https://download.geonames.org/export/dump/admin1CodesASCII.txt && \
     wget -P ${GEONAME_DUMP_DIR} https://download.geonames.org/export/dump/cities500.zip && \
