@@ -11,6 +11,8 @@ import (
 	"github.com/bldsoft/gost/log"
 )
 
+const asnCatalogLimit = 100
+
 var ErrASNNotReady = fmt.Errorf("asn catalog is %w", utils.ErrNotReady)
 
 type ASNStorage struct {
@@ -50,8 +52,12 @@ func (s *ASNStorage) GetFiltered(ctx context.Context, filter entity.ASNFilter) (
 		return nil, ErrASNNotReady
 	}
 	filtered := idx.GetFiltered(filter)
-	if filter.Limit != 0 && len(filtered) > int(filter.Limit) {
-		return filtered[:filter.Limit], nil
+	limit := filter.Limit
+	if len(filter.Numbers) == 0 && (limit == 0 || limit > asnCatalogLimit) {
+		limit = asnCatalogLimit
+	}
+	if limit != 0 && len(filtered) > int(limit) {
+		return filtered[:limit], nil
 	}
 	return filtered, nil
 }
