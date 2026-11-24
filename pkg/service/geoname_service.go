@@ -6,6 +6,8 @@ import (
 	"github.com/bldsoft/geos/pkg/entity"
 )
 
+const defaultGeoNameLimit = 100
+
 type GeoNameRepository interface {
 	Continents(ctx context.Context) []*entity.GeoNameContinent
 	Countries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error)
@@ -43,15 +45,22 @@ func (s *GeoNameService) Continents(ctx context.Context) []*entity.GeoNameContin
 }
 
 func (s *GeoNameService) Countries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error) {
-	return s.GeoNameRepository.Countries(ctx, filter)
+	return s.GeoNameRepository.Countries(ctx, withDefaultGeoNameLimit(filter))
 }
 
 func (s *GeoNameService) Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameAdminSubdivision, error) {
-	return s.GeoNameRepository.Subdivisions(ctx, filter)
+	return s.GeoNameRepository.Subdivisions(ctx, withDefaultGeoNameLimit(filter))
 }
 
 func (s *GeoNameService) Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error) {
-	return s.GeoNameRepository.Cities(ctx, filter)
+	return s.GeoNameRepository.Cities(ctx, withDefaultGeoNameLimit(filter))
+}
+
+func withDefaultGeoNameLimit(filter entity.GeoNameFilter) entity.GeoNameFilter {
+	if filter.Limit == 0 {
+		filter.Limit = defaultGeoNameLimit
+	}
+	return filter
 }
 
 func (s *GeoNameService) Dump(ctx context.Context, format DumpFormat) ([]byte, error) {
