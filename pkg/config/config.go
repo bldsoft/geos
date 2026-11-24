@@ -13,6 +13,8 @@ import (
 
 const (
 	ServiceName = "geos"
+
+	publishedInHouseSecretKey = "ZljFlK6atNj5U3VbHrDxRgFMHYcgEOpy"
 )
 
 type Config struct {
@@ -67,6 +69,13 @@ func (c *Config) SetDefaults() {
 
 // Validate ...
 func (c *Config) Validate() error {
+	if c.Discovery.DiscoveryType == common.DiscoveryTypeInHouse {
+		secret := c.Discovery.InHouse.SecretKey.String()
+		if secret == "" || secret == publishedInHouseSecretKey {
+			return fmt.Errorf("DISCOVERY_INHOUSE_SECRET_KEY must be set to a private 16, 24, or 32 byte value")
+		}
+	}
+
 	if _, err := os.Stat(c.GeoDbPath); err != nil && len(c.GeoDbSource) == 0 {
 		return fmt.Errorf("GEOIP_DB_PATH %s: %w", c.GeoDbPath, err)
 	}
