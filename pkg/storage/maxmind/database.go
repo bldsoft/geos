@@ -106,6 +106,10 @@ func (db *MaxmindDatabase) update(ctx context.Context) error {
 	return nil
 }
 
+func (db *MaxmindDatabase) CurrentVersion() entity.MMDBVersion {
+	return db.lastUpdate
+}
+
 func (db *MaxmindDatabase) CheckUpdates(ctx context.Context) (entity.Update[entity.MMDBVersion], error) {
 	update, err := db.source.CheckUpdates(ctx)
 	if err != nil {

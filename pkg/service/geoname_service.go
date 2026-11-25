@@ -15,6 +15,7 @@ type GeoNameRepository interface {
 
 	StartUpdate(ctx context.Context) error
 	CheckUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedGeoNamesVersion], error)
+	CurrentVersion(ctx context.Context) (entity.PatchedGeoNamesVersion, error)
 }
 
 type GeoNameService struct {
@@ -27,6 +28,10 @@ func NewGeoNameService(rep GeoNameRepository) *GeoNameService {
 
 func (s *GeoNameService) CheckUpdates(ctx context.Context) (entity.DBUpdate[entity.PatchedGeoNamesVersion], error) {
 	return s.GeoNameRepository.CheckUpdates(ctx)
+}
+
+func (s *GeoNameService) CurrentVersion(ctx context.Context) (entity.PatchedGeoNamesVersion, error) {
+	return s.GeoNameRepository.CurrentVersion(ctx)
 }
 
 func (s *GeoNameService) StartUpdate(ctx context.Context) error {
