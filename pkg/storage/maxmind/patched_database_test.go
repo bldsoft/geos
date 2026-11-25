@@ -1,6 +1,7 @@
 package maxmind
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"net/netip"
@@ -165,6 +166,26 @@ func TestMergedRawDataCachedUntilUpdate(t *testing.T) {
 	thirdBytes, err := io.ReadAll(third)
 	require.NoError(t, err)
 	require.NotEqual(t, firstBytes, thirdBytes)
+}
+
+func TestMergedRawDataSharesCachedBytes(t *testing.T) {
+	t.Parallel()
+
+	basePatch := mustDatabasePatch(t, `{"8.8.8.0/24": {"country": {"isoCode": "US"}}}`)
+	patch := mustDatabasePatch(t, `{"38.65.120.0/22": {"country": {"isoCode": "VE"}}}`)
+	db := NewMultiMaxMindDB(basePatch, patch)
+	ctx := context.Background()
+
+	first, err := db.RawData(ctx)
+	require.NoError(t, err)
+	second, err := db.RawData(ctx)
+	require.NoError(t, err)
+
+	firstBytes := first.(*bytes.Buffer).Bytes()
+	secondBytes := second.(*bytes.Buffer).Bytes()
+	require.NotEmpty(t, firstBytes)
+	require.Same(t, &firstBytes[0], &secondBytes[0])
+	require.Equal(t, uint32(1), db.mergeCount.Load())
 }
 
 func TestMergedBuildEpoch(t *testing.T) {

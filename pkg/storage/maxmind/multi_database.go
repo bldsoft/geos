@@ -138,12 +138,12 @@ func (db *MultiMaxMindDB) cachedMerged(key string) []byte {
 	if db.merged == nil || db.merged.key != key {
 		return nil
 	}
-	return append([]byte(nil), db.merged.data...)
+	return db.merged.data
 }
 
 func (db *MultiMaxMindDB) storeMerged(key string, data []byte) {
 	db.mu.Lock()
-	db.merged = &mergedMMDB{key: key, data: append([]byte(nil), data...)}
+	db.merged = &mergedMMDB{key: key, data: data}
 	db.mu.Unlock()
 }
 
