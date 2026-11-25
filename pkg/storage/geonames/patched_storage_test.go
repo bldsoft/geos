@@ -35,3 +35,30 @@ func TestPatchedStorageAddConsultsCustom(t *testing.T) {
 	require.Len(t, cities, 1)
 	require.Equal(t, "Testville", cities[0].Name)
 }
+
+func TestStoragePatchHonorsLimit(t *testing.T) {
+	t.Parallel()
+
+	var records []CustomGeonamesRecord
+	for i := 1; i <= 5; i++ {
+		records = append(records, NewCustomGeonamesRecord("Place", i))
+	}
+	patch := NewStoragePatch(records)
+	ctx := context.Background()
+
+	cities, err := patch.Cities(ctx, entity.GeoNameFilter{Limit: 2})
+	require.NoError(t, err)
+	require.Len(t, cities, 2)
+
+	subdivisions, err := patch.Subdivisions(ctx, entity.GeoNameFilter{Limit: 3})
+	require.NoError(t, err)
+	require.Len(t, subdivisions, 3)
+
+	countries, err := patch.Countries(ctx, entity.GeoNameFilter{Limit: 1})
+	require.NoError(t, err)
+	require.Len(t, countries, 1)
+
+	cities, err = patch.Cities(ctx, entity.GeoNameFilter{})
+	require.NoError(t, err)
+	require.Len(t, cities, 5)
+}
