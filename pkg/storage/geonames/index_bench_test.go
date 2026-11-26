@@ -81,7 +81,7 @@ func buildRadix(names []string) *radixNameIndex {
 func (idx *radixNameIndex) indexesByPrefix(prefix string) []int {
 	prefix = strings.ToLower(prefix)
 	var res []int
-	for _, indexes := range idx.tree.IterAt(prefix) {
+	for _, indexes := range idx.tree.IterPrefix(prefix) {
 		res = append(res, indexes...)
 	}
 	return res

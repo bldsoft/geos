@@ -19,7 +19,7 @@ func NewLoggerV2(logger *log.ServiceLogger) *LoggerV2 {
 
 // Info logs to INFO log. Arguments are handled in the manner of fmt.Print.
 func (l *LoggerV2) Info(args ...any) {
-	l.logger.Infof(fmt.Sprint(args...))
+	l.logger.Info(fmt.Sprint(args...))
 }
 
 // Infoln logs to INFO log. Arguments are handled in the manner of fmt.Println.
