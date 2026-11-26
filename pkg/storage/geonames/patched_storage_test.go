@@ -62,3 +62,45 @@ func TestStoragePatchHonorsLimit(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, cities, 5)
 }
+
+func TestMultiStorageStopsWhenLimitIsFilled(t *testing.T) {
+	t.Parallel()
+
+	newPatch := func(count int) Storage {
+		var records []CustomGeonamesRecord
+		for i := 1; i <= count; i++ {
+			records = append(records, NewCustomGeonamesRecord("Place", i))
+		}
+
+		return NewStoragePatch(records)
+	}
+	multi := NewMultiStorage(newPatch(3), newPatch(5))
+	ctx := context.Background()
+
+	tests := []struct {
+		limit uint32
+		want  int
+	}{
+		{limit: 0, want: 8},
+		{limit: 2, want: 2},
+		{limit: 3, want: 3},
+		{limit: 4, want: 4},
+		{limit: 8, want: 8},
+		{limit: 20, want: 8},
+	}
+	for _, tt := range tests {
+		filter := entity.GeoNameFilter{Limit: tt.limit}
+
+		cities, err := multi.Cities(ctx, filter)
+		require.NoError(t, err)
+		require.Len(t, cities, tt.want, "cities, limit %d", tt.limit)
+
+		subdivisions, err := multi.Subdivisions(ctx, filter)
+		require.NoError(t, err)
+		require.Len(t, subdivisions, tt.want, "subdivisions, limit %d", tt.limit)
+
+		countries, err := multi.Countries(ctx, filter)
+		require.NoError(t, err)
+		require.Len(t, countries, tt.want, "countries, limit %d", tt.limit)
+	}
+}
