@@ -54,6 +54,7 @@ func (c *Config) SetDefaults() {
 	c.Server.ServiceName = ServiceName
 	c.Server.ServiceBindHost = "0.0.0.0"
 	c.Server.ServiceBindPort = 8505
+	c.Server.ReadTimeoutMs = 30000
 	c.GRPCServiceBindAddress = "0.0.0.0:8506"
 	c.GRPCServiceAddress = c.GRPCServiceBindAddress
 	c.Log.Color = false

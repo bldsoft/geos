@@ -26,6 +26,11 @@ func (r *RemoteFileRepository) Reader(ctx context.Context, path string) (io.Read
 		return nil, err
 	}
 
+	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
+		return nil, fmt.Errorf("server did not return OK: %s", resp.Status)
+	}
+
 	return resp.Body, nil
 }
 

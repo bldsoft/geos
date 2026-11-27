@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	geonamesBaseURL = "http://download.geonames.org/export/dump"
+	geonamesBaseURL = "https://download.geonames.org/export/dump"
 )
 
 type GeoNamesSource struct {

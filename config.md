@@ -28,7 +28,7 @@
 |DISCOVERY_INHOUSE_EMBEDDED|true|If true, in-house discovery will use service bind address|
 |DISCOVERY_INHOUSE_BIND_ADDRESS|0.0.0.0:3001|For non embedded mode. Configuration related to what address to bind to and ports to listen on.|
 |DISCOVERY_INHOUSE_CLUSTER_MEMBERS||Comma separated list of any existing member of the cluster to join it. Example: '127.0.0.1:3001'|
-|DISCOVERY_INHOUSE_SECRET_KEY|ZljFlK6atNj5U3VbHrDxRgFMHYcgEOpy|SecretKey is used to encrypt messages. The value should be either 16, 24, or 32 bytes to select AES-128, AES-192, or AES-256.|
+|DISCOVERY_INHOUSE_SECRET_KEY||SecretKey is used to encrypt messages. The value should be either 16, 24, or 32 bytes to select AES-128, AES-192, or AES-256.|
 |DISCOVERY_INHOUSE_DEREGISTER_SERVICE_AFTER|1h0m0s|The interval after which the downed service is removed from the cluster|
 |DISCOVERY_CONSUL_ADDRESS|http://127.0.0.1:8500|Address of the Consul server|
 |DISCOVERY_CONSUL_TOKEN|| Token is used to provide a per-request ACL token|

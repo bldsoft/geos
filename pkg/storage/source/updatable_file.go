@@ -114,6 +114,7 @@ func (u *UpdatableFile[V]) downloadTempFile(ctx context.Context, force bool) err
 
 	reader, err := u.RemoteFileRepository.Reader(ctx, u.RemoteURL)
 	if err != nil {
+		os.Remove(u.tmpFilePath())
 		return err
 	}
 	defer reader.Close()
