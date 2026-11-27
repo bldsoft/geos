@@ -90,7 +90,7 @@ func (idx *index[T]) GetFiltered(filter entity.GeoNameFilter) (res []T) {
 func (idx *index[T]) indexesByNamePrefix(namePrefix string) []int {
 	namePrefix = strings.ToLower(namePrefix)
 	var res []int
-	for _, indexes := range idx.names.IterAt(namePrefix) {
+	for _, indexes := range idx.names.IterPrefix(namePrefix) {
 		res = append(res, indexes...)
 	}
 	return res

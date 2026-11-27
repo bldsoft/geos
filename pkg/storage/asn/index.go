@@ -70,7 +70,7 @@ func (idx *index) GetFiltered(filter entity.ASNFilter) (res []*entity.ASN) {
 func (idx *index) indexesByNamePrefix(namePrefix string) []int {
 	namePrefix = strings.ToLower(namePrefix)
 	var res []int
-	for _, indexes := range idx.names.IterAt(namePrefix) {
+	for _, indexes := range idx.names.IterPrefix(namePrefix) {
 		res = append(res, indexes...)
 	}
 	return res

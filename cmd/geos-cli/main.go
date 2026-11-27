@@ -24,7 +24,7 @@ func client(ctx *cli.Context) *grpc.Client {
 	addr := fmt.Sprintf("%s:%d", host, port)
 	client, err := grpc.NewClient(addr)
 	if err != nil {
-		log.Fatalf(err.Error())
+		log.Fatal(err)
 	}
 	return client
 }
