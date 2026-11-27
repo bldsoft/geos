@@ -96,19 +96,19 @@ func (m *Microservice) initServices() {
 
 	rep := repository.NewGeoIPRepository(repository.GeoIPRepositoryConfig{
 		City: repository.DBConfig{
-			LocalPath:        m.config.GeoDbPath,
-			RemoteURL:        m.config.GeoDbSource,
-			PatchesRemoteURL: m.config.GeoDbPatchesSource,
+			LocalPath:       m.config.GeoDbPath,
+			RemoteURL:       m.config.GeoDbSource,
+			PatchesLocation: m.config.GeoDbPatchesSource,
 		},
 		ISP: repository.DBConfig{
-			LocalPath:        m.config.GeoDbISPPath,
-			RemoteURL:        m.config.GeoDbISPSource,
-			PatchesRemoteURL: m.config.GeoDbISPPatchesSource,
+			LocalPath:       m.config.GeoDbISPPath,
+			RemoteURL:       m.config.GeoDbISPSource,
+			PatchesLocation: m.config.GeoDbISPPatchesSource,
 		},
 		Hosting: repository.DBConfig{
-			LocalPath:        m.config.GeoDbHostingPath,
-			RemoteURL:        m.config.GeoDbHostingSource,
-			PatchesRemoteURL: m.config.GeoDbHostingPatchesSource,
+			LocalPath:       m.config.GeoDbHostingPath,
+			RemoteURL:       m.config.GeoDbHostingSource,
+			PatchesLocation: m.config.GeoDbHostingPatchesSource,
 		},
 		CSVDirPath:       m.config.GeoIPCsvDumpDirPath,
 		AutoUpdatePeriod: time.Duration(m.config.AutoUpdatePeriodSec) * time.Second,
@@ -117,7 +117,7 @@ func (m *Microservice) initServices() {
 
 	geonameStorageConfig := repository.StorageConfig{
 		LocalDir:         m.config.GeoNameDumpDirPath,
-		PatchesRemoteURL: m.config.GeoNamePatchesSource,
+		PatchesLocation:  m.config.GeoNamePatchesSource,
 		AutoUpdatePeriod: time.Duration(m.config.AutoUpdatePeriodSec) * time.Second,
 	}
 

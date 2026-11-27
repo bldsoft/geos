@@ -35,6 +35,9 @@ func (s *CustomStorage) CheckUpdates(ctx context.Context) (entity.Update[source.
 	if err != nil {
 		return entity.Update[source.ModTimeVersion]{}, err
 	}
+	if s.source.RemoteURL == "" {
+		update.RemoteVersion = update.CurrentVersion
+	}
 	update.CurrentVersion = s.lastUpdate
 	return update, nil
 }
@@ -47,6 +50,13 @@ func (s *CustomStorage) Update(ctx context.Context, force bool) error {
 	update, err := s.source.CheckUpdates(ctx)
 	if err != nil {
 		return err
+	}
+
+	if s.source.RemoteURL == "" {
+		if update.CurrentVersion.Compare(s.lastUpdate) > 0 {
+			return s.update(ctx)
+		}
+		return nil
 	}
 
 	if update.RemoteVersion.Compare(update.CurrentVersion) > 0 {
@@ -87,4 +97,20 @@ func (s *CustomStorage) update(ctx context.Context) error {
 	s.base.Store(NewMultiStorage(patches...))
 	s.lastUpdate = version
 	return nil
+}
+
+func (s *CustomStorage) Continents(ctx context.Context) []*entity.GeoNameContinent {
+	return s.base.Load().Continents(ctx)
+}
+
+func (s *CustomStorage) Countries(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameCountry, error) {
+	return s.base.Load().Countries(ctx, filter)
+}
+
+func (s *CustomStorage) Subdivisions(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoNameAdminSubdivision, error) {
+	return s.base.Load().Subdivisions(ctx, filter)
+}
+
+func (s *CustomStorage) Cities(ctx context.Context, filter entity.GeoNameFilter) ([]*entity.GeoName, error) {
+	return s.base.Load().Cities(ctx, filter)
 }

@@ -49,6 +49,10 @@ func (u *UpdatableFile[V]) Reader(ctx context.Context) (io.ReadCloser, error) {
 		return nil, fmt.Errorf("failed to open local file: %w", err)
 	}
 
+	if u.RemoteURL == "" {
+		return nil, fmt.Errorf("open %q: %w", u.LocalPath, err)
+	}
+
 	log.FromContext(ctx).Info("Local file missing, starting download")
 
 	if err := u.update(ctx, true); err != nil {

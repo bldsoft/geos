@@ -100,7 +100,17 @@ func NewDatabasePatchFromJSON(source *source.TSUpdatableFile) (*DatabasePatch, e
 	if err != nil {
 		return nil, err
 	}
-	return NewDatabasePatch(jsonReader)
+	patch, err := NewDatabasePatch(jsonReader)
+	if err != nil {
+		return nil, err
+	}
+	ver, err := source.Version(ctx)
+	if err != nil {
+		return nil, err
+	}
+	meta := patch.db.Metadata
+	meta.BuildEpoch = uint(ver.Time().Unix())
+	return patch.WithMetadata(meta), nil
 }
 
 func NewDatabasePatch(reader MMDBRecordReader) (*DatabasePatch, error) {

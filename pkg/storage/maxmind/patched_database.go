@@ -2,6 +2,7 @@ package maxmind
 
 import (
 	"context"
+	"net/netip"
 
 	"github.com/bldsoft/geos/pkg/entity"
 )
@@ -21,10 +22,19 @@ func NewPatchedDatabase(db *MaxmindDatabase) *PatchedDatabase {
 
 func (db *PatchedDatabase) SetCustom(custom *CustomDatabase) *PatchedDatabase {
 	db.custom = custom
+	if custom != nil {
+		db.Add(custom)
+	}
 	return db
 }
 
+func (db *PatchedDatabase) Lookup(ctx context.Context, ip netip.Addr, result any) error {
+	return db.MultiMaxMindDB.Lookup(ctx, ip, result)
+}
+
 func (db *PatchedDatabase) Update(ctx context.Context, force bool) error {
+	defer db.invalidateMerged()
+
 	if err := db.db.Update(ctx, force); err != nil {
 		return err
 	}

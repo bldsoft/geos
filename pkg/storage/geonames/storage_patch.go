@@ -165,8 +165,12 @@ func (s *StoragePatch) Continents(_ context.Context) []*entity.GeoNameContinent 
 func customFilter[T entity.GeoNameEntity](items []T, filter entity.GeoNameFilter) []T {
 	var res []T
 	for _, item := range items {
-		if filter.Match(item) {
-			res = append(res, item)
+		if !filter.Match(item) {
+			continue
+		}
+		res = append(res, item)
+		if filter.Limit != 0 && len(res) >= int(filter.Limit) {
+			break
 		}
 	}
 	return res

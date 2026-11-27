@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/netip"
-	"net/url"
 	"path/filepath"
 	"time"
 
@@ -67,30 +66,26 @@ func openPatchedDB[T maxmind.CSVEntity](
 
 	patchedDB := maxmind.NewPatchedDatabase(originalDB)
 
-	if conf.PatchesRemoteURL != "" {
-		patchesURL, err := url.Parse(conf.PatchesRemoteURL)
-		if err != nil {
-			if required {
-				logger.Fatalf("Failed to parse patches remote url: %s", err)
-			}
-			logger.Warnf("Failed to parse patches remote url: %s", err)
-			return nil
+	if conf.PatchesLocation != "" {
+		patchesSource, err := source.OpenPatchFile(conf.PatchesLocation, filepath.Dir(conf.LocalPath), customPrefix)
+		switch {
+		case err == nil:
+			customDB := maxmind.NewCustomDatabase(ctx, patchesSource)
+			patchedDB = patchedDB.SetCustom(customDB)
+		case required:
+			logger.Fatalf("Failed to open patch source: %s", err)
+		default:
+			logger.Warnf("Failed to open patch source, continuing with the unpatched db: %s", err)
 		}
-		patchesSource := source.NewTSUpdatableFile(
-			filepath.Join(filepath.Dir(conf.LocalPath), customPrefix+"_patch"+filepath.Ext(patchesURL.Path)),
-			patchesURL.String(),
-		)
-		customDB := maxmind.NewCustomDatabase(ctx, patchesSource)
-		patchedDB = patchedDB.SetCustom(customDB)
 	}
 
 	return withCachedCSVDump[T](ctx, patchedDB, filepath.Join(csvDumpDir, customPrefix+".csv"))
 }
 
 type DBConfig struct {
-	LocalPath        string
-	RemoteURL        string
-	PatchesRemoteURL string
+	LocalPath       string
+	RemoteURL       string
+	PatchesLocation string
 }
 
 type GeoIPRepositoryConfig struct {
